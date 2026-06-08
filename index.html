@@ -590,6 +590,8 @@
 
   /* ===== RESPONSIVE MOBILE ===== */
   @media (max-width: 768px) {
+    body { background: #f5f3ec; }
+
     .sidebar {
       width: 100%;
       height: auto;
@@ -600,10 +602,13 @@
       right: 0;
       flex-direction: row;
       padding: 0;
+      padding-bottom: env(safe-area-inset-bottom);
       overflow-x: auto;
       overflow-y: hidden;
       z-index: 200;
-      border-top: 1px solid rgba(255,255,255,0.1);
+      border-top: 2px solid rgba(255,255,255,0.15);
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+      -webkit-overflow-scrolling: touch;
     }
 
     .sidebar-logo, .sidebar-version, .sidebar-bottom { display: none; }
@@ -611,83 +616,92 @@
     .nav-item {
       flex-direction: column;
       gap: 2px;
-      padding: 8px 10px 6px;
+      padding: 10px 12px 8px;
       border-radius: 0;
-      font-size: 10px;
-      min-width: 60px;
+      font-size: 9px;
+      min-width: 56px;
       text-align: center;
       white-space: nowrap;
       margin: 0;
+      flex-shrink: 0;
+      color: rgba(159,225,203,0.7);
     }
 
     .nav-item.active {
-      background: rgba(255,255,255,0.2);
-      border-bottom: none;
-      border-top: 2px solid #9FE1CB;
+      background: rgba(255,255,255,0.18);
+      border-top: 3px solid #9FE1CB;
+      color: white;
     }
 
-    .nav-icon { font-size: 18px; }
+    .nav-icon { font-size: 20px; line-height: 1; display: block; }
 
     .content {
       margin-left: 0;
       padding: 1rem;
-      padding-bottom: 80px; /* space for bottom nav */
+      padding-bottom: calc(72px + env(safe-area-inset-bottom));
+      min-height: 100vh;
     }
 
-    .form-grid {
-      grid-template-columns: 1fr;
-    }
+    .form-grid { grid-template-columns: 1fr; }
 
     .metrics-grid {
       grid-template-columns: 1fr 1fr;
       gap: 8px;
     }
 
-    .metric-card { padding: 0.75rem 1rem; }
+    .metric-card { padding: 0.75rem; }
     .metric-value { font-size: 18px; }
+    .metric-label { font-size: 11px; }
+    .metric-sub { font-size: 10px; }
 
-    .card { padding: 1rem; }
-    .card-title { font-size: 12px; }
+    .card { padding: 0.875rem; margin-bottom: 1rem; }
+    .card-title { font-size: 11px; }
 
     .page-title { font-size: 20px; }
+    .page-desc { font-size: 12px; }
+    .page-header { margin-bottom: 1rem; }
 
-    .btn-row { flex-direction: column; }
-    .btn-verde, .btn-outline { width: 100%; text-align: center; padding: 0.75rem; }
-
-    .table-wrapper { font-size: 12px; }
-    th, td { padding: 0.5rem 0.4rem; }
-
-    /* Productos grid en ventas - 2 columnas en mobile */
-    #v-productos-grid {
-      grid-template-columns: 1fr 1fr !important;
+    .btn-row { flex-direction: column; gap: 0.5rem; }
+    .btn-verde, .btn-outline {
+      width: 100%;
+      text-align: center;
+      padding: 0.875rem;
+      font-size: 15px;
     }
 
-    /* Ocultar columnas menos importantes en tablas */
+    .table-wrapper { font-size: 11px; }
+    th { font-size: 10px; padding: 0.4rem; }
+    td { padding: 0.45rem 0.4rem; }
+
+    #v-productos-grid { grid-template-columns: 1fr 1fr !important; }
+
     .hide-mobile { display: none !important; }
 
-    /* Reporte visual más compacto */
-    #rep-visual table { font-size: 12px; }
-
-    /* Setup screen */
-    .setup-card { padding: 1.5rem; }
-
-    /* Semana selector */
     .semana-selector {
-      flex-direction: column;
+      flex-wrap: wrap;
       gap: 0.5rem;
     }
-    .semana-selector input { width: 100%; }
+    .semana-selector label { display: none; }
+    .semana-selector input { flex: 1; min-width: 130px; }
     .semana-selector .btn-verde { width: 100%; }
 
-    /* Dashboard grid */
-    #dash-content > div[style*="grid-template-columns: 1fr 1fr"] {
+    #dash-content > div[style*="grid"] {
       grid-template-columns: 1fr !important;
     }
+
+    .reporte-box { font-size: 11px; }
+
+    .setup-card { padding: 1.25rem; margin: 1rem; }
+    .setup-logo { font-size: 22px; }
+
+    .tabs { overflow-x: auto; }
+    .tab { white-space: nowrap; font-size: 12px; }
   }
 
   @media (max-width: 400px) {
-    .metrics-grid { grid-template-columns: 1fr; }
+    .metrics-grid { grid-template-columns: 1fr 1fr; }
     #v-productos-grid { grid-template-columns: 1fr !important; }
+    .metric-value { font-size: 16px; }
   }
   .nav-label { display: inline; }
   @media (max-width: 768px) { .nav-label { display: block; } }
@@ -1301,7 +1315,7 @@
       <div class="page" id="page-reporte">
         <div class="page-header">
           <div class="page-title">Reporte semanal</div>
-          <div class="page-desc">Generá el resumen para mandarle a la dueña por WhatsApp</div>
+          <div class="page-desc">Resumen para la dueña</div>
         </div>
 
         <div class="card">
@@ -1317,22 +1331,77 @@
         <div id="rep-loading" class="loading" style="display:none"><div class="spinner"></div> Generando...</div>
 
         <div id="rep-content" style="display:none">
-          <div class="card">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-              <div class="card-title" style="margin:0">Resumen visual</div>
-              <div style="display:flex;gap:0.5rem">
-                <button class="btn-outline" onclick="toggleRepTexto()">📋 Ver texto WPP</button>
-              </div>
+
+          <!-- Período header -->
+          <div id="rep-periodo-header" style="text-align:center;padding:0.5rem 0 1rem;font-size:13px;color:var(--texto-muted)"></div>
+
+          <!-- Métricas principales -->
+          <div class="metrics-grid" style="margin-bottom:1rem">
+            <div class="metric-card" style="border-left:4px solid var(--verde)">
+              <div class="metric-label">Unidades</div>
+              <div class="metric-value verde" id="rep-m-unidades">—</div>
             </div>
-            <div id="rep-visual"></div>
-            <div id="rep-texto-panel" style="display:none;margin-top:1rem">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
-                <span style="font-size:13px;color:var(--texto-muted)">Texto para copiar y pegar en WhatsApp</span>
-                <button class="btn-outline" onclick="copiarReporte()">📋 Copiar</button>
-              </div>
-              <div class="reporte-box" id="reporte-texto"></div>
+            <div class="metric-card" style="border-left:4px solid var(--azul)">
+              <div class="metric-label">Total vendido</div>
+              <div class="metric-value" id="rep-m-venta">—</div>
+            </div>
+            <div class="metric-card" style="border-left:4px solid var(--verde)">
+              <div class="metric-label">Ganancia bruta</div>
+              <div class="metric-value verde" id="rep-m-bruta">—</div>
+            </div>
+            <div class="metric-card" id="rep-m-neta-card" style="border-left:4px solid var(--naranja)">
+              <div class="metric-label">Ganancia neta</div>
+              <div class="metric-value" id="rep-m-neta">—</div>
+              <div class="metric-sub" id="rep-m-neta-sub">sem. N — cuota cubierta X%</div>
             </div>
           </div>
+
+          <!-- Ventas por producto -->
+          <div class="card">
+            <div class="card-title">Ventas por producto</div>
+            <div id="rep-prod-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+          </div>
+
+          <!-- Egresos (si hay) -->
+          <div class="card" id="rep-egresos-card" style="display:none">
+            <div class="card-title">Egresos del período</div>
+            <div id="rep-egresos-body"></div>
+          </div>
+
+          <!-- Envases (si hay) -->
+          <div class="card" id="rep-envases-card" style="display:none">
+            <div class="card-title">♻️ Ganancia indirecta envases</div>
+            <div class="metric-value verde" id="rep-envases-val" style="font-size:20px"></div>
+          </div>
+
+          <!-- Caja -->
+          <div class="card">
+            <div class="card-title">Caja</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+              <div style="text-align:center;padding:0.75rem;background:var(--gris-claro);border-radius:8px">
+                <div style="font-size:11px;color:var(--texto-muted);margin-bottom:0.25rem">💵 Cash</div>
+                <div style="font-weight:600;font-size:15px" id="rep-caja-cash">—</div>
+              </div>
+              <div style="text-align:center;padding:0.75rem;background:var(--gris-claro);border-radius:8px">
+                <div style="font-size:11px;color:var(--texto-muted);margin-bottom:0.25rem">🏦 Transfe</div>
+                <div style="font-weight:600;font-size:15px" id="rep-caja-transfe">—</div>
+              </div>
+              <div style="text-align:center;padding:0.75rem;background:var(--amarillo-claro);border-radius:8px">
+                <div style="font-size:11px;color:var(--amarillo);margin-bottom:0.25rem">⏳ Pend.</div>
+                <div style="font-weight:600;font-size:15px;color:var(--amarillo)" id="rep-caja-pend">—</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- WPP texto -->
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+              <div class="card-title" style="margin:0">Texto WhatsApp</div>
+              <button class="btn-outline" onclick="copiarReporte()">📋 Copiar</button>
+            </div>
+            <div class="reporte-box" id="reporte-texto"></div>
+          </div>
+
         </div>
       </div>
 
@@ -3983,91 +4052,76 @@ function renderReporteVisual(desde, hasta, porProducto, totalUnidades, totalVent
   const fD = (() => { const d=new Date(desde+'T12:00:00'); return `${d.getDate()}/${d.getMonth()+1}`; })();
   const fH = (() => { const d=new Date(hasta+'T12:00:00'); return `${d.getDate()}/${d.getMonth()+1}`; })();
 
+  // ── Header ──
+  document.getElementById('rep-periodo-header').textContent = `Semana ${numSemana} · ${fD} al ${fH}`;
+
+  // ── Métricas principales ──
+  document.getElementById('rep-m-unidades').textContent = totalUnidades;
+  document.getElementById('rep-m-venta').textContent = pesos(totalVenta);
+  document.getElementById('rep-m-bruta').textContent = pesos(ganBruta);
+  const netaEl = document.getElementById('rep-m-neta');
+  netaEl.textContent = pesos(ganNeta);
+  netaEl.style.color = ganNeta >= 0 ? 'var(--verde)' : 'var(--naranja)';
+  document.getElementById('rep-m-neta-card').style.borderLeftColor = ganNeta >= 0 ? 'var(--verde)' : 'var(--naranja)';
+  document.getElementById('rep-m-neta-sub').textContent = `Sem. ${numSemana} · cuota ${pctCubierto}% cubierta`;
+
+  // ── Productos grid ──
   const PASTEL = {
     '1/2l Suico':'#F1F8E9','1l Suico':'#DCEDC8',
     '1/2l Leche':'#E3F2FD','1l Leche':'#BBDEFB',
     'Kesir':'#FFF8E1','Kesir petit':'#FFF3E0',
     '1/2l Hibiscus':'#FCE4EC','1l Hibiscus':'#F8BBD9',
   };
-
-  let html = `<div style="font-size:13px;max-width:600px">`;
-
-  // ── Ventas ──
-  html += `<table style="width:100%;border-collapse:collapse;margin-bottom:10px">
-    <tr><td colspan="3" style="background:#4a7c59;color:white;text-align:center;font-weight:600;padding:7px;border-radius:4px 4px 0 0">
-      Resumen de ventas — ${fD} al ${fH}
-    </td></tr>
-    <tr style="background:#f5f5f5;font-size:11px">
-      <td style="padding:5px 8px;border:1px solid #e0e0e0;font-weight:600"></td>
-      <td style="padding:5px 8px;border:1px solid #e0e0e0;font-weight:600;text-align:center">Unidades</td>
-      <td style="padding:5px 8px;border:1px solid #e0e0e0;font-weight:600;text-align:right">Ganancia</td>
-    </tr>`;
-
-  let totU=0, totG=0;
+  const grid = document.getElementById('rep-prod-grid');
+  grid.innerHTML = '';
   Object.entries(porProducto).sort((a,b)=>b[1].unidades-a[1].unidades).forEach(([prod,d]) => {
-    const bg = PASTEL[prod]||'#fff';
-    html += `<tr style="background:${bg}">
-      <td style="padding:5px 8px;border:1px solid #e0e0e0">${emojiProducto(prod)} ${prod}</td>
-      <td style="padding:5px 8px;border:1px solid #e0e0e0;text-align:center">${d.unidades}</td>
-      <td style="padding:5px 8px;border:1px solid #e0e0e0;text-align:right;font-weight:500;color:${d.ganancia>=0?'#2e7d32':'#c62828'}">${pesos(d.ganancia)}</td>
-    </tr>`;
-    totU+=d.unidades; totG+=d.ganancia;
+    const bg = PASTEL[prod] || '#f5f5f5';
+    const margenColor = d.ganancia >= 0 ? '#2e7d32' : '#c62828';
+    grid.innerHTML += `<div style="background:${bg};border-radius:10px;padding:0.75rem;border:1px solid rgba(0,0,0,0.06)">
+      <div style="font-size:12px;font-weight:500;margin-bottom:0.4rem">${emojiProducto(prod)} ${prod}</div>
+      <div style="font-size:20px;font-weight:700;color:#333">${d.unidades} <span style="font-size:12px;font-weight:400;color:#888">u.</span></div>
+      <div style="font-size:12px;color:${margenColor};font-weight:500;margin-top:0.2rem">${pesos(d.ganancia)}</div>
+    </div>`;
   });
-
-  html += `<tr style="background:#fff9c4;font-weight:700">
-    <td style="padding:6px 8px;border:1px solid #e0e0e0">Totales</td>
-    <td style="padding:6px 8px;border:1px solid #e0e0e0;text-align:center">${totU}</td>
-    <td style="padding:6px 8px;border:1px solid #e0e0e0;text-align:right">${pesos(totG)}</td>
-  </tr>
-  <tr style="background:#f5f5f5">
-    <td colspan="2" style="padding:5px 8px;border:1px solid #e0e0e0;color:#666">Total vendido</td>
-    <td style="padding:5px 8px;border:1px solid #e0e0e0;text-align:right;font-weight:500">${pesos(totalVenta)}</td>
-  </tr></table>`;
 
   // ── Egresos ──
   if (totalEgresos > 0) {
-    html += `<table style="width:100%;border-collapse:collapse;margin-bottom:10px">
-      <tr><td colspan="2" style="background:#607d8b;color:white;padding:6px 8px;font-weight:600">Egresos</td></tr>`;
-    if(egFijo)      html += `<tr><td style="padding:5px 8px;border:1px solid #e0e0e0">📌 Gastos fijos</td><td style="padding:5px 8px;border:1px solid #e0e0e0;text-align:right">${pesos(egFijo)}</td></tr>`;
-    if(egInsumo)    html += `<tr><td style="padding:5px 8px;border:1px solid #e0e0e0">🛒 Insumos</td><td style="padding:5px 8px;border:1px solid #e0e0e0;text-align:right">${pesos(egInsumo)}</td></tr>`;
-    if(egExtra)     html += `<tr><td style="padding:5px 8px;border:1px solid #e0e0e0">⚡ Extraordinarios</td><td style="padding:5px 8px;border:1px solid #e0e0e0;text-align:right">${pesos(egExtra)}</td></tr>`;
-    if(egInversion) html += `<tr><td style="padding:5px 8px;border:1px solid #e0e0e0">🔧 Inversión</td><td style="padding:5px 8px;border:1px solid #e0e0e0;text-align:right">${pesos(egInversion)}</td></tr>`;
-    html += `<tr style="background:#fff9c4;font-weight:700"><td style="padding:6px 8px;border:1px solid #e0e0e0">Total</td><td style="padding:6px 8px;border:1px solid #e0e0e0;text-align:right">${pesos(totalEgresos)}</td></tr>
-    </table>`;
+    const egCard = document.getElementById('rep-egresos-card');
+    const egBody = document.getElementById('rep-egresos-body');
+    egCard.style.display = 'block';
+    egBody.innerHTML = '';
+    const cats = [
+      ['📌 Gastos fijos', egFijo],
+      ['🛒 Insumos', egInsumo],
+      ['⚡ Extraordinarios', egExtra],
+      ['🔧 Inversión', egInversion],
+    ].filter(([,v]) => v > 0);
+    cats.forEach(([label, val]) => {
+      egBody.innerHTML += `<div style="display:flex;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid var(--borde);font-size:13px">
+        <span>${label}</span><strong>${pesos(val)}</strong>
+      </div>`;
+    });
+    egBody.innerHTML += `<div style="display:flex;justify-content:space-between;padding:0.5rem 0;font-weight:600;font-size:14px">
+      <span>Total</span><span style="color:var(--naranja)">${pesos(totalEgresos)}</span>
+    </div>`;
+  } else {
+    document.getElementById('rep-egresos-card').style.display = 'none';
   }
 
-  // ── Envases: solo ganancia indirecta ──
+  // ── Envases ──
   let ganEnvTotal = 0;
   envasesData.forEach(r => { const f=normFecha(r[0]); if(f&&f>=desde&&f<=hasta) ganEnvTotal+=parseFloat(r[7])||0; });
   if (ganEnvTotal > 0) {
-    html += `<table style="width:100%;border-collapse:collapse;margin-bottom:10px">
-      <tr><td style="background:#7b1fa2;color:white;padding:6px 8px;font-weight:600">Envases devolución</td>
-      <td style="background:#7b1fa2;color:white;padding:6px 8px;text-align:right;font-weight:600">${pesos(ganEnvTotal)}</td></tr>
-    </table>`;
+    document.getElementById('rep-envases-card').style.display = 'block';
+    document.getElementById('rep-envases-val').textContent = pesos(ganEnvTotal);
+  } else {
+    document.getElementById('rep-envases-card').style.display = 'none';
   }
 
-  // ── Costos fijos ──
-  html += `<table style="width:100%;border-collapse:collapse;margin-bottom:10px">
-    <tr><td colspan="2" style="background:#455a64;color:white;padding:6px 8px;font-weight:600">Costos fijos</td></tr>
-    <tr style="background:#f5f5f5">
-      <td style="padding:5px 8px;border:1px solid #e0e0e0;color:#666">Semana ${numSemana} — cuota cubierta</td>
-      <td style="padding:5px 8px;border:1px solid #e0e0e0;text-align:right">${pesos(ganBruta)} / ${pesos(fijosSemanales)} (${pctCubierto}%)</td>
-    </tr>
-    <tr style="background:${ganNeta>=0?'#E8F5E9':'#FFEBEE'};font-weight:700">
-      <td style="padding:6px 8px;border:1px solid #e0e0e0">Ganancia neta</td>
-      <td style="padding:6px 8px;border:1px solid #e0e0e0;text-align:right;color:${ganNeta>=0?'#2e7d32':'#c62828'}">${pesos(ganNeta)}</td>
-    </tr>
-  </table>`;
-
   // ── Caja ──
-  html += `<table style="width:100%;border-collapse:collapse">
-    <tr><td colspan="2" style="background:#37474f;color:white;padding:6px 8px;font-weight:600">Caja</td></tr>
-    <tr><td style="padding:5px 8px;border:1px solid #e0e0e0">💵 Cash</td><td style="padding:5px 8px;border:1px solid #e0e0e0;text-align:right;font-weight:500">${pesos(cash)}</td></tr>
-    <tr><td style="padding:5px 8px;border:1px solid #e0e0e0">🏦 Transfe</td><td style="padding:5px 8px;border:1px solid #e0e0e0;text-align:right;font-weight:500">${pesos(transfe)}</td></tr>
-    <tr style="background:#FFF8E1"><td style="padding:5px 8px;border:1px solid #e0e0e0">⏳ Pendiente de cobro</td><td style="padding:5px 8px;border:1px solid #e0e0e0;text-align:right;color:#E65100;font-weight:500">${pesos(pendiente)}</td></tr>
-  </table></div>`;
-
-  document.getElementById('rep-visual').innerHTML = html;
+  document.getElementById('rep-caja-cash').textContent = pesos(cash);
+  document.getElementById('rep-caja-transfe').textContent = pesos(transfe);
+  document.getElementById('rep-caja-pend').textContent = pesos(pendiente);
 }
 
 function toggleRepTexto() {
