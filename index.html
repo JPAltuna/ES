@@ -1,0 +1,4380 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Emprendimiento ES</title>
+<style>
+  :root {
+    --verde: #1D9E75;
+    --verde-claro: #E1F5EE;
+    --verde-oscuro: #085041;
+    --naranja: #D85A30;
+    --naranja-claro: #FAECE7;
+    --gris: #5F5E5A;
+    --gris-claro: #F1EFE8;
+    --gris-borde: #D3D1C7;
+    --amarillo: #BA7517;
+    --amarillo-claro: #FAEEDA;
+    --azul: #185FA5;
+    --azul-claro: #E6F1FB;
+    --rojo: #A32D2D;
+    --rojo-claro: #FCEBEB;
+    --texto: #2C2C2A;
+    --texto-muted: #888780;
+    --bg: #ffffff;
+    --bg-sec: #F1EFE8;
+    --borde: #D3D1C7;
+    --radio: 10px;
+    --radio-lg: 14px;
+    --fuente: 'Georgia', serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg-sec);
+    color: var(--texto);
+    min-height: 100vh;
+  }
+
+  /* SETUP SCREEN */
+  #setup-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: var(--bg-sec);
+  }
+
+  .setup-card {
+    background: var(--bg);
+    border-radius: var(--radio-lg);
+    border: 1px solid var(--borde);
+    padding: 2.5rem;
+    max-width: 560px;
+    width: 100%;
+  }
+
+  .setup-logo {
+    font-family: var(--fuente);
+    font-size: 28px;
+    color: var(--verde-oscuro);
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.5px;
+  }
+
+  .setup-subtitle {
+    font-size: 14px;
+    color: var(--texto-muted);
+    margin-bottom: 2rem;
+  }
+
+  .setup-step {
+    margin-bottom: 1.5rem;
+  }
+
+  .setup-step label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--texto-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+  }
+
+  .setup-step input,
+  .setup-step textarea {
+    width: 100%;
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    padding: 0.75rem 1rem;
+    font-size: 14px;
+    color: var(--texto);
+    background: var(--bg);
+    font-family: monospace;
+    resize: vertical;
+  }
+
+  .setup-step input:focus,
+  .setup-step textarea:focus {
+    outline: none;
+    border-color: var(--verde);
+  }
+
+  .setup-hint {
+    font-size: 12px;
+    color: var(--texto-muted);
+    margin-top: 0.4rem;
+  }
+
+  .btn-primary {
+    background: var(--verde);
+    color: white;
+    border: none;
+    border-radius: var(--radio);
+    padding: 0.75rem 1.5rem;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.15s;
+  }
+
+  .btn-primary:hover { background: var(--verde-oscuro); }
+
+  .setup-error {
+    background: var(--rojo-claro);
+    color: var(--rojo);
+    border-radius: var(--radio);
+    padding: 0.75rem 1rem;
+    font-size: 13px;
+    margin-top: 1rem;
+    display: none;
+  }
+
+  /* MAIN APP */
+  #app { display: none; min-height: 100vh; }
+
+  /* SIDEBAR */
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    width: 220px;
+    background: var(--verde-oscuro);
+    padding: 1.5rem 1rem;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 100;
+  }
+
+  .sidebar-logo {
+    font-family: var(--fuente);
+    font-size: 20px;
+    color: #9FE1CB;
+    margin-bottom: 0.2rem;
+    letter-spacing: -0.5px;
+  }
+
+  .sidebar-version {
+    font-size: 11px;
+    color: #5DCAA5;
+    margin-bottom: 2rem;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0.6rem 0.75rem;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #9FE1CB;
+    font-size: 14px;
+    margin-bottom: 2px;
+    transition: background 0.1s;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+  }
+
+  .nav-item:hover { background: rgba(255,255,255,0.08); }
+  .nav-item.active { background: rgba(255,255,255,0.15); color: white; }
+
+  .nav-icon { font-size: 16px; }
+
+  .sidebar-bottom {
+    margin-top: auto;
+  }
+
+  .btn-config {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #5DCAA5;
+    font-size: 12px;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+  }
+
+  .btn-config:hover { color: #9FE1CB; }
+
+  /* CONTENT */
+  .content {
+    margin-left: 220px;
+    flex: 1;
+    padding: 2rem;
+    min-height: 100vh;
+  }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .page-header {
+    margin-bottom: 2rem;
+  }
+
+  .page-title {
+    font-family: var(--fuente);
+    font-size: 24px;
+    color: var(--verde-oscuro);
+    letter-spacing: -0.5px;
+  }
+
+  .page-desc {
+    font-size: 14px;
+    color: var(--texto-muted);
+    margin-top: 0.25rem;
+  }
+
+  /* CARDS */
+  .card {
+    background: var(--bg);
+    border-radius: var(--radio-lg);
+    border: 1px solid var(--borde);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--texto-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 1rem;
+  }
+
+  /* METRIC CARDS */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 1.25rem;
+  }
+
+  .metric-card {
+    background: var(--bg);
+    border-radius: var(--radio);
+    border: 1px solid var(--borde);
+    padding: 1rem 1.25rem;
+  }
+
+  .metric-label {
+    font-size: 12px;
+    color: var(--texto-muted);
+    margin-bottom: 0.4rem;
+    font-weight: 500;
+  }
+
+  .metric-value {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--texto);
+    line-height: 1;
+  }
+
+  .metric-value.verde { color: var(--verde); }
+  .metric-value.naranja { color: var(--naranja); }
+  .metric-value.azul { color: var(--azul); }
+
+  .metric-sub {
+    font-size: 11px;
+    color: var(--texto-muted);
+    margin-top: 0.3rem;
+  }
+
+  /* FORM */
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .form-group label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--texto-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    font-size: 14px;
+    color: var(--texto);
+    background: var(--bg);
+    width: 100%;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--verde);
+  }
+
+  .btn-verde {
+    background: var(--verde);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.65rem 1.25rem;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .btn-verde:hover { background: var(--verde-oscuro); }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--texto);
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    padding: 0.65rem 1.25rem;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-outline:hover { background: var(--gris-claro); }
+
+  .btn-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  /* TABLE */
+  .table-wrapper {
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  th {
+    text-align: left;
+    padding: 0.6rem 0.75rem;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--texto-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    border-bottom: 1px solid var(--borde);
+  }
+
+  td {
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid var(--gris-claro);
+    color: var(--texto);
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--gris-claro); }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .badge-verde { background: var(--verde-claro); color: var(--verde-oscuro); }
+  .badge-naranja { background: var(--naranja-claro); color: var(--naranja); }
+  .badge-azul { background: var(--azul-claro); color: var(--azul); }
+  .badge-gris { background: var(--gris-claro); color: var(--gris); }
+  .badge-amarillo { background: var(--amarillo-claro); color: var(--amarillo); }
+
+  /* REPORTE */
+  .reporte-box {
+    background: var(--gris-claro);
+    border-radius: var(--radio);
+    padding: 1.5rem;
+    font-family: monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    color: var(--texto);
+    margin-top: 1rem;
+  }
+
+  /* LOADING */
+  .loading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--texto-muted);
+    padding: 1rem 0;
+  }
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--borde);
+    border-top-color: var(--verde);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .msg-success {
+    background: var(--verde-claro);
+    color: var(--verde-oscuro);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 13px;
+    display: none;
+  }
+
+  .msg-error {
+    background: var(--rojo-claro);
+    color: var(--rojo);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 13px;
+    display: none;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--borde);
+    margin: 1.25rem 0;
+  }
+
+  .precio-preview {
+    background: var(--verde-claro);
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    font-size: 13px;
+    color: var(--verde-oscuro);
+    display: none;
+    margin-top: 0.5rem;
+  }
+
+  .semana-selector {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .semana-selector label {
+    font-size: 13px;
+    color: var(--texto-muted);
+    font-weight: 500;
+  }
+
+  .semana-selector input {
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    padding: 0.4rem 0.75rem;
+    font-size: 13px;
+    color: var(--texto);
+  }
+
+  .section-gap { margin-top: 1.5rem; }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--borde);
+  }
+
+  .tab {
+    padding: 0.5rem 1rem;
+    font-size: 13px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: var(--texto-muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+  }
+
+  .tab.active {
+    color: var(--verde);
+    border-bottom-color: var(--verde);
+    font-weight: 500;
+  }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .estado-btn {
+    background: none;
+    border: 1px solid var(--borde);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    color: var(--texto-muted);
+    transition: all 0.15s;
+  }
+
+  .estado-btn:hover {
+    background: var(--verde-claro);
+    border-color: var(--verde);
+    color: var(--verde-oscuro);
+  }
+
+  .delete-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--texto-muted);
+    font-size: 16px;
+    padding: 2px 4px;
+  }
+
+  .delete-btn:hover { color: var(--rojo); }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--texto-muted);
+    font-size: 14px;
+  }
+
+  .total-row td {
+    font-weight: 600;
+    border-top: 1px solid var(--borde);
+    background: var(--gris-claro);
+  }
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <div class="setup-logo">🌿 Emprendimiento ES</div>
+    <div class="setup-subtitle">Configuración inicial — solo se hace una vez</div>
+
+    <div class="setup-step">
+      <label>ID de tu Google Sheet</label>
+      <input type="text" id="sheet-id-input" placeholder="1cG_yawJSOvlnAiSZIkc0Ykjk73-..." />
+      <div class="setup-hint">Es la parte larga de la URL entre /d/ y /edit</div>
+    </div>
+
+    <div class="setup-step">
+      <label>Credenciales JSON (archivo de cuenta de servicio)</label>
+      <textarea id="json-input" rows="6" placeholder='{"type":"service_account","project_id":"...","client_email":"...","private_key":"...",...}'></textarea>
+      <div class="setup-hint">Pegá el contenido completo del archivo JSON que descargaste de Google Cloud. Se guarda solo en tu computadora.</div>
+    </div>
+
+    <button class="btn-primary" onclick="guardarConfig()">Conectar con Google Sheets</button>
+    <div class="setup-error" id="setup-error"></div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-logo">🌿 ES</div>
+      <div class="sidebar-version">Emprendimiento ES</div>
+
+      <button class="nav-item active" onclick="showPage('dashboard', this)">
+        <span class="nav-icon">📊</span> Dashboard
+      </button>
+      <button class="nav-item" onclick="showPage('ventas', this)">
+        <span class="nav-icon">📝</span> Cargar ventas
+      </button>
+      <button class="nav-item" onclick="showPage('envases', this)">
+        <span class="nav-icon">♻️</span> Envases
+      </button>
+      <button class="nav-item" onclick="showPage('egresos', this)">
+        <span class="nav-icon">💸</span> Egresos
+      </button>
+      <button class="nav-item" onclick="showPage('caja', this)">
+        <span class="nav-icon">💰</span> Caja semanal
+      </button>
+      <button class="nav-item" onclick="showPage('reporte', this)">
+        <span class="nav-icon">📋</span> Rep. semanal
+      </button>
+      <button class="nav-item" onclick="showPage('reporte-mensual', this)">
+        <span class="nav-icon">📅</span> Rep. mensual
+      </button>
+      <button class="nav-item" onclick="showPage('costos', this)">
+        <span class="nav-icon">🧮</span> Costos
+      </button>
+      <button class="nav-item" onclick="showPage('cobros', this)">
+        <span class="nav-icon">🧾</span> Cobros
+      </button>
+      <button class="nav-item" onclick="showPage('precios', this)">
+        <span class="nav-icon">🏷️</span> Precios
+      </button>
+      <button class="nav-item" onclick="showPage('insumos', this)">
+        <span class="nav-icon">🧪</span> Insumos
+      </button>
+      <button class="nav-item" onclick="showPage('cierre', this)">
+        <span class="nav-icon">🔒</span> Cierre mes
+      </button>
+
+      <div class="sidebar-bottom">
+        <button class="btn-config" onclick="resetConfig()">⚙️ Reconfigurar</button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-header">
+          <div class="page-title">Dashboard</div>
+          <div class="page-desc">Resumen de actividad del emprendimiento</div>
+        </div>
+
+        <div class="semana-selector">
+          <label>Semana del</label>
+          <input type="date" id="dash-desde" />
+          <label>al</label>
+          <input type="date" id="dash-hasta" />
+          <button class="btn-verde" onclick="cargarDashboard()">Ver</button>
+        </div>
+
+        <div id="dash-loading" class="loading" style="display:none">
+          <div class="spinner"></div> Cargando datos...
+        </div>
+
+        <div id="dash-content" style="display:none">
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-label">Unidades vendidas</div>
+              <div class="metric-value verde" id="dash-unidades">—</div>
+              <div class="metric-sub" id="dash-unidades-sub"></div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Total vendido</div>
+              <div class="metric-value" id="dash-total">—</div>
+              <div class="metric-sub" id="dash-total-sub"></div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Ganancia bruta</div>
+              <div class="metric-value verde" id="dash-ganancia">—</div>
+              <div class="metric-sub">Sin descontar fijos</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Envases recuperados</div>
+              <div class="metric-value azul" id="dash-envases">—</div>
+              <div class="metric-sub" id="dash-envases-sub"></div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+            <div class="card">
+              <div class="card-title">Ventas por canal</div>
+              <div id="dash-canales"></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Caja del período</div>
+              <div id="dash-caja"></div>
+            </div>
+          </div>
+
+          <div class="card section-gap">
+            <div class="card-title">Detalle por producto</div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>Unidades</th>
+                    <th>Total venta</th>
+                    <th>Costo total</th>
+                    <th>Ganancia</th>
+                  </tr>
+                </thead>
+                <tbody id="dash-tabla-productos"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="dash-empty" class="empty-state" style="display:none">
+          No hay ventas en el período seleccionado.
+        </div>
+      </div>
+
+      <!-- CARGAR VENTAS -->
+      <div class="page" id="page-ventas">
+        <div class="page-header">
+          <div class="page-title">Cargar ventas</div>
+          <div class="page-desc">Cargá el pedido completo de un local de una sola vez</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Datos del pedido</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Fecha</label>
+              <input type="date" id="v-fecha" />
+            </div>
+            <div class="form-group">
+              <label>Canal</label>
+              <select id="v-canal" onchange="actualizarProductosDelPedido()">
+                <option value="">— seleccioná —</option>
+                <option value="Umepay">Umepay</option>
+                <option value="Afuera">Afuera</option>
+                <option value="Personas">Personas</option>
+                <option value="Regalo">Regalo</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Local</label>
+              <input type="text" id="v-local" placeholder="Despen, Marilina..." list="locales-list" />
+              <datalist id="locales-list">
+                <option value="Despen"><option value="Dicha"><option value="Chacra">
+                <option value="Centro"><option value="Marilina"><option value="Calma Chicha">
+                <option value="Almacen Natural"><option value="El vergel Yacanto">
+                <option value="Mai StaRosa"><option value="comechingones"><option value="Ivan">
+                <option value="arrebol"><option value="Steph"><option value="Roman">
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label>Medio de pago</label>
+              <select id="v-pago">
+                <option value="">— a confirmar —</option>
+                <option value="Cash">Cash</option>
+                <option value="Transfe">Transfe</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Estado de pago</label>
+              <select id="v-estado">
+                <option value="Pendiente">Pendiente</option>
+                <option value="Cobrado">Cobrado</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Fecha de pago</label>
+              <input type="date" id="v-fecha-pago" />
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <div class="card-title" style="margin-bottom:0.75rem">Productos del pedido</div>
+          <div id="v-productos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0.75rem;margin-bottom:1rem"></div>
+
+          <hr class="divider">
+          <div class="card-title" style="margin-bottom:0.75rem">Envases devueltos <span style="font-size:11px;color:var(--texto-muted);font-weight:400">(opcional)</span></div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0.75rem;margin-bottom:1rem">
+            <div style="background:var(--gris-claro);border-radius:10px;padding:0.75rem;border:1px solid var(--borde)">
+              <div style="font-size:13px;font-weight:500;margin-bottom:0.4rem">♻️ Botella litro</div>
+              <div id="env-desc-Litro" style="font-size:11px;color:var(--texto-muted);margin-bottom:0.4rem"></div>
+              <input type="number" id="env-Litro" min="0" placeholder="0" value=""
+                style="width:100%;border:1px solid var(--borde);border-radius:6px;padding:5px 8px;font-size:16px;text-align:center"
+                oninput="actualizarTotalPedido()" />
+            </div>
+            <div style="background:var(--gris-claro);border-radius:10px;padding:0.75rem;border:1px solid var(--borde)">
+              <div style="font-size:13px;font-weight:500;margin-bottom:0.4rem">♻️ Botella 1/2l</div>
+              <div id="env-desc-Medio litro" style="font-size:11px;color:var(--texto-muted);margin-bottom:0.4rem"></div>
+              <input type="number" id="env-Medio litro" min="0" placeholder="0" value=""
+                style="width:100%;border:1px solid var(--borde);border-radius:6px;padding:5px 8px;font-size:16px;text-align:center"
+                oninput="actualizarTotalPedido()" />
+            </div>
+            <div style="background:var(--gris-claro);border-radius:10px;padding:0.75rem;border:1px solid var(--borde)">
+              <div style="font-size:13px;font-weight:500;margin-bottom:0.4rem">♻️ Frasco Kesir gr</div>
+              <div id="env-desc-Kesir gr" style="font-size:11px;color:var(--texto-muted);margin-bottom:0.4rem"></div>
+              <input type="number" id="env-Kesir gr" min="0" placeholder="0" value=""
+                style="width:100%;border:1px solid var(--borde);border-radius:6px;padding:5px 8px;font-size:16px;text-align:center"
+                oninput="actualizarTotalPedido()" />
+            </div>
+            <div style="background:var(--gris-claro);border-radius:10px;padding:0.75rem;border:1px solid var(--borde)">
+              <div style="font-size:13px;font-weight:500;margin-bottom:0.4rem">♻️ Frasco Kesir ch</div>
+              <div id="env-desc-Kesir ch" style="font-size:11px;color:var(--texto-muted);margin-bottom:0.4rem"></div>
+              <input type="number" id="env-Kesir ch" min="0" placeholder="0" value=""
+                style="width:100%;border:1px solid var(--borde);border-radius:6px;padding:5px 8px;font-size:16px;text-align:center"
+                oninput="actualizarTotalPedido()" />
+            </div>
+          </div>
+
+          <div id="v-total-preview" style="display:none;background:var(--verde-claro);border-radius:8px;padding:0.75rem 1rem;font-size:14px;color:var(--verde-oscuro);margin-bottom:1rem"></div>
+
+          <div class="btn-row">
+            <button class="btn-verde" onclick="guardarPedido()">💾 Guardar pedido</button>
+            <button class="btn-outline" onclick="limpiarFormVentaCompleto()">Limpiar todo</button>
+            <div class="spinner" id="v-spinner" style="display:none"></div>
+          </div>
+          <div class="msg-success" id="v-success">✓ Pedido guardado en el Sheet.</div>
+          <div class="msg-error" id="v-error"></div>
+        </div>
+
+        <!-- Ventas recientes -->
+        <div class="card">
+          <div class="card-title">Ventas recientes</div>
+          <div id="ventas-recientes-loading" class="loading">
+            <div class="spinner"></div> Cargando...
+          </div>
+          <div class="table-wrapper" id="ventas-recientes-tabla" style="display:none">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Canal</th>
+                  <th>Local</th>
+                  <th>Producto</th>
+                  <th>Cant.</th>
+                  <th>Total</th>
+                  <th>Pago</th>
+                  <th>Estado</th>
+                  <th></th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="ventas-recientes-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ENVASES -->
+      <div class="page" id="page-envases">
+        <div class="page-header">
+          <div class="page-title">Envases</div>
+          <div class="page-desc">Registro de devolución de envases y ganancia indirecta</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Registrar devolución</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Fecha</label>
+              <input type="date" id="e-fecha" />
+            </div>
+            <div class="form-group">
+              <label>Canal</label>
+              <select id="e-canal" onchange="calcularGananciaEnvase()">
+                <option value="">— seleccioná —</option>
+                <option value="Umepay">Umepay (sin descuento)</option>
+                <option value="Afuera">Afuera</option>
+                <option value="Personas">Personas</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Local</label>
+              <input type="text" id="e-local" placeholder="Nombre del local" />
+            </div>
+            <div class="form-group">
+              <label>Tipo de envase</label>
+              <select id="e-tipo" onchange="calcularGananciaEnvase()">
+                <option value="">— seleccioná —</option>
+                <option value="Litro">Botella litro</option>
+                <option value="Medio litro">Botella 1/2 litro</option>
+                <option value="Kesir gr">Frasco Kesir grande</option>
+                <option value="Kesir ch">Frasco Kesir chico</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Cantidad</label>
+              <input type="number" id="e-cantidad" min="1" value="1" onchange="calcularGananciaEnvase()" />
+            </div>
+          </div>
+
+          <div class="precio-preview" id="envase-preview"></div>
+
+          <div class="btn-row" style="margin-top:1rem">
+            <button class="btn-verde" onclick="guardarEnvase()">Guardar</button>
+            <div class="spinner" id="e-spinner" style="display:none"></div>
+          </div>
+          <div class="msg-success" id="e-success">✓ Envase registrado.</div>
+          <div class="msg-error" id="e-error"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Envases devueltos recientes</div>
+          <div id="envases-loading" class="loading"><div class="spinner"></div> Cargando...</div>
+          <div class="table-wrapper" id="envases-tabla" style="display:none">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Canal</th>
+                  <th>Local</th>
+                  <th>Tipo</th>
+                  <th>Cant.</th>
+                  <th>Descuento</th>
+                  <th>Ganancia indirecta</th>
+                </tr>
+              </thead>
+              <tbody id="envases-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- EGRESOS -->
+      <div class="page" id="page-egresos">
+        <div class="page-header">
+          <div class="page-title">Egresos</div>
+          <div class="page-desc">Registrá gastos e insumos</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Nuevo egreso</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Fecha</label>
+              <input type="date" id="eg-fecha" />
+            </div>
+            <div class="form-group">
+              <label>Concepto</label>
+              <input type="text" id="eg-concepto" placeholder="Leche, Alquiler, Gasoil..." />
+            </div>
+            <div class="form-group">
+              <label>Categoría</label>
+              <select id="eg-categoria">
+                <option value="Insumo">Insumo</option>
+                <option value="Gasto fijo">Gasto fijo</option>
+                <option value="Inversión">Inversión</option>
+                <option value="Publicidad">Publicidad</option>
+                <option value="Extraordinario">Extraordinario</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Cantidad</label>
+              <input type="number" id="eg-cantidad" placeholder="1" onchange="calcularTotalEgreso()" />
+            </div>
+            <div class="form-group">
+              <label>Precio unitario</label>
+              <input type="number" id="eg-precio" placeholder="0" onchange="calcularTotalEgreso()" />
+            </div>
+            <div class="form-group">
+              <label>Total</label>
+              <input type="number" id="eg-total" placeholder="0" />
+            </div>
+            <div class="form-group">
+              <label>Medio de pago</label>
+              <select id="eg-pago">
+                <option value="">—</option>
+                <option value="Cash">Cash</option>
+                <option value="Transfe">Transfe</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Observaciones</label>
+              <input type="text" id="eg-obs" placeholder="Opcional" />
+            </div>
+          </div>
+
+          <div class="btn-row" style="margin-top:1rem">
+            <button class="btn-verde" onclick="guardarEgreso()">Guardar egreso</button>
+            <div class="spinner" id="eg-spinner" style="display:none"></div>
+          </div>
+          <div class="msg-success" id="eg-success">✓ Egreso guardado.</div>
+          <div class="msg-error" id="eg-error"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Egresos recientes</div>
+          <div id="egresos-loading" class="loading"><div class="spinner"></div> Cargando...</div>
+          <div class="table-wrapper" id="egresos-tabla" style="display:none">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Concepto</th>
+                  <th>Categoría</th>
+                  <th>Total</th>
+                  <th>Pago</th>
+                  <th>Obs.</th>
+                </tr>
+              </thead>
+              <tbody id="egresos-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- CAJA SEMANAL -->
+      <div class="page" id="page-caja">
+        <div class="page-header">
+          <div class="page-title">Caja semanal</div>
+          <div class="page-desc">Control de cobros y pagos de la semana</div>
+        </div>
+
+        <div class="semana-selector">
+          <label>Semana del</label>
+          <input type="date" id="caja-desde" />
+          <label>al</label>
+          <input type="date" id="caja-hasta" />
+          <button class="btn-verde" onclick="cargarCaja()">Calcular</button>
+        </div>
+
+        <div id="caja-loading" class="loading" style="display:none"><div class="spinner"></div> Calculando...</div>
+
+        <div id="caja-content" style="display:none">
+
+          <!-- Cierre real -->
+          <div class="card" style="border:2px solid var(--verde-claro)">
+            <div class="card-title">Cierre de caja</div>
+            <div style="font-size:13px;color:var(--texto-muted);margin-bottom:1rem">
+              Ingresá los saldos reales contados. El sistema calcula la diferencia con el teórico.
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1rem">
+              <div>
+                <div style="font-size:12px;font-weight:500;color:var(--texto-muted);margin-bottom:0.5rem">💵 EFECTIVO (CASH)</div>
+                <div style="display:flex;flex-direction:column;gap:0.5rem">
+                  <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px">
+                    <span style="color:var(--texto-muted)">Saldo anterior:</span>
+                    <span id="caj-ant-cash" style="font-weight:500">—</span>
+                  </div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px">
+                    <span style="color:var(--texto-muted)">+ Cobros del período:</span>
+                    <span id="caj-cobros-cash" style="color:var(--verde)">—</span>
+                  </div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px">
+                    <span style="color:var(--texto-muted)">- Egresos del período:</span>
+                    <span id="caj-egresos-cash" style="color:var(--naranja)">—</span>
+                  </div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:600;border-top:1px solid var(--borde);padding-top:0.4rem">
+                    <span>Saldo teórico:</span>
+                    <span id="caj-teorico-cash">—</span>
+                  </div>
+                  <div class="form-group" style="margin-top:0.25rem">
+                    <label>Saldo real contado</label>
+                    <input type="number" id="caj-real-cash" placeholder="0" style="font-size:16px;font-weight:600" oninput="calcularDiferenciaCaja()" />
+                  </div>
+                  <div id="caj-diff-cash" style="font-size:13px;font-weight:600;text-align:right;display:none"></div>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:12px;font-weight:500;color:var(--texto-muted);margin-bottom:0.5rem">🏦 TRANSFERENCIAS</div>
+                <div style="display:flex;flex-direction:column;gap:0.5rem">
+                  <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px">
+                    <span style="color:var(--texto-muted)">Saldo anterior:</span>
+                    <span id="caj-ant-transfe" style="font-weight:500">—</span>
+                  </div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px">
+                    <span style="color:var(--texto-muted)">+ Cobros del período:</span>
+                    <span id="caj-cobros-transfe" style="color:var(--verde)">—</span>
+                  </div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px">
+                    <span style="color:var(--texto-muted)">- Egresos del período:</span>
+                    <span id="caj-egresos-transfe" style="color:var(--naranja)">—</span>
+                  </div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:600;border-top:1px solid var(--borde);padding-top:0.4rem">
+                    <span>Saldo teórico:</span>
+                    <span id="caj-teorico-transfe">—</span>
+                  </div>
+                  <div class="form-group" style="margin-top:0.25rem">
+                    <label>Saldo real contado</label>
+                    <input type="number" id="caj-real-transfe" placeholder="0" style="font-size:16px;font-weight:600" oninput="calcularDiferenciaCaja()" />
+                  </div>
+                  <div id="caj-diff-transfe" style="font-size:13px;font-weight:600;text-align:right;display:none"></div>
+                </div>
+              </div>
+            </div>
+            <hr style="border:none;border-top:1px solid var(--borde);margin:1rem 0">
+            <div style="font-size:13px;font-weight:500;margin-bottom:0.5rem">Ingreso extra a caja</div>
+            <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:flex-end">
+              <div class="form-group" style="flex:0 0 120px">
+                <label>Monto</label>
+                <input type="number" id="caj-ing-monto" placeholder="0" />
+              </div>
+              <div class="form-group" style="flex:0 0 100px">
+                <label>Medio</label>
+                <select id="caj-ing-medio"><option value="Cash">Cash</option><option value="Transfe">Transfe</option></select>
+              </div>
+              <div class="form-group" style="flex:1;min-width:160px">
+                <label>Observación</label>
+                <input type="text" id="caj-ing-obs" placeholder="Ej: adelanto, devolución..." />
+              </div>
+              <button class="btn-outline" onclick="guardarIngresoExtra()">+ Agregar</button>
+            </div>
+            <div class="msg-success" id="caj-ing-success">✓ Ingreso registrado.</div>
+            <div class="btn-row" style="margin-top:1rem">
+              <button class="btn-verde" onclick="guardarCierreCaja()">💾 Guardar cierre</button>
+              <div class="spinner" id="caj-cierre-spinner" style="display:none"></div>
+            </div>
+            <div class="msg-success" id="caj-cierre-success">✓ Cierre guardado.</div>
+            <div class="msg-error" id="caj-cierre-error"></div>
+          </div>
+
+          <!-- Historial de cierres -->
+          <div class="card">
+            <div class="card-title">Historial de cierres</div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Semana</th><th>Ganancia bruta</th><th>Cuota fijos</th><th>Resultado sem.</th><th>Acumulado</th><th>Real Cash</th><th>Dif. Cash</th></tr></thead>
+                <tbody id="caj-historial-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-label">Cobrado en Cash</div>
+              <div class="metric-value" id="caja-cash">—</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Cobrado en Transfe</div>
+              <div class="metric-value" id="caja-transfe">—</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Total cobrado</div>
+              <div class="metric-value verde" id="caja-total">—</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Egresos del período</div>
+              <div class="metric-value naranja" id="caja-egresos">—</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Ventas pendientes de cobro</div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fecha entrega</th>
+                    <th>Local</th>
+                    <th>Producto</th>
+                    <th>Total</th>
+                    <th>Estado</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="caja-pendientes-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- REPORTE -->
+      <div class="page" id="page-reporte">
+        <div class="page-header">
+          <div class="page-title">Reporte semanal</div>
+          <div class="page-desc">Generá el resumen para mandarle a la dueña por WhatsApp</div>
+        </div>
+
+        <div class="card">
+          <div class="semana-selector" style="margin-bottom:0">
+            <label>Semana del</label>
+            <input type="date" id="rep-desde" />
+            <label>al</label>
+            <input type="date" id="rep-hasta" />
+            <button class="btn-verde" onclick="generarReporte()">Generar</button>
+          </div>
+        </div>
+
+        <div id="rep-loading" class="loading" style="display:none"><div class="spinner"></div> Generando...</div>
+
+        <div id="rep-content" style="display:none">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+              <div class="card-title" style="margin:0">Resumen visual</div>
+              <div style="display:flex;gap:0.5rem">
+                <button class="btn-outline" onclick="toggleRepTexto()">📋 Ver texto WPP</button>
+              </div>
+            </div>
+            <div id="rep-visual"></div>
+            <div id="rep-texto-panel" style="display:none;margin-top:1rem">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+                <span style="font-size:13px;color:var(--texto-muted)">Texto para copiar y pegar en WhatsApp</span>
+                <button class="btn-outline" onclick="copiarReporte()">📋 Copiar</button>
+              </div>
+              <div class="reporte-box" id="reporte-texto"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- REPORTE MENSUAL -->
+      <div class="page" id="page-reporte-mensual">
+        <div class="page-header">
+          <div class="page-title">Reporte mensual</div>
+          <div class="page-desc">Balance completo del mes para la dueña</div>
+        </div>
+
+        <div class="card">
+          <div class="semana-selector" style="margin-bottom:0">
+            <label>Mes</label>
+            <input type="month" id="repmes-mes" />
+            <button class="btn-verde" onclick="generarReporteMensual()">Generar</button>
+          </div>
+        </div>
+
+        <div id="repmes-loading" class="loading" style="display:none"><div class="spinner"></div> Generando...</div>
+
+        <div id="repmes-content" style="display:none">
+          <!-- Métricas clave -->
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-label">Unidades vendidas</div>
+              <div class="metric-value verde" id="rm-unidades">—</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Total vendido</div>
+              <div class="metric-value" id="rm-venta">—</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Ganancia bruta</div>
+              <div class="metric-value verde" id="rm-bruta">—</div>
+              <div class="metric-sub">Ventas − costos directos</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Ganancia neta</div>
+              <div class="metric-value" id="rm-neta">—</div>
+              <div class="metric-sub">Bruta − costos fijos tildados</div>
+            </div>
+          </div>
+
+          <!-- Ventas por canal -->
+          <div class="card">
+            <div class="card-title">Ventas por canal y producto</div>
+            <div id="rm-canales-body"></div>
+          </div>
+
+          <!-- Detalle egresos -->
+          <div class="card">
+            <div class="card-title">Egresos del mes</div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Categoría</th><th>Concepto</th><th>Total</th></tr></thead>
+                <tbody id="rm-egresos-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Fijos no registrados -->
+          <div class="card" id="rm-fijos-card">
+            <div class="card-title">Costos fijos considerados no registrados</div>
+            <div style="font-size:12px;color:var(--texto-muted);margin-bottom:0.75rem">
+              Estos fijos están tildados pero no aparecen como egreso registrado este mes. Solo informativo — no afectan el cálculo de ganancia neta.
+            </div>
+            <div id="rm-fijos-noregistrados"></div>
+          </div>
+
+          <!-- Pendientes por local -->
+          <div class="card">
+            <div class="card-title">Pendiente de cobro por local</div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Local</th><th>Canal</th><th>Entregas</th><th>Total pendiente</th></tr></thead>
+                <tbody id="rm-pendientes-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Caja -->
+          <div class="card">
+            <div class="card-title">Caja del mes</div>
+            <div id="rm-caja"></div>
+          </div>
+
+          <!-- Punto de equilibrio -->
+          <div class="card">
+            <div class="card-title">Cobertura de fijos</div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:0.5rem">
+              <span style="color:var(--texto-muted)">Fijos totales considerados</span>
+              <strong id="rm-fijos-total">—</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:0.75rem">
+              <span style="color:var(--texto-muted)">Cubierto con ganancia bruta</span>
+              <strong id="rm-fijos-pct">—</strong>
+            </div>
+            <div style="background:var(--gris-claro);border-radius:20px;height:20px;overflow:hidden">
+              <div id="rm-barra" style="height:100%;border-radius:20px;transition:width 0.6s;background:var(--verde);width:0%"></div>
+            </div>
+          </div>
+
+          <!-- WhatsApp -->
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+              <div class="card-title" style="margin:0">Mensaje para WhatsApp</div>
+              <button class="btn-outline" onclick="copiarReporteMensual()">📋 Copiar texto</button>
+            </div>
+            <div class="reporte-box" id="repmes-texto"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COSTOS -->
+      <div class="page" id="page-costos">
+        <div class="page-header">
+          <div class="page-title">Análisis de costos</div>
+          <div class="page-desc">Punto de equilibrio y rentabilidad por producto</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Costos fijos del mes</div>
+          <div style="font-size:12px;color:var(--texto-muted);margin-bottom:1rem">Activá o desactivá conceptos para ajustar el análisis. Los cambios afectan el reporte semanal y el punto de equilibrio.</div>
+          <div id="fijos-lista" style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem 2rem;margin-bottom:1rem"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:0.75rem;border-top:1px solid var(--borde)">
+            <span style="font-size:13px;color:var(--texto-muted)">Total fijos considerados:</span>
+            <span id="fijos-total" style="font-size:18px;font-weight:600;color:var(--verde-oscuro)">—</span>
+          </div>
+          <div style="font-size:12px;color:var(--texto-muted);margin-top:0.4rem;text-align:right">Cuota semanal: <strong id="fijos-cuota">—</strong></div>
+          <hr style="border:none;border-top:1px solid var(--borde);margin:1rem 0">
+          <div style="font-size:13px;font-weight:500;margin-bottom:0.5rem">Agregar costo extra del mes</div>
+          <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap">
+            <div class="form-group" style="flex:2;min-width:140px">
+              <label>Concepto</label>
+              <input type="text" id="fijo-extra-nombre" placeholder="Ej: Gasoil especial" />
+            </div>
+            <div class="form-group" style="flex:1;min-width:100px">
+              <label>Monto</label>
+              <input type="number" id="fijo-extra-monto" placeholder="0" />
+            </div>
+            <button class="btn-outline" onclick="agregarFijoExtra()" style="margin-bottom:1px">+ Agregar</button>
+          </div>
+          <div id="fijos-extras" style="margin-top:0.5rem"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Punto de equilibrio</div>
+          <div class="form-grid" style="grid-template-columns: 1fr 1fr; max-width:400px">
+            <div class="form-group">
+              <label>Mes a analizar</label>
+              <input type="month" id="costos-mes" />
+            </div>
+            <div style="display:flex; align-items:flex-end">
+              <button class="btn-verde" onclick="analizarCostos()">Analizar</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="costos-loading" class="loading" style="display:none"><div class="spinner"></div> Calculando...</div>
+
+        <div id="costos-content" style="display:none">
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-label">Unidades vendidas</div>
+              <div class="metric-value" id="c-unidades">—</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Unidades p/ equilibrio</div>
+              <div class="metric-value naranja" id="c-eq-unidades">—</div>
+              <div class="metric-sub">Base: 🍋‍🟩 1/2l Suico (peor caso)</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Ganancia bruta</div>
+              <div class="metric-value verde" id="c-gan-bruta">—</div>
+              <div class="metric-sub">Sin descontar fijos</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Ganancia neta</div>
+              <div class="metric-value" id="c-gan-neta">—</div>
+              <div class="metric-sub" id="c-gan-neta-sub">Descontando costos fijos del mes</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Punto de equilibrio mensual</div>
+            <div style="font-size:13px;color:var(--texto-muted);margin-bottom:1.25rem">
+              Unidades necesarias de 🍋‍🟩 1/2l Suico para cubrir los costos fijos considerados (peor escenario).
+              El margen por unidad varía según canal.
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem">
+              <div style="background:var(--gris-claro);border-radius:10px;padding:1rem;text-align:center">
+                <div style="font-size:11px;color:var(--texto-muted);margin-bottom:0.3rem">CANAL UMEPAY</div>
+                <div style="font-size:24px;font-weight:700;color:var(--verde-oscuro)" id="eq-ume-u">—</div>
+                <div style="font-size:11px;color:var(--texto-muted)">unidades</div>
+                <div style="font-size:12px;color:var(--texto-muted);margin-top:0.3rem">margen <span id="eq-ume-m">—</span>/u</div>
+              </div>
+              <div style="background:var(--gris-claro);border-radius:10px;padding:1rem;text-align:center">
+                <div style="font-size:11px;color:var(--texto-muted);margin-bottom:0.3rem">CANAL AFUERA</div>
+                <div style="font-size:24px;font-weight:700;color:var(--verde)" id="eq-afu-u">—</div>
+                <div style="font-size:11px;color:var(--texto-muted)">unidades</div>
+                <div style="font-size:12px;color:var(--texto-muted);margin-top:0.3rem">margen <span id="eq-afu-m">—</span>/u</div>
+              </div>
+              <div style="background:var(--gris-claro);border-radius:10px;padding:1rem;text-align:center">
+                <div style="font-size:11px;color:var(--texto-muted);margin-bottom:0.3rem">MIX REAL DEL MES</div>
+                <div style="font-size:24px;font-weight:700;color:var(--azul)" id="eq-real-u">—</div>
+                <div style="font-size:11px;color:var(--texto-muted)">unidades</div>
+                <div style="font-size:12px;color:var(--texto-muted);margin-top:0.3rem">margen promedio <span id="eq-real-m">—</span>/u</div>
+              </div>
+            </div>
+
+            <!-- Visual bar chart -->
+            <div style="margin-top:0.5rem">
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--texto-muted);margin-bottom:0.4rem">
+                <span>Cobertura del mes con ventas reales</span>
+                <span id="eq-pct-label">—%</span>
+              </div>
+              <div style="background:var(--gris-claro);border-radius:20px;height:24px;overflow:hidden;position:relative">
+                <div id="eq-barra" style="height:100%;border-radius:20px;transition:width 0.6s ease;background:var(--verde);width:0%"></div>
+                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:12px;font-weight:600;color:white;text-shadow:0 1px 2px rgba(0,0,0,0.3)" id="eq-barra-label"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--texto-muted);margin-top:0.3rem">
+                <span>0</span>
+                <span id="eq-meta-label">Meta: — u.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+
+      <!-- INSUMOS -->
+      <div class="page" id="page-insumos">
+        <div class="page-header">
+          <div class="page-title">Insumos</div>
+          <div class="page-desc">Precios actuales, actualización y cálculo de costos por producto</div>
+        </div>
+
+        <div id="ins-loading" class="loading"><div class="spinner"></div> Cargando insumos...</div>
+
+        <div id="ins-content" style="display:none">
+
+          <!-- Tabla de insumos -->
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+              <div class="card-title" style="margin:0">Precios actuales de insumos</div>
+              <button class="btn-outline" id="btn-guardar-ins" onclick="guardarInsumos()" style="display:none">💾 Guardar cambios</button>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Insumo</th><th>Unidad</th><th>Precio actual</th><th>Nuevo precio</th><th>Última actualización</th><th>Proveedor</th></tr></thead>
+                <tbody id="ins-tabla-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Costo calculado por producto -->
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+              <div class="card-title" style="margin:0">Costo calculado por producto</div>
+              <div style="font-size:12px;color:var(--texto-muted)">Basado en recetas × precios actuales</div>
+            </div>
+            <div id="ins-costos-calc"></div>
+            <div id="ins-aplicar-banner" style="display:none;margin-top:1rem;background:var(--amarillo-claro);border-radius:10px;padding:1rem">
+              <div style="font-size:13px;color:var(--amarillo);font-weight:500;margin-bottom:0.75rem">
+                ⚠️ Los precios de insumos cambiaron — hay diferencias entre el costo calculado y el costo actual
+              </div>
+              <button class="btn-verde" onclick="aplicarCostosCalculados()">✓ Aplicar costos calculados a los productos</button>
+              <button class="btn-outline" onclick="document.getElementById('ins-aplicar-banner').style.display='none'" style="margin-left:0.5rem">Ignorar</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+
+      <!-- CIERRE MENSUAL -->
+      <div class="page" id="page-cierre">
+        <div class="page-header">
+          <div class="page-title">Cierre mensual</div>
+          <div class="page-desc">Congela precios, costos y fijos de cada mes para análisis histórico preciso</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Cerrar un mes</div>
+          <div style="font-size:13px;color:var(--texto-muted);margin-bottom:1rem">
+            Al cerrar un mes guardás una foto de los precios de venta, costos directos y fijos considerados en ese momento. Los reportes históricos usarán esos datos.
+          </div>
+          <div class="form-grid" style="max-width:300px">
+            <div class="form-group">
+              <label>Mes a cerrar</label>
+              <input type="month" id="cierre-mes" />
+            </div>
+          </div>
+          <div class="btn-row" style="margin-top:1rem">
+            <button class="btn-verde" onclick="cerrarMes()">🔒 Cerrar mes</button>
+            <div class="spinner" id="cierre-spinner" style="display:none"></div>
+          </div>
+          <div class="msg-success" id="cierre-success">✓ Mes cerrado y guardado en el Sheet.</div>
+          <div class="msg-error" id="cierre-error"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Meses cerrados</div>
+          <div id="cierre-loading" class="loading"><div class="spinner"></div> Cargando...</div>
+          <div class="table-wrapper" id="cierre-tabla-wrap" style="display:none">
+            <table>
+              <thead>
+                <tr>
+                  <th>Mes</th>
+                  <th>Unidades</th>
+                  <th>Total vendido</th>
+                  <th>Ganancia bruta</th>
+                  <th>Fijos considerados</th>
+                  <th>Ganancia neta</th>
+                  <th>Fecha cierre</th>
+                </tr>
+              </thead>
+              <tbody id="cierre-historial-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- COBROS PENDIENTES -->
+      <div class="page" id="page-cobros">
+        <div class="page-header">
+          <div class="page-title">Cobros pendientes</div>
+          <div class="page-desc">Resumen de deuda por local para cobrar y enviar por WhatsApp</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Consultar pendientes</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Local (opcional — vacío = todos)</label>
+              <input type="text" id="cob-local" placeholder="Vacío para ver todos..." list="locales-list2" />
+              <datalist id="locales-list2">
+                <option value="Despen"><option value="Dicha"><option value="Chacra"><option value="Centro">
+                <option value="Marilina"><option value="Calma Chicha"><option value="arrebol">
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label>Desde (opcional)</label>
+              <input type="date" id="cob-desde" />
+            </div>
+            <div class="form-group">
+              <label>Hasta (opcional)</label>
+              <input type="date" id="cob-hasta" />
+            </div>
+          </div>
+          <div class="btn-row" style="margin-top:1rem">
+            <button class="btn-verde" onclick="consultarCobros()">Ver pendientes</button>
+            <div class="spinner" id="cob-spinner" style="display:none"></div>
+          </div>
+        </div>
+
+        <div id="cob-content" style="display:none">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+              <div class="card-title" style="margin:0">Detalle de entregas pendientes</div>
+              <button class="btn-outline" onclick="copiarCobro()">📋 Copiar para WhatsApp</button>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Fecha</th><th>Local</th><th>Producto</th><th>Cant.</th><th>Precio u.</th><th>Total</th></tr></thead>
+                <tbody id="cob-tabla-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+              <div class="card-title" style="margin:0">Resumen por producto</div>
+              <div id="cob-total-badge" style="font-size:20px;font-weight:600;color:var(--verde)"></div>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Producto</th><th>Unidades</th><th>Total</th></tr></thead>
+                <tbody id="cob-resumen-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Mensaje WhatsApp</div>
+            <div class="reporte-box" id="cob-wpp-texto"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Registrar cobro</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Medio de pago</label>
+                <select id="cob-pago"><option value="Cash">Cash</option><option value="Transfe">Transfe</option></select>
+              </div>
+              <div class="form-group">
+                <label>Fecha de cobro</label>
+                <input type="date" id="cob-fecha-cobro" />
+              </div>
+            </div>
+            <div class="btn-row" style="margin-top:1rem">
+              <button class="btn-verde" onclick="marcarCobros()">✓ Marcar todo como cobrado</button>
+              <div class="spinner" id="cob-mark-spinner" style="display:none"></div>
+            </div>
+            <div class="msg-success" id="cob-success">✓ Ventas marcadas como cobradas.</div>
+            <div class="msg-error" id="cob-error"></div>
+          </div>
+        </div>
+
+        <div id="cob-empty" class="empty-state" style="display:none">No hay ventas pendientes con los filtros seleccionados.</div>
+      </div>
+
+      <!-- PRECIOS Y PRODUCTOS -->
+      <div class="page" id="page-precios">
+        <div class="page-header">
+          <div class="page-title">Precios y productos</div>
+          <div class="page-desc">Tabla de referencia, simulación y actualización de precios</div>
+        </div>
+
+        <div id="prec-loading" class="loading"><div class="spinner"></div> Cargando precios...</div>
+
+        <div id="prec-content" style="display:none">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+              <div class="card-title" style="margin:0">Precios actuales</div>
+              <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+                <button class="btn-outline" onclick="activarSimulacion()">🧪 Simular cambio</button>
+                <button class="btn-outline" onclick="toggleEditCostos()" id="btn-edit-costos">✏️ Editar costos</button>
+                <button class="btn-verde" id="btn-aplicar" onclick="aplicarPrecios()" style="display:none">✓ Aplicar precios</button>
+                <button class="btn-outline" id="btn-cancelar" onclick="cancelarSimulacion()" style="display:none">Cancelar</button>
+              </div>
+            </div>
+
+            <div id="prec-simulando-badge" style="display:none;background:var(--amarillo-claro);color:var(--amarillo);padding:0.5rem 1rem;border-radius:8px;font-size:13px;margin-bottom:1rem">
+              🧪 Modo simulación — editá el precio Umepay y Afuera/Personas se calculan solos (×1.10 y ×1.20). Los cambios no se guardan hasta "Aplicar precios".
+            </div>
+
+            <div class="table-wrapper">
+              <table id="prec-tabla">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>Costo directo</th>
+                    <th>Precio Umepay</th>
+                    <th>Margen</th>
+                    <th>Precio Afuera</th>
+                    <th>Margen</th>
+                    <th>Precio Personas</th>
+                    <th>Margen</th>
+                    <th>Vigente desde</th>
+                  </tr>
+                </thead>
+                <tbody id="prec-tabla-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:1.25rem">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+              <div class="card-title" style="margin:0">Historial de cambios</div>
+            </div>
+            <div id="prec-historial-loading" class="loading" style="display:none"><div class="spinner"></div></div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr><th>Fecha</th><th>Producto</th><th>Umepay anterior</th><th>Umepay nuevo</th><th>Afuera anterior</th><th>Afuera nuevo</th></tr>
+                </thead>
+                <tbody id="prec-historial-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end content -->
+  </div><!-- end layout -->
+</div><!-- end app -->
+
+<script>
+// =====================
+// CONFIG & AUTH
+// =====================
+let CONFIG = null;
+let PRODUCTOS = {};
+// Costos históricos por período
+// Cada entrada: { desde: 'YYYY-MM-DD', costos_fijos: N, productos: {...} }
+const HISTORIAL_COSTOS = [
+  {
+    desde: '2025-01-01',
+    costos_fijos: 1080000,
+    productos: {
+      '1/2l Suico':    1714,
+      '1l Suico':      2323,
+      '1/2l Leche':    2030,
+      '1l Leche':      2951,
+      'Kesir':         2623,
+      'Kesir petit':   1542,
+      '1/2l Hibiscus': 1714,
+      '1l Hibiscus':   2323,
+    }
+  },
+  {
+    desde: '2026-05-01',
+    costos_fijos: 1180000,
+    productos: {
+      '1/2l Suico':    1714,
+      '1l Suico':      2323,
+      '1/2l Leche':    2185,
+      '1l Leche':      3259,
+      'Kesir':         3086,
+      'Kesir petit':   1774,
+      '1/2l Hibiscus': 1714,
+      '1l Hibiscus':   2323,
+    }
+  },
+  {
+    desde: '2026-06-01', // leche sube a $2050/l
+    costos_fijos: 1180000,
+    productos: {
+      '1/2l Suico':    1714,
+      '1l Suico':      2323,
+      '1/2l Leche':    2436,
+      '1l Leche':      3762,
+      'Kesir':         4353,
+      'Kesir petit':   2664,
+      '1/2l Hibiscus': 1714,
+      '1l Hibiscus':   2323,
+    }
+  }
+];
+
+// Devuelve el costo directo de un producto para una fecha dada
+function getCostoParaFecha(prod, fecha) {
+  const f = fecha || '2025-01-01';
+  let version = HISTORIAL_COSTOS[0];
+  for (const v of HISTORIAL_COSTOS) {
+    if (f >= v.desde) version = v;
+  }
+  return version.productos[prod] || 0;
+}
+
+// Devuelve costos fijos mensuales para una fecha
+function getFijosParaFecha(fecha) {
+  const f = fecha || '2025-01-01';
+  let version = HISTORIAL_COSTOS[0];
+  for (const v of HISTORIAL_COSTOS) {
+    if (f >= v.desde) version = v;
+  }
+  return version.costos_fijos;
+}
+
+// COSTOS_FIJOS actual (para el módulo de costos del mes actual)
+const COSTOS_FIJOS = 1180000;
+
+const PRECIOS = {
+  '1/2l Suico':    { costo: 1714, umepay: 4400,  afuera: 4800,  personas: 5100,  costo_envase: 1050 },
+  '1l Suico':      { costo: 2323, umepay: 5200,  afuera: 5600,  personas: 6000,  costo_envase: 1231 },
+  '1/2l Leche':    { costo: 2436, umepay: 5200,  afuera: 5720,  personas: 6240,  costo_envase: 1050 },
+  '1l Leche':      { costo: 3762, umepay: 6500,  afuera: 7150,  personas: 7800,  costo_envase: 1231 },
+  'Kesir':         { costo: 4353, umepay: 6100,  afuera: 6710,  personas: 7320,  costo_envase: 1231 },
+  'Kesir petit':   { costo: 2664, umepay: 4700,  afuera: 5170,  personas: 5640,  costo_envase: 0 },
+  '1/2l Hibiscus': { costo: 1714, umepay: 4400,  afuera: 4800,  personas: 5100,  costo_envase: 1050 },
+  '1l Hibiscus':   { costo: 2323, umepay: 5200,  afuera: 5600,  personas: 6000,  costo_envase: 1231 },
+};
+
+const COSTO_ENVASE = {
+  'Litro':     { costo: 1231, descuento_afuera: 800 },
+  'Medio litro': { costo: 1050, descuento_afuera: 600 },
+  'Kesir gr':  { costo: 0, descuento_afuera: 0 },
+  'Kesir ch':  { costo: 0, descuento_afuera: 0 },
+};
+
+const PRODUCTOS_VALIDOS = Object.keys(PRECIOS);
+
+function guardarConfig() {
+  const sheetId = document.getElementById('sheet-id-input').value.trim();
+  const jsonRaw = document.getElementById('json-input').value.trim();
+  const errDiv = document.getElementById('setup-error');
+  errDiv.style.display = 'none';
+
+  if (!sheetId) { errDiv.textContent = 'Ingresá el ID del Sheet.'; errDiv.style.display = 'block'; return; }
+
+  let creds;
+  try { creds = JSON.parse(jsonRaw); } catch(e) {
+    errDiv.textContent = 'El JSON no es válido. Asegurate de pegar el contenido completo del archivo.';
+    errDiv.style.display = 'block'; return;
+  }
+
+  if (!creds.client_email || !creds.private_key) {
+    errDiv.textContent = 'El JSON no tiene client_email o private_key. Verificá que sea el archivo correcto.';
+    errDiv.style.display = 'block'; return;
+  }
+
+  CONFIG = { sheetId, creds };
+  localStorage.setItem('es_config', JSON.stringify(CONFIG));
+  iniciarApp();
+}
+
+function resetConfig() {
+  if (!confirm('¿Reconfigurar la conexión? Tendrás que pegar las credenciales de nuevo.')) return;
+  localStorage.removeItem('es_config');
+  location.reload();
+}
+
+// =====================
+// GOOGLE SHEETS AUTH (JWT)
+// =====================
+let accessToken = null;
+let tokenExpiry = 0;
+
+async function getAccessToken() {
+  if (accessToken && Date.now() < tokenExpiry - 60000) return accessToken;
+
+  const { creds } = CONFIG;
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: 'RS256', typ: 'JWT' };
+  const payload = {
+    iss: creds.client_email,
+    scope: 'https://www.googleapis.com/auth/spreadsheets',
+    aud: 'https://oauth2.googleapis.com/token',
+    iat: now,
+    exp: now + 3600
+  };
+
+  const b64 = obj => btoa(unescape(encodeURIComponent(JSON.stringify(obj)))).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const toSign = `${b64(header)}.${b64(payload)}`;
+
+  const keyData = creds.private_key.replace(/-----[^-]+-----/g, '').replace(/\s/g, '');
+  const binaryKey = Uint8Array.from(atob(keyData), c => c.charCodeAt(0));
+
+  const cryptoKey = await crypto.subtle.importKey(
+    'pkcs8', binaryKey.buffer,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false, ['sign']
+  );
+
+  const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', cryptoKey,
+    new TextEncoder().encode(toSign));
+  const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const jwt = `${toSign}.${sigB64}`;
+
+  const resp = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`
+  });
+
+  const data = await resp.json();
+  if (!data.access_token) throw new Error('No se pudo obtener token de acceso: ' + JSON.stringify(data));
+  accessToken = data.access_token;
+  tokenExpiry = Date.now() + data.expires_in * 1000;
+  return accessToken;
+}
+
+async function sheetsGet(range) {
+  const token = await getAccessToken();
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.sheetId}/values/${encodeURIComponent(range)}`;
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  const data = await r.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.values || [];
+}
+
+async function sheetsAppend(range, values) {
+  const token = await getAccessToken();
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.sheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ values })
+  });
+  const data = await r.json();
+  if (data.error) throw new Error(data.error.message);
+  return data;
+}
+
+async function sheetsUpdate(range, values) {
+  const token = await getAccessToken();
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.sheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`;
+  const r = await fetch(url, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ values })
+  });
+  const data = await r.json();
+  if (data.error) throw new Error(data.error.message);
+  return data;
+}
+
+// =====================
+// HELPERS
+// =====================
+function pesos(n) {
+  return '$' + Math.round(n).toLocaleString('es-AR');
+}
+
+// Normaliza cualquier formato de fecha a YYYY-MM-DD para poder comparar
+function normFecha(f) {
+  if (!f) return '';
+  f = String(f).trim();
+  // Ya está en formato YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(f)) return f;
+  // Formato DD/MM/YYYY o D/M/YYYY
+  const m = f.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  // Formato DD/MM/YY
+  const m2 = f.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+  if (m2) return `20${m2[3]}-${m2[2].padStart(2,'0')}-${m2[1].padStart(2,'0')}`;
+  return f;
+}
+
+
+function emojiProducto(prod) {
+  const p = prod.toLowerCase();
+  if (p.includes('leche')) return '🥛';
+  if (p.includes('kesir')) return '🧀';
+  if (p.includes('suico')) return '🍋‍🟩';
+  if (p.includes('hibiscus')) return '🌺';
+  return '•';
+}
+function hoy() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function inicioSemana() {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  const lunes = new Date(d.setDate(diff));
+  return lunes.toISOString().split('T')[0];
+}
+
+function finSemana() {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? 0 : 7);
+  const domingo = new Date(d.setDate(diff));
+  return domingo.toISOString().split('T')[0];
+}
+
+function getMes() {
+  return new Date().toISOString().slice(0, 7);
+}
+
+function mesStr(fecha) {
+  if (!fecha) return '';
+  const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const d = new Date(fecha + 'T12:00:00');
+  return meses[d.getMonth()];
+}
+
+function showMsg(id, ok, txt) {
+  const el = document.getElementById(id);
+  el.textContent = ok ? '✓ ' + txt : '✗ ' + txt;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+// =====================
+// NAVIGATION
+// =====================
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+
+  if (name === 'ventas') { cargarVentasRecientes(); if(!document.getElementById('v-productos-grid').innerHTML) renderProductosGrid(); }
+  if (name === 'envases') cargarEnvasesRecientes();
+  if (name === 'egresos') cargarEgresosRecientes();
+  if (name === 'dashboard') { setFechas('dash-desde','dash-hasta'); }
+  if (name === 'reporte') { setFechas('rep-desde','rep-hasta'); }
+  if (name === 'caja') { setFechas('caja-desde','caja-hasta'); }
+  if (name === 'costos') renderFijos();
+  if (name === 'cobros') { setFechas('cob-desde','cob-hasta'); }
+  if (name === 'precios') cargarPrecios();
+  if (name === 'insumos') cargarInsumos();
+  if (name === 'cierre') { document.getElementById('cierre-mes').value = getMes(); cargarHistorialCierres(); }
+  if (name === 'reporte-mensual') { document.getElementById('repmes-mes').value = getMes(); }
+}
+
+function setFechas(desdeId, hastaId) {
+  document.getElementById(desdeId).value = inicioSemana();
+  document.getElementById(hastaId).value = finSemana();
+}
+
+// =====================
+// VENTAS
+// =====================
+function actualizarPrecio() {
+  const canal = document.getElementById('v-canal').value;
+  const prod = document.getElementById('v-producto').value;
+  const cant = parseInt(document.getElementById('v-cantidad').value) || 1;
+  const preview = document.getElementById('precio-preview');
+
+  if (!canal || !prod || !PRECIOS[prod]) { preview.style.display = 'none'; return; }
+
+  const canalKey = canal === 'Umepay' ? 'umepay' : canal === 'Afuera' ? 'afuera' : canal === 'Personas' ? 'personas' : null;
+  if (!canalKey) { preview.style.display = 'none'; return; }
+
+  const precio = PRECIOS[prod][canalKey] || 0;
+  document.getElementById('v-precio').value = precio;
+  const total = precio * cant;
+  preview.textContent = `Precio: ${pesos(precio)} × ${cant} = ${pesos(total)}`;
+  preview.style.display = 'block';
+}
+
+async function guardarVenta() {
+  const fecha = document.getElementById('v-fecha').value;
+  const canal = document.getElementById('v-canal').value;
+  const local = document.getElementById('v-local').value;
+  const prod = document.getElementById('v-producto').value;
+  const cant = parseInt(document.getElementById('v-cantidad').value);
+  const precio = parseFloat(document.getElementById('v-precio').value);
+  const pago = document.getElementById('v-pago').value;
+  const estado = document.getElementById('v-estado').value;
+  const fechaPago = document.getElementById('v-fecha-pago').value;
+
+  if (!fecha || !canal || !prod || !cant || !precio) {
+    showMsg('v-error', false, 'Completá todos los campos obligatorios.');
+    document.getElementById('v-error').style.display = 'block'; return;
+  }
+
+  const total = precio * cant;
+  const mes = mesStr(fecha);
+  const row = [fecha, mes, canal, local, prod, cant, precio, total, pago, fechaPago, estado];
+
+  document.getElementById('v-spinner').style.display = 'block';
+  try {
+    await sheetsAppend('Ventas!A:K', [row]);
+    document.getElementById('v-spinner').style.display = 'none';
+    showMsg('v-success', true, 'Venta guardada correctamente en el Sheet.');
+    document.getElementById('v-success').style.display = 'block';
+    limpiarFormVenta();
+    cargarVentasRecientes();
+  } catch(e) {
+    document.getElementById('v-spinner').style.display = 'none';
+    document.getElementById('v-error').textContent = 'Error: ' + e.message;
+    document.getElementById('v-error').style.display = 'block';
+  }
+}
+
+
+// =====================
+// CARGA DE PEDIDO (multi-producto)
+// =====================
+const PRODUCTOS_LISTA = ['1/2l Suico','1l Suico','1/2l Leche','1l Leche','Kesir','Kesir petit','1/2l Hibiscus','1l Hibiscus'];
+
+function actualizarProductosDelPedido() {
+  renderProductosGrid();
+  actualizarTotalPedido();
+}
+
+function renderProductosGrid() {
+  const canal = document.getElementById('v-canal').value;
+  const grid = document.getElementById('v-productos-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  PRODUCTOS_LISTA.forEach(prod => {
+    const canalKey = canal==='Umepay'?'umepay':canal==='Afuera'?'afuera':canal==='Personas'?'personas':null;
+    const precio = canalKey && PRECIOS[prod] ? PRECIOS[prod][canalKey] : 0;
+    const inputId = `vp-${prod.replace(/[^a-z0-9]/gi,'_')}`;
+    grid.innerHTML += `<div style="background:var(--gris-claro);border-radius:10px;padding:0.75rem;border:1px solid var(--borde)">
+      <div style="font-size:13px;font-weight:500;margin-bottom:0.4rem">${emojiProducto(prod)} ${prod}</div>
+      ${precio ? `<div style="font-size:11px;color:var(--texto-muted);margin-bottom:0.4rem">${pesos(precio)} c/u</div>` : ''}
+      <input type="number" id="${inputId}" min="0" placeholder="0" value=""
+        style="width:100%;border:1px solid var(--borde);border-radius:6px;padding:5px 8px;font-size:16px;text-align:center"
+        oninput="actualizarTotalPedido()" />
+    </div>`;
+  });
+}
+
+const ENV_TIPOS = ['Litro', 'Medio litro', 'Kesir gr', 'Kesir ch'];
+const ENV_COSTO = {'Litro':1231,'Medio litro':1050,'Kesir gr':462,'Kesir ch':462};
+const ENV_DESC  = {'Litro':800,'Medio litro':600,'Kesir gr':0,'Kesir ch':0};
+
+function actualizarProductosDelPedido() {
+  const canal = document.getElementById('v-canal').value;
+  renderProductosGrid();
+  // Update envase descriptions based on canal
+  ENV_TIPOS.forEach(tipo => {
+    const desc = document.getElementById(`env-desc-${tipo}`);
+    if (!desc) return;
+    const esUmepay = canal === 'Umepay';
+    const descMonto = ENV_DESC[tipo];
+    if (esUmepay) {
+      desc.textContent = `Sin descuento — gan. $${(ENV_COSTO[tipo]).toLocaleString('es-AR')}`;
+    } else if (descMonto > 0) {
+      desc.textContent = `Descuento: $${descMonto.toLocaleString('es-AR')} — gan. $${(ENV_COSTO[tipo]-descMonto).toLocaleString('es-AR')}`;
+    } else {
+      desc.textContent = '';
+    }
+  });
+  actualizarTotalPedido();
+}
+
+function actualizarTotalPedido() {
+  const canal = document.getElementById('v-canal').value;
+  const canalKey = canal==='Umepay'?'umepay':canal==='Afuera'?'afuera':canal==='Personas'?'personas':null;
+  let totalProd = 0, unidades = 0;
+  const lineas = [];
+  PRODUCTOS_LISTA.forEach(prod => {
+    const inputId = `vp-${prod.replace(/[^a-z0-9]/gi,'_')}`;
+    const el = document.getElementById(inputId);
+    if (!el) return;
+    const cant = parseFloat(el.value) || 0;
+    if (cant > 0) {
+      const precio = canalKey && PRECIOS[prod] ? PRECIOS[prod][canalKey] : 0;
+      totalProd += cant * precio;
+      unidades += cant;
+      lineas.push(`${prod} ×${cant}`);
+    }
+  });
+
+  // Envases descuento
+  let totalDescEnv = 0, envLineas = [];
+  const esUmepay = canal === 'Umepay';
+  ENV_TIPOS.forEach(tipo => {
+    const el = document.getElementById(`env-${tipo}`);
+    if (!el) return;
+    const cant = parseFloat(el.value) || 0;
+    if (cant > 0) {
+      const desc = esUmepay ? 0 : (ENV_DESC[tipo]||0);
+      totalDescEnv += desc * cant;
+      if (desc > 0) envLineas.push(`${cant} ${tipo==='Litro'?'litro':'1/2l'}`);
+    }
+  });
+
+  const totalFinal = totalProd - totalDescEnv;
+  const preview = document.getElementById('v-total-preview');
+  if (unidades > 0 || totalDescEnv > 0) {
+    let txt = `${unidades} u. — Productos: ${pesos(totalProd)}`;
+    if (totalDescEnv > 0) txt += ` | Descuento envases: -${pesos(totalDescEnv)} | 💰 A cobrar: ${pesos(totalFinal)}`;
+    preview.textContent = txt;
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
+async function guardarPedido() {
+  const fecha = document.getElementById('v-fecha').value;
+  const canal = document.getElementById('v-canal').value;
+  const local = document.getElementById('v-local').value.trim();
+  const pago = document.getElementById('v-pago').value;
+  const estado = document.getElementById('v-estado').value;
+  const fechaPago = document.getElementById('v-fecha-pago').value;
+
+  if (!fecha || !canal) {
+    document.getElementById('v-error').textContent = 'Completá fecha y canal.';
+    document.getElementById('v-error').style.display = 'block';
+    return;
+  }
+
+  const canalKey = canal==='Umepay'?'umepay':canal==='Afuera'?'afuera':canal==='Personas'?'personas':null;
+  const mes = mesStr(fecha.split('-').length===3 ? new Date(fecha+'T12:00:00') : new Date(fecha.split('/').reverse().join('-')+'T12:00:00'));
+  const rows = [];
+
+  PRODUCTOS_LISTA.forEach(prod => {
+    const inputId = `vp-${prod.replace(/[^a-z0-9]/gi,'_')}`;
+    const el = document.getElementById(inputId);
+    const cant = parseFloat(el?.value) || 0;
+    if (cant <= 0) return;
+    const precio = canalKey && PRECIOS[prod] ? PRECIOS[prod][canalKey] : 0;
+    const total = cant * precio;
+    rows.push([fecha, mes, canal, local, prod, cant, precio, total, pago, fechaPago, estado]);
+  });
+
+  // Envases rows
+  const envRows = [];
+  const esUmepay = canal === 'Umepay';
+  ENV_TIPOS.forEach(tipo => {
+    const el = document.getElementById(`env-${tipo}`);
+    const cant = parseFloat(el?.value) || 0;
+    if (cant <= 0) return;
+    const descUnit = esUmepay ? 0 : (ENV_DESC[tipo]||0);
+    const costoUnit = ENV_COSTO[tipo]||0;
+    const ganUnit = costoUnit - descUnit;
+    envRows.push([fecha, canal, local, tipo, cant, descUnit, descUnit*cant, ganUnit*cant]);
+  });
+
+  if (rows.length === 0 && envRows.length === 0) {
+    document.getElementById('v-error').textContent = 'Agregá al menos un producto o envase.';
+    document.getElementById('v-error').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('v-error').style.display = 'none';
+  document.getElementById('v-spinner').style.display = 'block';
+  try {
+    if (rows.length > 0) await sheetsAppend('Ventas!A:K', rows);
+    if (envRows.length > 0) await sheetsAppend('Envases!A:H', envRows);
+    document.getElementById('v-spinner').style.display = 'none';
+    const totalDescEnv = envRows.reduce((s,r) => s + r[6], 0);
+    const totalProd = rows.reduce((s,r) => s + r[7], 0);
+    let msg = `✓ ${rows.length} producto(s) guardados`;
+    if (envRows.length > 0) msg += ` | ${envRows.length} envase(s) registrados — descuento: ${pesos(totalDescEnv)}`;
+    msg += ` para ${local||canal}.`;
+    document.getElementById('v-success').textContent = msg;
+    document.getElementById('v-success').style.display = 'block';
+    setTimeout(() => document.getElementById('v-success').style.display = 'none', 5000);
+    // Clear quantities
+    PRODUCTOS_LISTA.forEach(prod => {
+      const el = document.getElementById(`vp-${prod.replace(/[^a-z0-9]/gi,'_')}`);
+      if (el) el.value = '';
+    });
+    ENV_TIPOS.forEach(tipo => {
+      const el = document.getElementById(`env-${tipo}`);
+      if (el) el.value = '';
+    });
+    document.getElementById('v-total-preview').style.display = 'none';
+    cargarVentasRecientes();
+  } catch(e) {
+    document.getElementById('v-spinner').style.display = 'none';
+    document.getElementById('v-error').textContent = 'Error: ' + e.message;
+    document.getElementById('v-error').style.display = 'block';
+  }
+}
+
+function limpiarFormVenta() {
+  // Clear quantities only
+  PRODUCTOS_LISTA.forEach(prod => {
+    const el = document.getElementById(`vp-${prod.replace(/[^a-z0-9]/gi,'_')}`);
+    if (el) el.value = '';
+  });
+  document.getElementById('v-total-preview').style.display = 'none';
+}
+
+function limpiarFormVentaCompleto() {
+  document.getElementById('v-fecha').value = hoy();
+  document.getElementById('v-canal').value = '';
+  document.getElementById('v-local').value = '';
+  document.getElementById('v-pago').value = '';
+  document.getElementById('v-estado').value = 'Pendiente';
+  document.getElementById('v-fecha-pago').value = '';
+  document.getElementById('v-total-preview').style.display = 'none';
+  const grid = document.getElementById('v-productos-grid');
+  if (grid) grid.innerHTML = '';
+}
+
+async function cargarVentasRecientes() {
+  document.getElementById('ventas-recientes-loading').style.display = 'flex';
+  document.getElementById('ventas-recientes-tabla').style.display = 'none';
+  try {
+    const data = await sheetsGet('Ventas!A:K');
+    const rows = data.slice(1).filter(r => r[0]).reverse().slice(0, 30);
+    const tbody = document.getElementById('ventas-recientes-body');
+    tbody.innerHTML = '';
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--texto-muted);padding:2rem">Sin ventas registradas</td></tr>'; }
+    rows.forEach((r, i) => {
+      const estado = r[10] || 'Pendiente';
+      const badgeClass = estado.toLowerCase() === 'cobrado' ? 'badge-verde' : 'badge-amarillo';
+      const realIdx = data.length - i;
+      tbody.innerHTML += `<tr>
+        <td>${r[0] || ''}</td>
+        <td>${r[2] || ''}</td>
+        <td>${r[3] || ''}</td>
+        <td>${r[4] || ''}</td>
+        <td>${r[5] || ''}</td>
+        <td>${r[7] ? pesos(r[7]) : ''}</td>
+        <td>${r[8] || '—'}</td>
+        <td><span class="badge ${badgeClass}">${estado}</span></td>
+        <td><button class="estado-btn" onclick="marcarCobrado(${realIdx}, this)">✓ Cobrar</button></td>
+        <td><button class="delete-btn" onclick="borrarVenta(${realIdx}, this)" title="Borrar">🗑</button></td>
+      </tr>`;
+    });
+    document.getElementById('ventas-recientes-loading').style.display = 'none';
+    document.getElementById('ventas-recientes-tabla').style.display = 'block';
+  } catch(e) {
+    document.getElementById('ventas-recientes-loading').innerHTML = '<span style="color:var(--rojo)">Error cargando ventas: ' + e.message + '</span>';
+  }
+}
+
+async function marcarCobrado(rowNum, btn) {
+  const pago = prompt('Medio de pago (Cash / Transfe):');
+  if (!pago) return;
+  const fechaPago = prompt('Fecha de cobro (AAAA-MM-DD):', hoy());
+  if (!fechaPago) return;
+  try {
+    await sheetsUpdate(`Ventas!I${rowNum}:K${rowNum}`, [[pago, fechaPago, 'Cobrado']]);
+    btn.textContent = '✓ Cobrado';
+    btn.disabled = true;
+    cargarVentasRecientes();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+// =====================
+// ENVASES
+// =====================
+function calcularGananciaEnvase() {
+  const canal = document.getElementById('e-canal').value;
+  const tipo = document.getElementById('e-tipo').value;
+  const cant = parseInt(document.getElementById('e-cantidad').value) || 1;
+  const preview = document.getElementById('envase-preview');
+
+  if (!canal || !tipo || !COSTO_ENVASE[tipo]) { preview.style.display = 'none'; return; }
+
+  const env = COSTO_ENVASE[tipo];
+  const descuento = canal === 'Umepay' ? 0 : env.descuento_afuera;
+  const ganancia = env.costo - descuento;
+
+  preview.textContent = `Descuento al cliente: ${pesos(descuento * cant)} | Ganancia indirecta: ${pesos(ganancia * cant)} (${pesos(ganancia)} por envase)`;
+  preview.style.display = 'block';
+}
+
+async function guardarEnvase() {
+  const fecha = document.getElementById('e-fecha').value;
+  const canal = document.getElementById('e-canal').value;
+  const local = document.getElementById('e-local').value;
+  const tipo = document.getElementById('e-tipo').value;
+  const cant = parseInt(document.getElementById('e-cantidad').value) || 1;
+
+  if (!fecha || !canal || !tipo) {
+    document.getElementById('e-error').textContent = 'Completá fecha, canal y tipo.';
+    document.getElementById('e-error').style.display = 'block'; return;
+  }
+
+  const env = COSTO_ENVASE[tipo];
+  const descuento = canal === 'Umepay' ? 0 : env.descuento_afuera;
+  const ganancia = (env.costo - descuento) * cant;
+  const totalDescuento = descuento * cant;
+  const row = [fecha, canal, local, tipo, cant, descuento, totalDescuento, ganancia];
+
+  document.getElementById('e-spinner').style.display = 'block';
+  try {
+    await sheetsAppend('Envases!A:H', [row]);
+    document.getElementById('e-spinner').style.display = 'none';
+    document.getElementById('e-success').style.display = 'block';
+    setTimeout(() => document.getElementById('e-success').style.display = 'none', 3000);
+    cargarEnvasesRecientes();
+  } catch(e) {
+    document.getElementById('e-spinner').style.display = 'none';
+    document.getElementById('e-error').textContent = 'Error: ' + e.message;
+    document.getElementById('e-error').style.display = 'block';
+  }
+}
+
+async function cargarEnvasesRecientes() {
+  document.getElementById('envases-loading').style.display = 'flex';
+  document.getElementById('envases-tabla').style.display = 'none';
+  try {
+    const data = await sheetsGet('Envases!A:H');
+    const rows = data.slice(1).filter(r => r[0]).reverse().slice(0, 20);
+    const tbody = document.getElementById('envases-body');
+    tbody.innerHTML = '';
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--texto-muted);padding:2rem">Sin envases registrados</td></tr>'; }
+    rows.forEach(r => {
+      tbody.innerHTML += `<tr>
+        <td>${r[0]}</td><td>${r[1]}</td><td>${r[2]||'—'}</td>
+        <td>${r[3]}</td><td>${r[4]}</td>
+        <td>${r[5] ? pesos(r[5]) : '—'}</td>
+        <td style="color:var(--verde);font-weight:500">${r[7] ? pesos(r[7]) : '—'}</td>
+      </tr>`;
+    });
+    document.getElementById('envases-loading').style.display = 'none';
+    document.getElementById('envases-tabla').style.display = 'block';
+  } catch(e) {
+    document.getElementById('envases-loading').innerHTML = '<span style="color:var(--rojo)">Error: ' + e.message + '</span>';
+  }
+}
+
+// =====================
+// EGRESOS
+// =====================
+function calcularTotalEgreso() {
+  const cant = parseFloat(document.getElementById('eg-cantidad').value) || 0;
+  const precio = parseFloat(document.getElementById('eg-precio').value) || 0;
+  if (cant && precio) document.getElementById('eg-total').value = cant * precio;
+}
+
+async function guardarEgreso() {
+  const fecha = document.getElementById('eg-fecha').value;
+  const concepto = document.getElementById('eg-concepto').value;
+  const cat = document.getElementById('eg-categoria').value;
+  const cant = document.getElementById('eg-cantidad').value;
+  const precio = document.getElementById('eg-precio').value;
+  const total = document.getElementById('eg-total').value;
+  const pago = document.getElementById('eg-pago').value;
+  const obs = document.getElementById('eg-obs').value;
+
+  if (!fecha || !concepto || !total) {
+    document.getElementById('eg-error').textContent = 'Completá fecha, concepto y total.';
+    document.getElementById('eg-error').style.display = 'block'; return;
+  }
+
+  const row = [fecha, concepto, cat, cant, precio, total, pago, obs];
+  document.getElementById('eg-spinner').style.display = 'block';
+  try {
+    await sheetsAppend('Egresos!A:H', [row]);
+    document.getElementById('eg-spinner').style.display = 'none';
+    document.getElementById('eg-success').style.display = 'block';
+    setTimeout(() => document.getElementById('eg-success').style.display = 'none', 3000);
+    document.getElementById('eg-fecha').value = hoy();
+    document.getElementById('eg-concepto').value = '';
+    document.getElementById('eg-cantidad').value = '';
+    document.getElementById('eg-precio').value = '';
+    document.getElementById('eg-total').value = '';
+    document.getElementById('eg-obs').value = '';
+    cargarEgresosRecientes();
+  } catch(e) {
+    document.getElementById('eg-spinner').style.display = 'none';
+    document.getElementById('eg-error').textContent = 'Error: ' + e.message;
+    document.getElementById('eg-error').style.display = 'block';
+  }
+}
+
+async function cargarEgresosRecientes() {
+  document.getElementById('egresos-loading').style.display = 'flex';
+  document.getElementById('egresos-tabla').style.display = 'none';
+  try {
+    const data = await sheetsGet('Egresos!A:H');
+    const rows = data.slice(1).filter(r => r[0]).reverse().slice(0, 25);
+    const tbody = document.getElementById('egresos-body');
+    tbody.innerHTML = '';
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--texto-muted);padding:2rem">Sin egresos registrados</td></tr>'; }
+    rows.forEach(r => {
+      const catColors = { 'Insumo':'badge-azul', 'Gasto fijo':'badge-naranja', 'Inversión':'badge-gris', 'Publicidad':'badge-verde', 'Extraordinario':'badge-amarillo' };
+      tbody.innerHTML += `<tr>
+        <td>${r[0]}</td><td>${r[1]||''}</td>
+        <td><span class="badge ${catColors[r[2]]||'badge-gris'}">${r[2]||''}</span></td>
+        <td style="font-weight:500">${r[5] ? pesos(r[5]) : '—'}</td>
+        <td>${r[6]||'—'}</td>
+        <td style="color:var(--texto-muted);font-size:12px">${r[7]||''}</td>
+      </tr>`;
+    });
+    document.getElementById('egresos-loading').style.display = 'none';
+    document.getElementById('egresos-tabla').style.display = 'block';
+  } catch(e) {
+    document.getElementById('egresos-loading').innerHTML = '<span style="color:var(--rojo)">Error: ' + e.message + '</span>';
+  }
+}
+
+// =====================
+// DASHBOARD
+// =====================
+async function cargarDashboard() {
+  const desde = document.getElementById('dash-desde').value;
+  const hasta = document.getElementById('dash-hasta').value;
+  if (!desde || !hasta) return;
+
+  document.getElementById('dash-loading').style.display = 'flex';
+  document.getElementById('dash-content').style.display = 'none';
+  document.getElementById('dash-empty').style.display = 'none';
+
+  try {
+    const [ventasData, envasesData, egresosData] = await Promise.all([
+      sheetsGet('Ventas!A:K'),
+      sheetsGet('Envases!A:H'),
+      sheetsGet('Egresos!A:H')
+    ]);
+
+    // Excluir envases y filas sin producto válido
+    const ventas = ventasData.slice(1).filter(r => {
+      const f = normFecha(r[0]);
+      const prod = (r[4]||'').trim();
+      return f && f >= desde && f <= hasta && PRODUCTOS_VALIDOS.includes(prod);
+    });
+    const envases = envasesData.slice(1).filter(r => { const f=normFecha(r[0]); return f && f >= desde && f <= hasta; });
+
+    if (!ventas.length) {
+      document.getElementById('dash-loading').style.display = 'none';
+      document.getElementById('dash-empty').style.display = 'block';
+      return;
+    }
+
+    let totalUnidades = 0, totalVenta = 0, totalGanancia = 0;
+    const porProducto = {}, porCanal = {}, cajaData = { Cash: 0, Transfe: 0 };
+
+    ventas.forEach(r => {
+      const prod = r[4].trim(), cant = parseFloat(r[5])||0;
+      const precio = parseFloat(r[6])||0;
+      // Si total es null/vacío, lo calculamos nosotros
+      let total = parseFloat(r[7]);
+      if (isNaN(total)) total = precio * cant;
+      const canal = (r[2]||'').trim(), estado = (r[10]||'').trim().toLowerCase(), pago = (r[8]||'').trim();
+      const costo = getCostoParaFecha(prod, normFecha(r[0])) * cant;
+      const ganancia = total - costo;
+
+      totalUnidades += cant;
+      totalVenta += total;
+      totalGanancia += ganancia;
+
+      if (!porProducto[prod]) porProducto[prod] = { unidades:0, venta:0, costo:0 };
+      porProducto[prod].unidades += cant;
+      porProducto[prod].venta += total;
+      porProducto[prod].costo += costo;
+
+      if (!porCanal[canal]) porCanal[canal] = { unidades:0, venta:0 };
+      porCanal[canal].unidades += cant;
+      porCanal[canal].venta += total;
+
+      // Caja: si está cobrado (con o sin fecha de pago)
+      if (estado === 'cobrado' && pago) cajaData[pago] = (cajaData[pago]||0) + total;
+    });
+
+    let totalGananciaEnvases = 0;
+    let totalEnvases = 0;
+    envases.forEach(r => { totalGananciaEnvases += parseFloat(r[7])||0; totalEnvases += parseFloat(r[4])||0; });
+
+    document.getElementById('dash-unidades').textContent = totalUnidades;
+    document.getElementById('dash-total').textContent = pesos(totalVenta);
+    document.getElementById('dash-ganancia').textContent = pesos(totalGanancia);
+    document.getElementById('dash-envases').textContent = totalEnvases;
+    document.getElementById('dash-envases-sub').textContent = 'Ganancia indirecta: ' + pesos(totalGananciaEnvases);
+
+    const canalesEl = document.getElementById('dash-canales');
+    canalesEl.innerHTML = '';
+    Object.entries(porCanal).forEach(([c, d]) => {
+      canalesEl.innerHTML += `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-bottom:1px solid var(--borde)">
+        <span style="font-size:14px">${c}</span>
+        <span style="font-size:13px;color:var(--texto-muted)">${d.unidades} u. &nbsp; <strong>${pesos(d.venta)}</strong></span>
+      </div>`;
+    });
+
+    const cajaEl = document.getElementById('dash-caja');
+    cajaEl.innerHTML = `
+      <div style="display:flex;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--borde)">
+        <span style="font-size:14px">💵 Cash</span><strong>${pesos(cajaData.Cash||0)}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--borde)">
+        <span style="font-size:14px">🏦 Transfe</span><strong>${pesos(cajaData.Transfe||0)}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:0.75rem 0 0;font-weight:600">
+        <span>Total cobrado</span><span style="color:var(--verde)">${pesos((cajaData.Cash||0)+(cajaData.Transfe||0))}</span>
+      </div>`;
+
+    const tbody = document.getElementById('dash-tabla-productos');
+    tbody.innerHTML = '';
+    let totalU=0, totalV=0, totalC=0, totalG=0;
+    Object.entries(porProducto).sort((a,b)=>b[1].venta-a[1].venta).forEach(([prod, d]) => {
+      const gan = d.venta - d.costo;
+      totalU+=d.unidades; totalV+=d.venta; totalC+=d.costo; totalG+=gan;
+      tbody.innerHTML += `<tr>
+        <td>${prod}</td>
+        <td>${d.unidades}</td>
+        <td>${pesos(d.venta)}</td>
+        <td style="color:var(--texto-muted)">${pesos(d.costo)}</td>
+        <td style="color:var(--verde);font-weight:500">${pesos(gan)}</td>
+      </tr>`;
+    });
+    tbody.innerHTML += `<tr class="total-row">
+      <td>TOTAL</td><td>${totalU}</td><td>${pesos(totalV)}</td><td>${pesos(totalC)}</td>
+      <td style="color:var(--verde)">${pesos(totalG)}</td>
+    </tr>`;
+
+    document.getElementById('dash-loading').style.display = 'none';
+    document.getElementById('dash-content').style.display = 'block';
+  } catch(e) {
+    document.getElementById('dash-loading').innerHTML = '<span style="color:var(--rojo)">Error: ' + e.message + '</span>';
+  }
+}
+
+// =====================
+// CAJA SEMANAL
+// =====================
+async function cargarCaja() {
+  const desde = document.getElementById('caja-desde').value;
+  const hasta = document.getElementById('caja-hasta').value;
+  if (!desde || !hasta) return;
+
+  document.getElementById('caja-loading').style.display = 'flex';
+  document.getElementById('caja-content').style.display = 'none';
+
+  try {
+    const [ventasData, egresosData] = await Promise.all([
+      sheetsGet('Ventas!A:K'),
+      sheetsGet('Egresos!A:H')
+    ]);
+
+    const ventas = ventasData.slice(1).filter(r => r[0] && PRODUCTOS_VALIDOS.includes((r[4]||'').trim()));
+    const cobradas = ventas.filter(r => {
+      const estado = (r[10]||'').toLowerCase();
+      if (estado !== 'cobrado') return false;
+      const fp = normFecha(r[9]);
+      if (fp) return fp >= desde && fp <= hasta;
+      return normFecha(r[0]) >= desde && normFecha(r[0]) <= hasta;
+    });
+    const pendientes = ventas.filter(r => {
+      const f = normFecha(r[0]);
+      return (r[10]||'').toLowerCase() !== 'cobrado' && f && f >= desde && f <= hasta;
+    });
+    const egresos = egresosData.slice(1).filter(r => { const f=normFecha(r[0]); return f && f >= desde && f <= hasta; });
+
+    let cash=0, transfe=0;
+    cobradas.forEach(r => {
+      const precio=parseFloat(r[6])||0, cant=parseFloat(r[5])||0;
+      let total=parseFloat(r[7]); if(isNaN(total)) total=precio*cant;
+      const pago = (r[8]||'').trim();
+      if (pago==='Cash') cash+=total;
+      else if (pago==='Transfe') transfe+=total;
+    });
+
+    let totalEgresos = 0;
+    let egCash = 0, egTransfe = 0;
+    egresos.forEach(r => {
+      const tot = parseFloat(r[5])||0;
+      const pago = (r[6]||'').trim();
+      totalEgresos += tot;
+      if (pago === 'Cash') egCash += tot;
+      else if (pago === 'Transfe') egTransfe += tot;
+    });
+
+    document.getElementById('caja-cash').textContent = pesos(cash);
+    document.getElementById('caja-transfe').textContent = pesos(transfe);
+    document.getElementById('caja-total').textContent = pesos(cash+transfe);
+    document.getElementById('caja-egresos').textContent = pesos(totalEgresos);
+
+    const tbody = document.getElementById('caja-pendientes-body');
+    tbody.innerHTML = '';
+    if (!pendientes.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--verde);padding:1.5rem">✓ No hay ventas pendientes de cobro</td></tr>';
+    }
+    pendientes.slice(0,30).forEach((r, i) => {
+      const realIdx = ventasData.indexOf(r) + 1;
+      const precio=parseFloat(r[6])||0, cant=parseFloat(r[5])||0;
+      let total=parseFloat(r[7]); if(isNaN(total)) total=precio*cant;
+      tbody.innerHTML += `<tr>
+        <td>${r[0]}</td><td>${r[3]||'—'}</td><td>${r[4]||''} ×${r[5]||''}</td>
+        <td style="font-weight:500">${pesos(total)}</td>
+        <td><span class="badge badge-amarillo">Pendiente</span></td>
+        <td><button class="estado-btn" onclick="marcarCobrado(${realIdx}, this)">✓ Cobrar</button></td>
+      </tr>`;
+    });
+
+    document.getElementById('caja-loading').style.display = 'none';
+    document.getElementById('caja-content').style.display = 'block';
+
+    // Load cierre de caja with the calculated values
+    await cargarCierreCaja(desde, hasta, cash, transfe, egCash, egTransfe);
+  } catch(e) {
+    document.getElementById('caja-loading').innerHTML = '<span style="color:var(--rojo)">Error: ' + e.message + '</span>';
+  }
+}
+
+
+// =====================
+// CIERRE DE CAJA
+// =====================
+let cajaTeoricoCash = 0;
+let cajaTeoricoTransfe = 0;
+
+async function cargarCierreCaja(desde, hasta, cashCobrado, transfeCobrado, egCash, egTransfe) {
+  // Load previous closure to get starting balance
+  try {
+    const histData = await sheetsGet('Caja_cierres!A:G');
+    const filas = histData.slice(1).filter(r => r[0]);
+
+    let antCash = 0, antTransfe = 0;
+    if (filas.length > 0) {
+      const ultima = filas[filas.length - 1];
+      antCash = parseFloat(ultima[2]) || 0;     // real cash
+      antTransfe = parseFloat(ultima[5]) || 0;  // real transfe
+    }
+
+    cajaTeoricoCash = antCash + cashCobrado - egCash;
+    cajaTeoricoTransfe = antTransfe + transfeCobrado - egTransfe;
+
+    document.getElementById('caj-ant-cash').textContent = pesos(antCash);
+    document.getElementById('caj-cobros-cash').textContent = pesos(cashCobrado);
+    document.getElementById('caj-egresos-cash').textContent = pesos(egCash);
+    document.getElementById('caj-teorico-cash').textContent = pesos(cajaTeoricoCash);
+
+    document.getElementById('caj-ant-transfe').textContent = pesos(antTransfe);
+    document.getElementById('caj-cobros-transfe').textContent = pesos(transfeCobrado);
+    document.getElementById('caj-egresos-transfe').textContent = pesos(egTransfe);
+    document.getElementById('caj-teorico-transfe').textContent = pesos(cajaTeoricoTransfe);
+
+    // Load historial
+    const tbody = document.getElementById('caj-historial-body');
+    tbody.innerHTML = '';
+    if (filas.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--texto-muted);padding:1.5rem">Sin cierres registrados aún</td></tr>';
+    } else {
+      let acum = 0;
+      const filasOrden = filas.slice();
+      filasOrden.forEach(r => {
+        const ganBrutaSem = parseFloat(r[7])||0; // col H: ganancia bruta
+        const fijoCuota = parseFloat(r[8])||0;   // col I: cuota fijos
+        const resultSem = ganBrutaSem - fijoCuota;
+        acum += resultSem;
+        const realC = parseFloat(r[2])||0;
+        const teoC = parseFloat(r[1])||0;
+        const diffC = realC - teoC;
+        r._resultSem = resultSem;
+        r._acum = acum;
+        r._diffC = diffC;
+      });
+      filasOrden.slice().reverse().forEach(r => {
+        const resultSem = r._resultSem||0;
+        const acumVal = r._acum||0;
+        const diffC = r._diffC||0;
+        tbody.innerHTML += `<tr>
+          <td style="font-size:12px">${r[0]||''}</td>
+          <td style="color:var(--verde)">${r[7]?pesos(r[7]):''}</td>
+          <td style="color:var(--texto-muted)">${r[8]?pesos(r[8]):''}</td>
+          <td style="font-weight:600;color:${resultSem>=0?'var(--verde)':'var(--naranja)'}">${resultSem>=0?'+':''}${pesos(resultSem)}</td>
+          <td style="font-weight:600;color:${acumVal>=0?'var(--verde)':'var(--naranja)'}">${acumVal>=0?'+':''}${pesos(acumVal)}</td>
+          <td style="font-weight:500">${r[2]?pesos(parseFloat(r[2])):''}</td>
+          <td style="color:${Math.abs(diffC)<100?'var(--verde)':diffC<0?'var(--naranja)':'var(--azul)'};font-weight:500">${diffC>=0?'+':''}${pesos(diffC)}</td>
+        </tr>`;
+      });
+    }
+  } catch(e) {
+    console.warn('No se pudo cargar historial de cierres:', e.message);
+  }
+}
+
+function calcularDiferenciaCaja() {
+  const realCash = parseFloat(document.getElementById('caj-real-cash').value);
+  const realTransfe = parseFloat(document.getElementById('caj-real-transfe').value);
+
+  if (!isNaN(realCash)) {
+    const diff = realCash - cajaTeoricoCash;
+    const el = document.getElementById('caj-diff-cash');
+    el.textContent = `Diferencia: ${diff>=0?'+':''}${pesos(diff)}`;
+    el.style.color = Math.abs(diff)<100?'var(--verde)':diff<0?'var(--naranja)':'var(--azul)';
+    el.style.display = 'block';
+  }
+  if (!isNaN(realTransfe)) {
+    const diff = realTransfe - cajaTeoricoTransfe;
+    const el = document.getElementById('caj-diff-transfe');
+    el.textContent = `Diferencia: ${diff>=0?'+':''}${pesos(diff)}`;
+    el.style.color = Math.abs(diff)<100?'var(--verde)':diff<0?'var(--naranja)':'var(--azul)';
+    el.style.display = 'block';
+  }
+}
+
+async function guardarCierreCaja() {
+  const desde = document.getElementById('caja-desde').value;
+  const hasta = document.getElementById('caja-hasta').value;
+  const realCash = parseFloat(document.getElementById('caj-real-cash').value);
+  const realTransfe = parseFloat(document.getElementById('caj-real-transfe').value);
+
+  if (isNaN(realCash) && isNaN(realTransfe)) {
+    document.getElementById('caj-cierre-error').textContent = 'Ingresá al menos un saldo real.';
+    document.getElementById('caj-cierre-error').style.display = 'block';
+    return;
+  }
+
+  const diffCash = (!isNaN(realCash)) ? realCash - cajaTeoricoCash : 0;
+  const diffTransfe = (!isNaN(realTransfe)) ? realTransfe - cajaTeoricoTransfe : 0;
+  const label = `${desde} al ${hasta}`;
+
+  // Get current ganancia bruta and cuota from reporte if available
+  const ganBrutaGuardada = parseFloat(document.getElementById('dash-ganancia')?.textContent?.replace(/[^0-9-]/g,''))||0;
+  const cuotaFijos = Math.round(getTotalFijos() / 4);
+
+  const row = [
+    label,
+    Math.round(cajaTeoricoCash),
+    !isNaN(realCash) ? Math.round(realCash) : '',
+    !isNaN(realCash) ? Math.round(diffCash) : '',
+    Math.round(cajaTeoricoTransfe),
+    !isNaN(realTransfe) ? Math.round(realTransfe) : '',
+    !isNaN(realTransfe) ? Math.round(diffTransfe) : '',
+    '',   // col H: ganancia bruta (se puede completar manualmente)
+    cuotaFijos,  // col I: cuota fijos
+  ];
+
+  document.getElementById('caj-cierre-spinner').style.display = 'block';
+  try {
+    await sheetsAppend('Caja_cierres!A:G', [row]);
+    document.getElementById('caj-cierre-spinner').style.display = 'none';
+    document.getElementById('caj-cierre-success').style.display = 'block';
+    setTimeout(() => document.getElementById('caj-cierre-success').style.display = 'none', 3000);
+    // Reload to update historial
+    cargarCaja();
+  } catch(e) {
+    document.getElementById('caj-cierre-spinner').style.display = 'none';
+    document.getElementById('caj-cierre-error').textContent = 'Error: ' + e.message;
+    document.getElementById('caj-cierre-error').style.display = 'block';
+  }
+}
+
+// =====================
+// REPORTE SEMANAL
+// =====================
+async function generarReporte() {
+  const desde = document.getElementById('rep-desde').value;
+  const hasta = document.getElementById('rep-hasta').value;
+  if (!desde || !hasta) return;
+
+  document.getElementById('rep-loading').style.display = 'flex';
+  document.getElementById('rep-content').style.display = 'none';
+
+  try {
+    const [ventasData, envasesData, egresosData] = await Promise.all([
+      sheetsGet('Ventas!A:K'),
+      sheetsGet('Envases!A:H'),
+      sheetsGet('Egresos!A:H')
+    ]);
+
+    const ventas = ventasData.slice(1).filter(r => {
+      const f = normFecha(r[0]);
+      const prod = (r[4]||'').trim();
+      return f && f >= desde && f <= hasta && PRODUCTOS_VALIDOS.includes(prod);
+    });
+    const envases = envasesData.slice(1).filter(r => { const f=normFecha(r[0]); return f && f >= desde && f <= hasta; });
+
+    const porProducto = {};
+    let totalVenta=0, totalGanancia=0, cash=0, transfe=0, pendiente=0;
+
+    ventas.forEach(r => {
+      const prod=(r[4]||'').trim(), cant=parseFloat(r[5])||0, precio=parseFloat(r[6])||0;
+      let total=parseFloat(r[7]); if(isNaN(total)) total=precio*cant;
+      const costo=getCostoParaFecha(prod, normFecha(r[0]))*cant;
+      const estado=(r[10]||'').toLowerCase();
+      const pago=(r[8]||'').trim();
+      if (!porProducto[prod]) porProducto[prod]={unidades:0,venta:0,ganancia:0};
+      porProducto[prod].unidades+=cant;
+      porProducto[prod].venta+=total;
+      porProducto[prod].ganancia+=total-costo;
+      totalVenta+=total; totalGanancia+=total-costo;
+      if (estado==='cobrado') {
+        if(pago==='Cash') cash+=total;
+        else if(pago==='Transfe') transfe+=total;
+      } else { pendiente+=total; }
+    });
+
+    let gananciaEnvases=0;
+    envases.forEach(r => gananciaEnvases+=parseFloat(r[7])||0);
+
+    const fechaStr = (f) => { const d=new Date(f+'T12:00:00'); return `${d.getDate()}/${d.getMonth()+1}`; };
+
+    // Egresos del período
+    const egresos = egresosData.slice(1).filter(r => { const f=normFecha(r[0]); return f && f >= desde && f <= hasta; });
+    let egFijo=0, egExtra=0, egInsumo=0, egInversion=0;
+    egresos.forEach(r => {
+      const cat=(r[2]||'').toLowerCase();
+      const tot=parseFloat(r[5])||0;
+      if(cat.includes('fijo')) egFijo+=tot;
+      else if(cat.includes('extraordinario')) egExtra+=tot;
+      else if(cat.includes('inversion') || cat.includes('inversión')) egInversion+=tot;
+      else egInsumo+=tot;
+    });
+    const totalEgresos = egFijo+egExtra+egInsumo+egInversion;
+
+    // Costo fijo semanal (mes / 4)
+    const totalFijosmes = getFijosReporte();
+    const fijosSemanales = totalFijosmes / 4;
+    const numSemana = getSemanaDelMes(desde);
+    const cuotaAcum = fijosSemanales * numSemana;
+    const ganNeta = totalGanancia - fijosSemanales;
+    const pctCubierto = Math.round((totalGanancia / fijosSemanales) * 100);
+
+    let txt = `📊 *REPORTE SEMANAL ES*\n`;
+    txt += `📅 ${fechaStr(desde)} al ${fechaStr(hasta)}\n\n`;
+    txt += `*VENTAS POR PRODUCTO*\n`;
+
+    const maxLen = Math.max(8, ...Object.keys(porProducto).map(k=>k.length));
+    Object.entries(porProducto).sort((a,b)=>b[1].unidades-a[1].unidades).forEach(([prod,d]) => {
+      txt += `${emojiProducto(prod)} ${prod.padEnd(maxLen)} ${String(d.unidades).padStart(3)} u.  ${pesos(d.ganancia)}\n`;
+    });
+
+    txt += `\n*TOTALES*\n`;
+    txt += `Unidades vendidas: ${ventas.reduce((a,r)=>a+(parseFloat(r[5])||0),0)}\n`;
+    txt += `Total vendido:     ${pesos(totalVenta)}\n`;
+    txt += `Ganancia bruta:    ${pesos(totalGanancia)}\n`;
+    if (gananciaEnvases) txt += `Envases (indirecto): ${pesos(gananciaEnvases)}\n`;
+
+    txt += `\n*COSTOS FIJOS*\n`;
+    txt += `Semana ${numSemana} del mes — cuota: ${pesos(fijosSemanales)}\n`;
+    txt += `Cubierto: ${pesos(totalGanancia)} (${pctCubierto}%)\n`;
+    txt += `Ganancia neta sem.: ${pesos(ganNeta)}\n`;
+
+    if (totalEgresos > 0) {
+      txt += `\n*EGRESOS*\n`;
+      if(egFijo)     txt += `📌 Fijos:         ${pesos(egFijo)}\n`;
+      if(egInsumo)   txt += `🛒 Insumos:       ${pesos(egInsumo)}\n`;
+      if(egExtra)    txt += `⚡ Extraordin.:   ${pesos(egExtra)}\n`;
+      if(egInversion) txt += `🔧 Inversión:     ${pesos(egInversion)}\n`;
+      txt += `Total egresos:    ${pesos(totalEgresos)}\n`;
+    }
+
+    // Pendientes de la semana por local
+    const pendLocalesSem = {};
+    ventas.filter(r => (r[10]||'').toLowerCase() !== 'cobrado').forEach(r => {
+      const loc = (r[3]||'—').trim();
+      const precio2 = parseFloat(r[6])||0, cant2 = parseFloat(r[5])||0;
+      let tot2 = parseFloat(r[7]); if(isNaN(tot2)) tot2=precio2*cant2;
+      if(!pendLocalesSem[loc]) pendLocalesSem[loc]=0;
+      pendLocalesSem[loc]+=tot2;
+    });
+    const pendLocalesArr = Object.entries(pendLocalesSem).sort((a,b)=>b[1]-a[1]);
+    if (pendLocalesArr.length) {
+      txt += `\n*PENDIENTE POR LOCAL*\n`;
+      pendLocalesArr.forEach(([loc, tot]) => { txt += `⏳ ${loc}: ${pesos(tot)}\n`; });
+    }
+    txt += `\n*CAJA*\n`;
+    txt += `💵 Cash:      ${pesos(cash)}\n`;
+    txt += `🏦 Transfe:   ${pesos(transfe)}\n`;
+    txt += `⏳ Pendiente: ${pesos(pendiente)}\n`;
+
+    document.getElementById('reporte-texto').textContent = txt;
+
+    // Render visual table
+    renderReporteVisual(desde, hasta, porProducto, ventas.reduce((a,r)=>a+(parseFloat(r[5])||0),0),
+      totalVenta, totalGanancia, totalGanancia, fijosSemanales, numSemana, ganNeta, pctCubierto,
+      egFijo, egInsumo, egExtra, egInversion, totalEgresos,
+      envasesData, cash, transfe, pendiente);
+
+    document.getElementById('rep-loading').style.display = 'none';
+    document.getElementById('rep-content').style.display = 'block';
+  } catch(e) {
+    document.getElementById('rep-loading').innerHTML = '<span style="color:var(--rojo)">Error: ' + e.message + '</span>';
+  }
+}
+
+function copiarReporte() {
+  const txt = document.getElementById('reporte-texto').textContent;
+  navigator.clipboard.writeText(txt).then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ Copiado';
+    setTimeout(() => btn.textContent = '📋 Copiar texto', 2000);
+  });
+}
+
+// =====================
+// COSTOS
+// =====================
+async function analizarCostos() {
+  const mes = document.getElementById('costos-mes').value;
+  if (!mes) return;
+
+  document.getElementById('costos-loading').style.display = 'flex';
+  document.getElementById('costos-content').style.display = 'none';
+
+  try {
+    const data = await sheetsGet('Ventas!A:K');
+    const ventas = data.slice(1).filter(r => {
+      const f=normFecha(r[0]);
+      const prod=(r[4]||'').trim();
+      return f && f.startsWith(mes) && PRODUCTOS_VALIDOS.includes(prod);
+    });
+
+    let totalUnidades=0, totalVenta=0, totalCosto=0;
+    ventas.forEach(r => {
+      const prod=(r[4]||'').trim(), cant=parseFloat(r[5])||0, precio=parseFloat(r[6])||0;
+      let total=parseFloat(r[7]); if(isNaN(total)) total=precio*cant;
+      const costo=getCostoParaFecha(prod, normFecha(r[0]))*cant;
+      totalUnidades+=cant; totalVenta+=total; totalCosto+=costo;
+    });
+
+    const ganBruta = totalVenta - totalCosto;
+    const fijosDelMes = getTotalFijos();
+    const ganNeta = ganBruta - fijosDelMes;
+
+
+    document.getElementById('c-unidades').textContent = totalUnidades;
+
+    document.getElementById('c-gan-bruta').textContent = pesos(ganBruta);
+    const netaEl = document.getElementById('c-gan-neta');
+    netaEl.textContent = pesos(ganNeta);
+    netaEl.className = 'metric-value ' + (ganNeta >= 0 ? 'verde' : 'naranja');
+
+    // Punto de equilibrio con 1/2l Suico como base
+    const mesStr2 = mes + '-01';
+    const costoBase = getCostoParaFecha('1/2l Suico', mesStr2);
+    const precBase = PRECIOS['1/2l Suico'];
+    const margenUmeBase = precBase.umepay - costoBase;
+    const margenAfuBase = precBase.afuera - costoBase;
+
+    // Mix real del mes: margen promedio ponderado
+    let totalUnidadesEq = 0, totalMargenEq = 0;
+    ventas.forEach(r => {
+      const p2 = (r[4]||'').trim();
+      const c2 = parseFloat(r[5])||0;
+      const precio2 = parseFloat(r[6])||0;
+      let tot2 = parseFloat(r[7]); if(isNaN(tot2)) tot2=precio2*c2;
+      const costo2 = getCostoParaFecha(p2, normFecha(r[0])) * c2;
+      totalUnidadesEq += c2;
+      totalMargenEq += tot2 - costo2;
+    });
+    const margenPromedioReal = totalUnidadesEq > 0 ? totalMargenEq / totalUnidadesEq : 0;
+
+    const eqUme = margenUmeBase > 0 ? Math.ceil(fijosDelMes / margenUmeBase) : '∞';
+    const eqAfu = margenAfuBase > 0 ? Math.ceil(fijosDelMes / margenAfuBase) : '∞';
+    const eqReal = margenPromedioReal > 0 ? Math.ceil(fijosDelMes / margenPromedioReal) : '∞';
+    const pctReal = eqReal !== '∞' ? Math.min(Math.round((totalUnidadesEq / eqReal) * 100), 100) : 0;
+    const colorBarra = pctReal >= 100 ? 'var(--verde)' : pctReal >= 60 ? 'var(--amarillo)' : 'var(--naranja)';
+
+    document.getElementById('c-eq-unidades').textContent = typeof eqReal === 'number' ? eqReal : '∞';
+    document.getElementById('eq-ume-u').textContent = typeof eqUme === 'number' ? eqUme : '∞';
+    document.getElementById('eq-ume-m').textContent = pesos(margenUmeBase);
+    document.getElementById('eq-afu-u').textContent = typeof eqAfu === 'number' ? eqAfu : '∞';
+    document.getElementById('eq-afu-m').textContent = pesos(margenAfuBase);
+    document.getElementById('eq-real-u').textContent = typeof eqReal === 'number' ? eqReal : '∞';
+    document.getElementById('eq-real-m').textContent = pesos(Math.round(margenPromedioReal));
+    document.getElementById('eq-pct-label').textContent = pctReal + '%';
+    document.getElementById('eq-barra').style.width = pctReal + '%';
+    document.getElementById('eq-barra').style.background = colorBarra;
+    document.getElementById('eq-barra-label').textContent = totalUnidadesEq + ' u. vendidas';
+    document.getElementById('eq-meta-label').textContent = `Meta: ${typeof eqReal === 'number' ? eqReal : '∞'} u.`;
+
+    document.getElementById('costos-loading').style.display = 'none';
+    document.getElementById('costos-content').style.display = 'block';
+  } catch(e) {
+    document.getElementById('costos-loading').innerHTML = '<span style="color:var(--rojo)">Error: ' + e.message + '</span>';
+  }
+}
+
+
+
+
+
+
+// =====================
+// INSUMOS
+// =====================
+
+// Recetas hardcoded desde el Excel de costos (fuente de verdad)
+const RECETAS = {
+  '1l Leche':      [['Leche',1,'litro'],['Tapa',1,'unidad'],['Botella 1l',1,'unidad'],['Etiqueta',2,'unidad']],
+  '1/2l Leche':    [['Leche',0.5,'litro'],['Tapa',1,'unidad'],['Botella 1/2l',1,'unidad'],['Etiqueta',2,'unidad']],
+  '1l Suico':      [['Pasas de uva',7,'gramos'],['Limon',60,'gramos'],['Azucar mascabo',100,'gramos'],['Yuyo Nativo',10,'gramos'],['Tapa',1,'unidad'],['Botella 1l',1,'unidad'],['Etiqueta',2,'unidad']],
+  '1/2l Suico':    [['Pasas de uva',3,'gramos'],['Limon',30,'gramos'],['Azucar mascabo',50,'gramos'],['Yuyo Nativo',5,'gramos'],['Tapa',1,'unidad'],['Botella 1/2l',1,'unidad'],['Etiqueta',2,'unidad']],
+  '1l Hibiscus':   [['Pasas de uva',7,'gramos'],['Limon',60,'gramos'],['Azucar mascabo',100,'gramos'],['Hibiscus',10,'gramos'],['Tapa',1,'unidad'],['Botella 1l',1,'unidad'],['Etiqueta',2,'unidad']],
+  '1/2l Hibiscus': [['Pasas de uva',3,'gramos'],['Limon',30,'gramos'],['Azucar mascabo',50,'gramos'],['Hibiscus',5,'gramos'],['Tapa',1,'unidad'],['Botella 1/2l',1,'unidad'],['Etiqueta',2,'unidad']],
+  'Kesir':         [['Leche',1.5,'litro'],['Tapa kesir',1,'unidad'],['Frasco Kesir gr',1,'unidad'],['Etiqueta',1,'unidad']],
+  'Kesir petit':   [['Leche',0.75,'litro'],['Tapa kesir',1,'unidad'],['Frasco Kesir ch',1,'unidad'],['Etiqueta',1,'unidad']],
+};
+
+// Precio de compra por unidad base de cada insumo (kg, litro, unidad)
+// Se carga desde el Sheet y se puede editar
+let insumosData = {}; // { nombre: { precio, unidad, fecha, proveedor, rowIdx } }
+let insumosNuevosPrecios = {}; // precios editados en pantalla
+
+async function cargarInsumos() {
+  document.getElementById('ins-loading').style.display = 'flex';
+  document.getElementById('ins-content').style.display = 'none';
+
+  try {
+    const data = await sheetsGet('Insumos!A:F');
+    insumosData = {};
+
+    // Parse sheet: Insumo, Unidad, Precio_compra, Fecha_actualizacion, Proveedor, Observaciones
+    data.slice(1).forEach((r, i) => {
+      if (!r[0]) return;
+      const nombre = String(r[0]).trim();
+      insumosData[nombre] = {
+        unidad: r[1] || '',
+        precio: parseFloat(r[2]) || 0,
+        fecha: r[3] || '',
+        proveedor: r[4] || '',
+        obs: r[5] || '',
+        rowIdx: i + 2 // 1-based, +1 for header
+      };
+    });
+
+    // If sheet is empty, use defaults from recetas
+    if (Object.keys(insumosData).length === 0) {
+      const defaults = {
+        'Leche':          { unidad:'litro',   precio:1590,  fecha:'2026-04-24', proveedor:'Jose Escalante' },
+        'Pasas de uva':   { unidad:'kg',      precio:3390,  fecha:'2026-01-30', proveedor:'AND NUTS' },
+        'Limon':          { unidad:'kg',      precio:3600,  fecha:'2026-02-01', proveedor:'La verdu' },
+        'Azucar mascabo': { unidad:'kg',      precio:2500,  fecha:'2026-02-01', proveedor:'Despen' },
+        'Yuyo Nativo':    { unidad:'kg',      precio:25000, fecha:'2026-02-01', proveedor:'' },
+        'Hibiscus':       { unidad:'kg',      precio:25000, fecha:'2026-02-01', proveedor:'' },
+        'Botella 1l':     { unidad:'unidad',  precio:931,   fecha:'2026-02-01', proveedor:'CBA' },
+        'Botella 1/2l':   { unidad:'unidad',  precio:749,   fecha:'2026-02-01', proveedor:'CBA' },
+        'Tapa':           { unidad:'unidad',  precio:142,   fecha:'2026-02-01', proveedor:'CBA' },
+        'Etiqueta':       { unidad:'unidad',  precio:150,   fecha:'2026-02-01', proveedor:'' },
+        'Frasco Kesir gr':{ unidad:'unidad',  precio:462,   fecha:'2026-02-01', proveedor:'' },
+        'Frasco Kesir ch':{ unidad:'unidad',  precio:462,   fecha:'2026-02-01', proveedor:'' },
+        'Tapa kesir':     { unidad:'unidad',  precio:220,   fecha:'2026-02-01', proveedor:'' },
+      };
+      Object.entries(defaults).forEach(([k,v], i) => { insumosData[k] = {...v, rowIdx: i+2}; });
+    }
+
+    insumosNuevosPrecios = {};
+    renderInsumosTabla();
+    calcularCostosDesdeRecetas();
+
+    document.getElementById('ins-loading').style.display = 'none';
+    document.getElementById('ins-content').style.display = 'block';
+  } catch(e) {
+    document.getElementById('ins-loading').innerHTML = '<span style="color:var(--rojo)">Error: ' + e.message + '</span>';
+  }
+}
+
+function renderInsumosTabla() {
+  const tbody = document.getElementById('ins-tabla-body');
+  tbody.innerHTML = '';
+  Object.entries(insumosData).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([nombre, d]) => {
+    const nuevoPrecio = insumosNuevosPrecios[nombre];
+    const cambio = nuevoPrecio !== undefined && nuevoPrecio !== d.precio;
+    tbody.innerHTML += `<tr>
+      <td style="font-weight:500">${nombre}</td>
+      <td style="color:var(--texto-muted)">${d.unidad}</td>
+      <td>${pesos(d.precio)}</td>
+      <td>
+        <input type="number" value="${nuevoPrecio !== undefined ? nuevoPrecio : ''}"
+          placeholder="Nuevo precio..."
+          style="width:130px;border:1px solid ${cambio?'var(--verde)':'var(--borde)'};border-radius:6px;padding:4px 8px;font-size:13px;background:${cambio?'var(--verde-claro)':'white'}"
+          onchange="onInsumoPrecioChange('${nombre}', this.value)" />
+      </td>
+      <td style="font-size:12px;color:var(--texto-muted)">${d.fecha || '—'}</td>
+      <td style="font-size:12px;color:var(--texto-muted)">${d.proveedor || '—'}</td>
+    </tr>`;
+  });
+}
+
+function onInsumoPrecioChange(nombre, val) {
+  const nuevo = parseFloat(val);
+  if (!isNaN(nuevo) && nuevo > 0) {
+    insumosNuevosPrecios[nombre] = nuevo;
+  } else {
+    delete insumosNuevosPrecios[nombre];
+  }
+  const hayCambios = Object.keys(insumosNuevosPrecios).length > 0;
+  document.getElementById('btn-guardar-ins').style.display = hayCambios ? 'inline-block' : 'none';
+  calcularCostosDesdeRecetas();
+}
+
+function getPrecioInsumo(nombre) {
+  if (insumosNuevosPrecios[nombre] !== undefined) return insumosNuevosPrecios[nombre];
+  return insumosData[nombre]?.precio || 0;
+}
+
+function calcularCostoPorReceta(prod) {
+  const receta = RECETAS[prod];
+  if (!receta) return null;
+  let subtotal = 0;
+  const detalle = [];
+  receta.forEach(([insumo, cant, unidad]) => {
+    const precioBase = getPrecioInsumo(insumo);
+    // Convert: if unidad is gramos and insumo is in kg, divide by 1000
+    let precioUnitario = precioBase;
+    const unidadInsumo = (insumosData[insumo]?.unidad || '').toLowerCase();
+    if ((unidad === 'gramos') && (unidadInsumo === 'kg' || unidadInsumo === 'kilogramos')) {
+      precioUnitario = precioBase / 1000;
+    }
+    const parcial = precioUnitario * cant;
+    subtotal += parcial;
+    detalle.push({ insumo, cant, unidad, precio: precioUnitario, parcial });
+  });
+  const varios = subtotal * 0.10;
+  const total = subtotal + varios;
+  return { detalle, subtotal, varios, total };
+}
+
+function calcularCostosDesdeRecetas() {
+  const div = document.getElementById('ins-costos-calc');
+  div.innerHTML = '';
+  let hayDiferencias = false;
+
+  const tabla = document.createElement('div');
+  tabla.style.cssText = 'overflow-x:auto';
+  let html = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr>
+      <th style="text-align:left;padding:0.5rem;border-bottom:1px solid var(--borde);color:var(--texto-muted);font-size:11px">PRODUCTO</th>
+      <th style="text-align:left;padding:0.5rem;border-bottom:1px solid var(--borde);color:var(--texto-muted);font-size:11px">COSTO CALCULADO</th>
+      <th style="text-align:left;padding:0.5rem;border-bottom:1px solid var(--borde);color:var(--texto-muted);font-size:11px">COSTO ACTUAL EN APP</th>
+      <th style="text-align:left;padding:0.5rem;border-bottom:1px solid var(--borde);color:var(--texto-muted);font-size:11px">DIFERENCIA</th>
+      <th style="text-align:left;padding:0.5rem;border-bottom:1px solid var(--borde);color:var(--texto-muted);font-size:11px">DETALLE</th>
+    </tr></thead><tbody>`;
+
+  Object.keys(RECETAS).forEach(prod => {
+    const calc = calcularCostoPorReceta(prod);
+    if (!calc) return;
+    const costoApp = getCostoParaFecha(prod, hoy());
+    const diff = calc.total - costoApp;
+    const diffColor = Math.abs(diff) < 10 ? 'var(--texto-muted)' : diff > 0 ? 'var(--naranja)' : 'var(--verde)';
+    if (Math.abs(diff) >= 10) hayDiferencias = true;
+
+    const detalleStr = calc.detalle.map(d =>
+      `${d.insumo}: ${d.cant}${d.unidad==='gramos'?'g':d.unidad==='litro'?'l':' u.'} × ${pesos(d.precio)} = ${pesos(d.parcial)}`
+    ).join(' | ') + ` | Varios 10%: ${pesos(calc.varios)}`;
+
+    html += `<tr>
+      <td style="padding:0.6rem 0.5rem;font-weight:500;border-bottom:1px solid var(--gris-claro)">${prod}</td>
+      <td style="padding:0.6rem 0.5rem;font-weight:600;color:var(--verde-oscuro);border-bottom:1px solid var(--gris-claro)">${pesos(calc.total)}</td>
+      <td style="padding:0.6rem 0.5rem;color:var(--texto-muted);border-bottom:1px solid var(--gris-claro)">${pesos(costoApp)}</td>
+      <td style="padding:0.6rem 0.5rem;font-weight:500;color:${diffColor};border-bottom:1px solid var(--gris-claro)">${diff>=0?'+':''}${pesos(diff)}</td>
+      <td style="padding:0.6rem 0.5rem;font-size:11px;color:var(--texto-muted);border-bottom:1px solid var(--gris-claro)">${detalleStr}</td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+  tabla.innerHTML = html;
+  div.appendChild(tabla);
+
+  document.getElementById('ins-aplicar-banner').style.display = hayDiferencias ? 'block' : 'none';
+}
+
+async function guardarInsumos() {
+  if (Object.keys(insumosNuevosPrecios).length === 0) return;
+  const fechaHoy = hoy();
+
+  try {
+    document.getElementById('btn-guardar-ins').textContent = 'Guardando...';
+    document.getElementById('btn-guardar-ins').disabled = true;
+
+    for (const [nombre, nuevoPrecio] of Object.entries(insumosNuevosPrecios)) {
+      if (!insumosData[nombre]) continue;
+      const row = insumosData[nombre];
+      // Update price and date in sheet
+      await sheetsUpdate(
+        `Insumos!C${row.rowIdx}:D${row.rowIdx}`,
+        [[nuevoPrecio, fechaHoy]]
+      );
+      // Update local data
+      insumosData[nombre].precio = nuevoPrecio;
+      insumosData[nombre].fecha = fechaHoy;
+    }
+
+    insumosNuevosPrecios = {};
+    document.getElementById('btn-guardar-ins').style.display = 'none';
+    document.getElementById('btn-guardar-ins').textContent = '💾 Guardar cambios';
+    document.getElementById('btn-guardar-ins').disabled = false;
+    renderInsumosTabla();
+    calcularCostosDesdeRecetas();
+    alert('✓ Precios actualizados en el Sheet.');
+  } catch(e) {
+    document.getElementById('btn-guardar-ins').textContent = '💾 Guardar cambios';
+    document.getElementById('btn-guardar-ins').disabled = false;
+    alert('Error al guardar: ' + e.message);
+  }
+}
+
+function aplicarCostosCalculados() {
+  // Update PRECIOS and latest HISTORIAL_COSTOS entry with calculated costs
+  const fechaHoy = hoy();
+  const last = HISTORIAL_COSTOS[HISTORIAL_COSTOS.length-1];
+  let cambios = 0;
+  Object.keys(RECETAS).forEach(prod => {
+    const calc = calcularCostoPorReceta(prod);
+    if (!calc) return;
+    const costoRedondeado = Math.round(calc.total);
+    if (PRECIOS[prod]) { PRECIOS[prod].costo = costoRedondeado; cambios++; }
+    if (last?.productos[prod] !== undefined) last.productos[prod] = costoRedondeado;
+  });
+  document.getElementById('ins-aplicar-banner').style.display = 'none';
+  calcularCostosDesdeRecetas();
+  alert(`✓ ${cambios} costos actualizados en la app. Los precios de venta no cambiaron.`);
+}
+
+// =====================
+// EDICION DE COSTOS DIRECTOS
+// =====================
+let modoEditCostos = false;
+
+function toggleEditCostos() {
+  modoEditCostos = !modoEditCostos;
+  const btn = document.getElementById('btn-edit-costos');
+  if (modoEditCostos) {
+    btn.textContent = '💾 Guardar costos';
+    btn.style.background = 'var(--verde)';
+    btn.style.color = 'white';
+    renderTablaCostosEdit();
+  } else {
+    // Save new costs
+    document.querySelectorAll('[data-costo-prod]').forEach(inp => {
+      const prod = inp.getAttribute('data-costo-prod');
+      const nuevo = parseFloat(inp.value)||0;
+      if (PRECIOS[prod]) {
+        PRECIOS[prod].costo = nuevo;
+        // Update HISTORIAL_COSTOS latest entry
+        const last = HISTORIAL_COSTOS[HISTORIAL_COSTOS.length-1];
+        if (last && last.productos[prod] !== undefined) last.productos[prod] = nuevo;
+      }
+    });
+    btn.textContent = '✏️ Editar costos';
+    btn.style.background = '';
+    btn.style.color = '';
+    renderTablaPrecios(modoSimulacion ? preciosSimulados : preciosActuales);
+  }
+}
+
+function renderTablaCostosEdit() {
+  const tbody = document.getElementById('prec-tabla-body');
+  tbody.innerHTML = '';
+  const hoyR = hoy();
+  Object.entries(PRECIOS).forEach(([prod, p]) => {
+    const costoActual = getCostoParaFecha(prod, hoyR);
+    tbody.innerHTML += `<tr>
+      <td style="font-weight:500">${prod}</td>
+      <td colspan="7">
+        <div style="display:flex;align-items:center;gap:1rem">
+          <div style="flex:1">
+            <label style="font-size:11px;color:var(--texto-muted)">COSTO DIRECTO</label><br>
+            <input type="number" data-costo-prod="${prod}" value="${costoActual}"
+              style="width:120px;border:1px solid var(--verde);border-radius:6px;padding:4px 8px;font-size:14px;font-weight:600" />
+          </div>
+          <div style="font-size:12px;color:var(--texto-muted)">
+            Umepay: ${pesos(p.umepay)} → margen <strong>${pesos(p.umepay - costoActual)}</strong><br>
+            Afuera: ${pesos(p.afuera)} → margen <strong>${pesos(p.afuera - costoActual)}</strong>
+          </div>
+        </div>
+      </td>
+      <td style="color:var(--texto-muted);font-size:12px">${p.vigente||'—'}</td>
+    </tr>`;
+  });
+}
+
+// =====================
+// REPORTE MENSUAL
+// =====================
+async function generarReporteMensual() {
+  const mes = document.getElementById('repmes-mes').value;
+  if (!mes) return;
+
+  document.getElementById('repmes-loading').style.display = 'flex';
+  document.getElementById('repmes-content').style.display = 'none';
+
+  try {
+    const [ventasData, envasesData, egresosData] = await Promise.all([
+      sheetsGet('Ventas!A:K'),
+      sheetsGet('Envases!A:H'),
+      sheetsGet('Egresos!A:H')
+    ]);
+
+    // Ventas del mes
+    const ventas = ventasData.slice(1).filter(r => {
+      const f = normFecha(r[0]);
+      return f && f.startsWith(mes) && PRODUCTOS_VALIDOS.includes((r[4]||'').trim());
+    });
+
+    let totalUnidades=0, totalVenta=0, totalGanancia=0, cash=0, transfe=0, pendiente=0;
+    const porProducto = {};
+    ventas.forEach(r => {
+      const prod=(r[4]||'').trim(), cant=parseFloat(r[5])||0, precio=parseFloat(r[6])||0;
+      let total=parseFloat(r[7]); if(isNaN(total)) total=precio*cant;
+      const costo=getCostoParaFecha(prod, normFecha(r[0]))*cant;
+      const gan=total-costo;
+      const estado=(r[10]||'').toLowerCase(), pago=(r[8]||'').trim();
+      totalUnidades+=cant; totalVenta+=total; totalGanancia+=gan;
+      if (!porProducto[prod]) porProducto[prod]={unidades:0,venta:0,ganancia:0};
+      porProducto[prod].unidades+=cant;
+      porProducto[prod].venta+=total;
+      porProducto[prod].ganancia+=gan;
+      if(estado==='cobrado'){ if(pago==='Cash') cash+=total; else if(pago==='Transfe') transfe+=total; }
+      else pendiente+=total;
+    });
+
+    // Egresos del mes — agrupar por categoría
+    const egresos = egresosData.slice(1).filter(r => { const f=normFecha(r[0]); return f && f.startsWith(mes); });
+    const porCategoria = {};
+    let totalEgresos = 0;
+    egresos.forEach(r => {
+      const cat = (r[2]||'Otro').trim();
+      const tot = parseFloat(r[5])||0;
+      const concepto = (r[1]||'').trim();
+      if (!porCategoria[cat]) porCategoria[cat] = [];
+      porCategoria[cat].push({ concepto, tot });
+      totalEgresos += tot;
+    });
+
+    // Fijos no registrados: tildados en la lista pero no aparecen en egresos del mes
+    // Buscamos keywords en los egresos para matchear con los fijos
+    const keywords = {
+      alquiler: ['alquiler'],
+      julia:    ['julia'],
+      negri:    ['negri','mila','camila','sueldo 2','sueldo2'],
+      gasoil:   ['gasoil','nafta','combustible'],
+      monotributo: ['monotributo'],
+    };
+    const egresosTexto = egresos.map(r => (r[1]||'').toLowerCase()).join(' ');
+    const fijosNoReg = [];
+    fijosActivos.filter(f => f.activo).forEach(f => {
+      const kws = keywords[f.id] || [f.nombre.toLowerCase()];
+      const registrado = kws.some(k => egresosTexto.includes(k));
+      if (!registrado) fijosNoReg.push(f);
+    });
+    const totalFijosNoReg = fijosNoReg.reduce((s,f) => s+f.monto, 0);
+    const totalFijosConsiderados = getTotalFijos();
+    // Ganancia neta = bruta - costos fijos tildados (sin importar egresos registrados)
+    const ganNeta = totalGanancia - totalFijosConsiderados;
+    const pctCubierto = totalFijosConsiderados > 0 ? Math.min(Math.round((totalGanancia/totalFijosConsiderados)*100),999) : 0;
+    const colorBarra = pctCubierto>=100?'var(--verde)':pctCubierto>=60?'var(--amarillo)':'var(--naranja)';
+
+    // Envases
+    const envases = envasesData.slice(1).filter(r => { const f=normFecha(r[0]); return f && f.startsWith(mes); });
+    let ganEnvases = 0;
+    envases.forEach(r => ganEnvases += parseFloat(r[7])||0);
+
+    // ── Render ──
+    document.getElementById('rm-unidades').textContent = totalUnidades;
+    document.getElementById('rm-venta').textContent = pesos(totalVenta);
+    document.getElementById('rm-bruta').textContent = pesos(totalGanancia);
+    const netaEl = document.getElementById('rm-neta');
+    netaEl.textContent = pesos(ganNeta);
+    netaEl.className = 'metric-value ' + (ganNeta>=0?'verde':'naranja');
+
+    // Egresos tabla
+    const egBody = document.getElementById('rm-egresos-body');
+    egBody.innerHTML = '';
+    let totalMostrado = 0;
+    const catColors = {'Insumo':'badge-azul','Gasto fijo':'badge-naranja','Gasto fijo mensual':'badge-naranja','Extraordinario':'badge-amarillo','Inversion':'badge-gris','Inversión':'badge-gris'};
+    Object.entries(porCategoria).sort().forEach(([cat, items]) => {
+      const subtotal = items.reduce((s,i)=>s+i.tot,0);
+      totalMostrado += subtotal;
+      egBody.innerHTML += `<tr style="background:var(--gris-claro)">
+        <td><span class="badge ${catColors[cat]||'badge-gris'}">${cat}</span></td>
+        <td style="color:var(--texto-muted);font-size:12px">${items.map(i=>i.concepto).filter(Boolean).slice(0,3).join(', ')}${items.length>3?'…':''}</td>
+        <td style="font-weight:600">${pesos(subtotal)}</td>
+      </tr>`;
+    });
+    egBody.innerHTML += `<tr class="total-row"><td colspan="2">Total egresos registrados</td><td>${pesos(totalMostrado)}</td></tr>`;
+
+    // Fijos no registrados
+    const fnrDiv = document.getElementById('rm-fijos-noregistrados');
+    if (fijosNoReg.length) {
+      fnrDiv.innerHTML = fijosNoReg.map(f =>
+        `<div style="display:flex;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid var(--borde);font-size:13px">
+          <span>${f.nombre}</span><span style="color:var(--naranja);font-weight:500">${pesos(f.monto)}</span>
+        </div>`
+      ).join('') + `<div style="display:flex;justify-content:space-between;padding:0.5rem 0;font-weight:600;font-size:13px">
+        <span>Total no registrado</span><span style="color:var(--naranja)">${pesos(totalFijosNoReg)}</span>
+      </div>`;
+      document.getElementById('rm-fijos-card').style.display = 'block';
+    } else {
+      document.getElementById('rm-fijos-card').style.display = 'none';
+    }
+
+    // Ventas por canal y producto
+    const porCanalProd = {};
+    ventas.forEach(r => {
+      const canal2 = (r[2]||'').trim();
+      const prod2 = (r[4]||'').trim();
+      const cant2 = parseFloat(r[5])||0;
+      const precio2 = parseFloat(r[6])||0;
+      let tot2 = parseFloat(r[7]); if(isNaN(tot2)) tot2=precio2*cant2;
+      if (!porCanalProd[canal2]) porCanalProd[canal2] = {};
+      if (!porCanalProd[canal2][prod2]) porCanalProd[canal2][prod2] = {unidades:0,venta:0};
+      porCanalProd[canal2][prod2].unidades += cant2;
+      porCanalProd[canal2][prod2].venta += tot2;
+    });
+
+    // Simple cross-table: rows=products, cols=canals
+    const canalesActivos = ['Umepay','Afuera','Personas','Regalo'].filter(c => porCanalProd[c]);
+    let canalHtml = `<div class="table-wrapper"><table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr>
+        <th style="padding:6px 8px;border:1px solid var(--borde);background:var(--gris-claro)">Producto</th>
+        ${canalesActivos.map(c=>`<th style="padding:6px 8px;border:1px solid var(--borde);background:var(--gris-claro);text-align:center">${c}</th>`).join('')}
+        <th style="padding:6px 8px;border:1px solid var(--borde);background:var(--gris-claro);text-align:center">Total</th>
+      </tr></thead><tbody>`;
+    PRODUCTOS_LISTA.forEach(prod => {
+      const totalProd = canalesActivos.reduce((s,c)=>{
+        return s + (porCanalProd[c]?.[prod]?.unidades||0);
+      },0);
+      if (totalProd === 0) return;
+      canalHtml += `<tr>
+        <td style="padding:5px 8px;border:1px solid var(--borde)">${emojiProducto(prod)} ${prod}</td>
+        ${canalesActivos.map(c=>{
+          const u = porCanalProd[c]?.[prod]?.unidades||0;
+          return `<td style="padding:5px 8px;border:1px solid var(--borde);text-align:center;color:${u>0?'var(--texto)':'var(--texto-muted)'}">${u||'—'}</td>`;
+        }).join('')}
+        <td style="padding:5px 8px;border:1px solid var(--borde);text-align:center;font-weight:600">${totalProd}</td>
+      </tr>`;
+    });
+    // Totals row
+    canalHtml += `<tr style="background:var(--gris-claro);font-weight:600">
+      <td style="padding:6px 8px;border:1px solid var(--borde)">Total</td>
+      ${canalesActivos.map(c=>{
+        const tot = Object.values(porCanalProd[c]||{}).reduce((s,d)=>s+d.unidades,0);
+        return `<td style="padding:6px 8px;border:1px solid var(--borde);text-align:center">${tot}</td>`;
+      }).join('')}
+      <td style="padding:6px 8px;border:1px solid var(--borde);text-align:center">${totalUnidades}</td>
+    </tr>`;
+    canalHtml += `</tbody></table></div>`;
+    document.getElementById('rm-canales-body').innerHTML = canalHtml;
+
+    // Pendientes por local
+    const pendientesPorLocal = {};
+    ventasData.slice(1).forEach(r => {
+      const f = normFecha(r[0]);
+      if (!f || !f.startsWith(mes)) return;
+      const prod = (r[4]||'').trim();
+      if (!PRODUCTOS_VALIDOS.includes(prod)) return;
+      if ((r[10]||'').toLowerCase() === 'cobrado') return;
+      const loc = (r[3]||'—').trim();
+      const canal = (r[2]||'').trim();
+      const precio = parseFloat(r[6])||0, cant = parseFloat(r[5])||0;
+      let total = parseFloat(r[7]); if(isNaN(total)) total=precio*cant;
+      if (!pendientesPorLocal[loc]) pendientesPorLocal[loc] = {canal, entregas:0, total:0};
+      pendientesPorLocal[loc].entregas += cant;
+      pendientesPorLocal[loc].total += total;
+    });
+    const pendBody = document.getElementById('rm-pendientes-body');
+    pendBody.innerHTML = '';
+    const localesPend = Object.entries(pendientesPorLocal).sort((a,b)=>b[1].total-a[1].total);
+    if (localesPend.length) {
+      localesPend.forEach(([loc, d]) => {
+        pendBody.innerHTML += `<tr>
+          <td style="font-weight:500">${loc}</td>
+          <td><span class="badge badge-gris">${d.canal}</span></td>
+          <td>${d.entregas} u.</td>
+          <td style="color:var(--amarillo);font-weight:500">${pesos(d.total)}</td>
+        </tr>`;
+      });
+      const totalPend = localesPend.reduce((s,[,d])=>s+d.total,0);
+      pendBody.innerHTML += `<tr class="total-row"><td colspan="3">Total pendiente</td><td style="color:var(--amarillo)">${pesos(totalPend)}</td></tr>`;
+    } else {
+      pendBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--verde);padding:1rem">✓ Todo cobrado este mes</td></tr>';
+    }
+
+    // Caja
+    document.getElementById('rm-caja').innerHTML = `
+      <div style="display:flex;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid var(--borde);font-size:13px"><span>💵 Cash cobrado</span><strong>${pesos(cash)}</strong></div>
+      <div style="display:flex;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid var(--borde);font-size:13px"><span>🏦 Transfe cobrado</span><strong>${pesos(transfe)}</strong></div>
+      <div style="display:flex;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid var(--borde);font-size:13px"><span>⏳ Pendiente de cobro</span><strong style="color:var(--amarillo)">${pesos(pendiente)}</strong></div>
+      <div style="display:flex;justify-content:space-between;padding:0.5rem 0;font-weight:600;font-size:14px"><span>Total cobrado</span><span style="color:var(--verde)">${pesos(cash+transfe)}</span></div>`;
+
+    // Cobertura
+    document.getElementById('rm-fijos-total').textContent = pesos(totalFijosConsiderados);
+    document.getElementById('rm-fijos-pct').textContent = `${pesos(totalGanancia)} (${pctCubierto}%)`;
+    document.getElementById('rm-barra').style.width = Math.min(pctCubierto,100)+'%';
+    document.getElementById('rm-barra').style.background = colorBarra;
+
+    // ── WhatsApp message ──
+    const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    const [anio, numMes] = mes.split('-');
+    const nomMes = meses[parseInt(numMes)-1];
+
+    let txt = `📊 *REPORTE MENSUAL ES*\n`;
+    txt += `📅 ${nomMes.toUpperCase()} ${anio}\n\n`;
+    txt += `*VENTAS POR PRODUCTO*\n`;
+    const maxLen = Math.max(8, ...Object.keys(porProducto).map(k=>k.length));
+    Object.entries(porProducto).sort((a,b)=>b[1].unidades-a[1].unidades).forEach(([prod,d]) => {
+      txt += `${emojiProducto(prod)} ${prod.padEnd(maxLen)} ${String(d.unidades).padStart(3)} u.  ${pesos(d.ganancia)}\n`;
+    });
+    txt += `\n*TOTALES*\n`;
+    txt += `Unidades:       ${totalUnidades}\n`;
+    txt += `Total vendido:  ${pesos(totalVenta)}\n`;
+    txt += `Ganancia bruta: ${pesos(totalGanancia)}\n`;
+    if(ganEnvases) txt += `Envases:        ${pesos(ganEnvases)}\n`;
+
+    txt += `\n*EGRESOS REGISTRADOS*\n`;
+    Object.entries(porCategoria).sort().forEach(([cat, items]) => {
+      const subtotal = items.reduce((s,i)=>s+i.tot,0);
+      const icon = cat.toLowerCase().includes('fijo')?'📌':cat.toLowerCase().includes('insumo')?'🛒':cat.toLowerCase().includes('extraordin')||cat.toLowerCase().includes('inversión')||cat.toLowerCase().includes('inversion')?'⚡':'•';
+      txt += `${icon} ${cat}: ${pesos(subtotal)}\n`;
+    });
+    txt += `Total egresos: ${pesos(totalEgresos)}\n`;
+
+    if(fijosNoReg.length) {
+      txt += `\n*FIJOS NO REGISTRADOS*\n`;
+      fijosNoReg.forEach(f => { txt += `• ${f.nombre}: ${pesos(f.monto)}\n`; });
+      txt += `Total: ${pesos(totalFijosNoReg)}\n`;
+    }
+
+    txt += `\n*RESULTADO*\n`;
+    txt += `Ganancia bruta:         ${pesos(totalGanancia)}\n`;
+    txt += `Costos fijos tildados:  -${pesos(totalFijosConsiderados)}\n`;
+    txt += `Ganancia neta:          ${pesos(ganNeta)}\n`;
+    txt += `Cobertura fijos:        ${pctCubierto}%\n`;
+
+    if (localesPend.length) {
+      txt += `\n*PENDIENTE POR LOCAL*\n`;
+      localesPend.forEach(([loc, d]) => {
+        txt += `⏳ ${loc}: ${pesos(d.total)}\n`;
+      });
+    }
+    txt += `\n*CAJA*\n`;
+    txt += `💵 Cash:      ${pesos(cash)}\n`;
+    txt += `🏦 Transfe:   ${pesos(transfe)}\n`;
+    txt += `⏳ Pendiente: ${pesos(pendiente)}\n`;
+
+    document.getElementById('repmes-texto').textContent = txt;
+    document.getElementById('repmes-loading').style.display = 'none';
+    document.getElementById('repmes-content').style.display = 'block';
+  } catch(e) {
+    document.getElementById('repmes-loading').innerHTML = '<span style="color:var(--rojo)">Error: ' + e.message + '</span>';
+  }
+}
+
+function copiarReporteMensual() {
+  const txt = document.getElementById('repmes-texto').textContent;
+  navigator.clipboard.writeText(txt).then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ Copiado';
+    setTimeout(() => btn.textContent = '📋 Copiar texto', 2000);
+  });
+}
+
+// =====================
+// COSTOS FIJOS EDITABLES
+// =====================
+const FIJOS_BASE = [
+  { id: 'alquiler',   nombre: 'Alquiler',       monto: 250000, activo: true },
+  { id: 'julia',      nombre: 'Sueldo Julia',    monto: 160000, activo: true },
+  { id: 'negri',      nombre: 'Sueldo Negri',    monto: 600000, activo: true },
+  { id: 'gasoil',     nombre: 'Nafta/Gasoil',    monto: 120000, activo: true },
+  { id: 'monotributo',nombre: 'Monotributo',     monto: 50000,  activo: true },
+];
+
+let fijosActivos = JSON.parse(localStorage.getItem('es_fijos') || 'null') || FIJOS_BASE.map(f => ({...f}));
+
+function getTotalFijos() {
+  return fijosActivos.filter(f => f.activo).reduce((s, f) => s + f.monto, 0);
+}
+
+function renderFijos() {
+  const lista = document.getElementById('fijos-lista');
+  if (!lista) return;
+  lista.innerHTML = '';
+  fijosActivos.forEach((f, i) => {
+    const esExtra = f.id.startsWith('extra_');
+    lista.innerHTML += `<div style="display:flex;align-items:center;gap:8px;padding:0.4rem 0">
+      <input type="checkbox" id="fijo-${f.id}" ${f.activo?'checked':''} 
+        onchange="toggleFijo(${i})" style="width:16px;height:16px;accent-color:var(--verde);cursor:pointer" />
+      <label for="fijo-${f.id}" style="font-size:13px;cursor:pointer;flex:1">${f.nombre}${esExtra?' <span style="font-size:10px;color:var(--texto-muted)">(extra)</span>':''}</label>
+      <span style="font-size:13px;color:var(--texto-muted);margin-right:4px">${pesos(f.monto)}</span>
+      ${esExtra ? `<button onclick="eliminarFijoExtra(${i})" style="background:none;border:none;cursor:pointer;color:var(--texto-muted);font-size:14px;padding:0 2px" title="Eliminar">✕</button>` : ''}
+    </div>`;
+  });
+  const total = getTotalFijos();
+  document.getElementById('fijos-total').textContent = pesos(total);
+  document.getElementById('fijos-cuota').textContent = pesos(total / 4);
+}
+
+
+function agregarFijoExtra() {
+  const nombre = document.getElementById('fijo-extra-nombre').value.trim();
+  const monto = parseFloat(document.getElementById('fijo-extra-monto').value) || 0;
+  if (!nombre || !monto) { alert('Completá nombre y monto'); return; }
+  const id = 'extra_' + Date.now();
+  fijosActivos.push({ id, nombre, monto, activo: true });
+  localStorage.setItem('es_fijos', JSON.stringify(fijosActivos));
+  document.getElementById('fijo-extra-nombre').value = '';
+  document.getElementById('fijo-extra-monto').value = '';
+  renderFijos();
+}
+
+function eliminarFijoExtra(idx) {
+  fijosActivos.splice(idx, 1);
+  localStorage.setItem('es_fijos', JSON.stringify(fijosActivos));
+  renderFijos();
+}
+
+function toggleFijo(idx) {
+  fijosActivos[idx].activo = !fijosActivos[idx].activo;
+  localStorage.setItem('es_fijos', JSON.stringify(fijosActivos));
+  renderFijos();
+}
+
+// Calcula qué semana del mes corresponde al inicio del período
+function getSemanaDelMes(fechaDesde) {
+  // fechaDesde es YYYY-MM-DD
+  const d = new Date(fechaDesde + 'T12:00:00');
+  const dia = d.getDate();
+  if (dia <= 7)  return 1;
+  if (dia <= 14) return 2;
+  if (dia <= 21) return 3;
+  return 4;
+}
+
+// Devuelve el total de fijos a usar en el reporte (usa fijosActivos)
+function getFijosReporte() {
+  return getTotalFijos();
+}
+
+
+
+// =====================
+// CIERRE MENSUAL
+// =====================
+async function cargarHistorialCierres() {
+  document.getElementById('cierre-loading').style.display = 'flex';
+  document.getElementById('cierre-tabla-wrap').style.display = 'none';
+  try {
+    const data = await sheetsGet('Cierres_mes!A:J');
+    const tbody = document.getElementById('cierre-historial-body');
+    tbody.innerHTML = '';
+    const rows = data.slice(1).filter(r => r[0]);
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--texto-muted);padding:2rem">Sin meses cerrados aún</td></tr>';
+    } else {
+      rows.slice().reverse().forEach(r => {
+        const ganNeta = parseFloat(r[5])||0;
+        tbody.innerHTML += `<tr>
+          <td style="font-weight:500">${r[0]||''}</td>
+          <td style="text-align:center">${r[1]||''}</td>
+          <td style="text-align:right">${r[2]?pesos(r[2]):''}</td>
+          <td style="text-align:right;color:var(--verde)">${r[3]?pesos(r[3]):''}</td>
+          <td style="text-align:right;color:var(--texto-muted)">${r[4]?pesos(r[4]):''}</td>
+          <td style="text-align:right;font-weight:600;color:${ganNeta>=0?'var(--verde)':'var(--naranja)'}">${r[5]?pesos(ganNeta):''}</td>
+          <td style="font-size:11px;color:var(--texto-muted)">${r[9]||''}</td>
+        </tr>`;
+      });
+    }
+    document.getElementById('cierre-loading').style.display = 'none';
+    document.getElementById('cierre-tabla-wrap').style.display = 'block';
+  } catch(e) {
+    document.getElementById('cierre-loading').innerHTML = '<span style="color:var(--rojo)">Error: ' + e.message + '</span>';
+  }
+}
+
+async function cerrarMes() {
+  const mes = document.getElementById('cierre-mes').value;
+  if (!mes) { alert('Seleccioná el mes a cerrar'); return; }
+
+  document.getElementById('cierre-spinner').style.display = 'block';
+  document.getElementById('cierre-error').style.display = 'none';
+
+  try {
+    // Load ventas of the month
+    const [ventasData, envasesData] = await Promise.all([
+      sheetsGet('Ventas!A:K'),
+      sheetsGet('Envases!A:H')
+    ]);
+
+    const ventas = ventasData.slice(1).filter(r => {
+      const f = normFecha(r[0]);
+      return f && f.startsWith(mes) && PRODUCTOS_VALIDOS.includes((r[4]||'').trim());
+    });
+
+    let totalUnidades=0, totalVenta=0, totalGanancia=0;
+    ventas.forEach(r => {
+      const prod=(r[4]||'').trim(), cant=parseFloat(r[5])||0, precio=parseFloat(r[6])||0;
+      let total=parseFloat(r[7]); if(isNaN(total)) total=precio*cant;
+      const costo=getCostoParaFecha(prod, normFecha(r[0]))*cant;
+      totalUnidades+=cant; totalVenta+=total; totalGanancia+=total-costo;
+    });
+
+    let ganEnvases=0;
+    envasesData.slice(1).filter(r=>{ const f=normFecha(r[0]); return f&&f.startsWith(mes); })
+      .forEach(r => ganEnvases+=parseFloat(r[7])||0);
+
+    const fijosConsiderados = getTotalFijos();
+    const ganNeta = totalGanancia - fijosConsiderados;
+
+    // Snapshot current prices and costs
+    const preciosSnapshot = JSON.stringify(
+      Object.fromEntries(Object.entries(PRECIOS).map(([prod,p]) => [prod, {
+        costo: getCostoParaFecha(prod, mes+'-01'),
+        umepay: p.umepay, afuera: p.afuera, personas: p.personas
+      }]))
+    );
+    const fijosSnapshot = JSON.stringify(
+      fijosActivos.filter(f=>f.activo).map(f=>({nombre:f.nombre,monto:f.monto}))
+    );
+
+    // Row: Mes, Unidades, TotalVenta, GananciaBruta, FijosConsiderados, GananciaNeta,
+    //      GananciaEnvases, PreciosSnapshot, FijosSnapshot, FechaCierre
+    const row = [
+      mes, totalUnidades, Math.round(totalVenta), Math.round(totalGanancia),
+      fijosConsiderados, Math.round(ganNeta), Math.round(ganEnvases),
+      preciosSnapshot, fijosSnapshot, hoy()
+    ];
+
+    await sheetsAppend('Cierres_mes!A:J', [row]);
+
+    // Also update HISTORIAL_COSTOS with this month's costs
+    const mesDate = mes + '-01';
+    const yaExiste = HISTORIAL_COSTOS.some(v => v.desde === mesDate);
+    if (!yaExiste) {
+      const costosMes = {};
+      PRODUCTOS_VALIDOS.forEach(prod => { costosMes[prod] = getCostoParaFecha(prod, mesDate); });
+      HISTORIAL_COSTOS.push({ desde: mesDate, costos_fijos: fijosConsiderados, productos: costosMes });
+      HISTORIAL_COSTOS.sort((a,b) => a.desde.localeCompare(b.desde));
+    }
+
+    document.getElementById('cierre-spinner').style.display = 'none';
+    document.getElementById('cierre-success').style.display = 'block';
+    setTimeout(() => document.getElementById('cierre-success').style.display = 'none', 4000);
+    cargarHistorialCierres();
+
+  } catch(e) {
+    document.getElementById('cierre-spinner').style.display = 'none';
+    document.getElementById('cierre-error').textContent = 'Error: ' + e.message;
+    document.getElementById('cierre-error').style.display = 'block';
+  }
+}
+
+// =====================
+// BORRAR VENTA
+// =====================
+async function borrarVenta(rowIdx, btn) {
+  if (!confirm('¿Borrar esta venta del Sheet? Esta acción no se puede deshacer.')) return;
+  btn.textContent = '...';
+  btn.disabled = true;
+  try {
+    const token = await getAccessToken();
+    // Delete single row via Sheets API
+    const sheetMeta = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.sheetId}?fields=sheets.properties`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    ).then(r => r.json());
+    const sheetId = sheetMeta.sheets[0].properties.sheetId;
+
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.sheetId}:batchUpdate`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests: [{
+        deleteDimension: {
+          range: { sheetId, dimension: 'ROWS', startIndex: rowIdx - 1, endIndex: rowIdx }
+        }
+      }]})
+    });
+    cargarVentasRecientes();
+  } catch(e) {
+    btn.textContent = '🗑';
+    btn.disabled = false;
+    alert('Error al borrar: ' + e.message);
+  }
+}
+
+// =====================
+// INGRESO EXTRA CAJA
+// =====================
+async function guardarIngresoExtra() {
+  const monto = parseFloat(document.getElementById('caj-ing-monto').value);
+  const medio = document.getElementById('caj-ing-medio').value;
+  const obs = document.getElementById('caj-ing-obs').value.trim() || 'Ingreso extra';
+  if (!monto || monto <= 0) { alert('Ingresá un monto válido'); return; }
+
+  const fecha = hoy();
+  const row = [fecha, obs, 'Ingreso extra', 1, monto, monto, medio, ''];
+  try {
+    await sheetsAppend('Egresos!A:H', [row.map((v,i) => i===5 ? -Math.abs(monto) : v)]);
+    // Actually save as positive in a dedicated way — append to Egresos with negative total so it nets as income
+    // Simpler: save to Egresos with categoria "Ingreso" and negative total
+    document.getElementById('caj-ing-success').style.display = 'block';
+    setTimeout(() => document.getElementById('caj-ing-success').style.display = 'none', 3000);
+    document.getElementById('caj-ing-monto').value = '';
+    document.getElementById('caj-ing-obs').value = '';
+    // Update caja teorico
+    if (medio === 'Cash') cajaTeoricoCash += monto;
+    else cajaTeoricoTransfe += monto;
+    document.getElementById('caj-teorico-cash').textContent = pesos(cajaTeoricoCash);
+    document.getElementById('caj-teorico-transfe').textContent = pesos(cajaTeoricoTransfe);
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+// =====================
+// REPORTE VISUAL (tabla estilo Excel)
+// =====================
+const COLORES_PROD = {
+  '1/2l Suico':    '#E8F5E9',
+  '1l Suico':      '#C8E6C9',
+  '1/2l Leche':    '#E3F2FD',
+  '1l Leche':      '#BBDEFB',
+  'Kesir':         '#FFF3E0',
+  'Kesir petit':   '#FFE0B2',
+  '1/2l Hibiscus': '#FCE4EC',
+  '1l Hibiscus':   '#F8BBD9',
+};
+
+function renderReporteVisual(desde, hasta, porProducto, totalUnidades, totalVenta, totalGanancia,
+                              ganBruta, fijosSemanales, numSemana, ganNeta, pctCubierto,
+                              egFijo, egInsumo, egExtra, egInversion, totalEgresos,
+                              envasesData, cash, transfe, pendiente) {
+
+  const fD = (() => { const d=new Date(desde+'T12:00:00'); return `${d.getDate()}/${d.getMonth()+1}`; })();
+  const fH = (() => { const d=new Date(hasta+'T12:00:00'); return `${d.getDate()}/${d.getMonth()+1}`; })();
+
+  const PASTEL = {
+    '1/2l Suico':'#F1F8E9','1l Suico':'#DCEDC8',
+    '1/2l Leche':'#E3F2FD','1l Leche':'#BBDEFB',
+    'Kesir':'#FFF8E1','Kesir petit':'#FFF3E0',
+    '1/2l Hibiscus':'#FCE4EC','1l Hibiscus':'#F8BBD9',
+  };
+
+  let html = `<div style="font-size:13px;max-width:600px">`;
+
+  // ── Ventas ──
+  html += `<table style="width:100%;border-collapse:collapse;margin-bottom:10px">
+    <tr><td colspan="3" style="background:#4a7c59;color:white;text-align:center;font-weight:600;padding:7px;border-radius:4px 4px 0 0">
+      Resumen de ventas — ${fD} al ${fH}
+    </td></tr>
+    <tr style="background:#f5f5f5;font-size:11px">
+      <td style="padding:5px 8px;border:1px solid #e0e0e0;font-weight:600"></td>
+      <td style="padding:5px 8px;border:1px solid #e0e0e0;font-weight:600;text-align:center">Unidades</td>
+      <td style="padding:5px 8px;border:1px solid #e0e0e0;font-weight:600;text-align:right">Ganancia</td>
+    </tr>`;
+
+  let totU=0, totG=0;
+  Object.entries(porProducto).sort((a,b)=>b[1].unidades-a[1].unidades).forEach(([prod,d]) => {
+    const bg = PASTEL[prod]||'#fff';
+    html += `<tr style="background:${bg}">
+      <td style="padding:5px 8px;border:1px solid #e0e0e0">${emojiProducto(prod)} ${prod}</td>
+      <td style="padding:5px 8px;border:1px solid #e0e0e0;text-align:center">${d.unidades}</td>
+      <td style="padding:5px 8px;border:1px solid #e0e0e0;text-align:right;font-weight:500;color:${d.ganancia>=0?'#2e7d32':'#c62828'}">${pesos(d.ganancia)}</td>
+    </tr>`;
+    totU+=d.unidades; totG+=d.ganancia;
+  });
+
+  html += `<tr style="background:#fff9c4;font-weight:700">
+    <td style="padding:6px 8px;border:1px solid #e0e0e0">Totales</td>
+    <td style="padding:6px 8px;border:1px solid #e0e0e0;text-align:center">${totU}</td>
+    <td style="padding:6px 8px;border:1px solid #e0e0e0;text-align:right">${pesos(totG)}</td>
+  </tr>
+  <tr style="background:#f5f5f5">
+    <td colspan="2" style="padding:5px 8px;border:1px solid #e0e0e0;color:#666">Total vendido</td>
+    <td style="padding:5px 8px;border:1px solid #e0e0e0;text-align:right;font-weight:500">${pesos(totalVenta)}</td>
+  </tr></table>`;
+
+  // ── Egresos ──
+  if (totalEgresos > 0) {
+    html += `<table style="width:100%;border-collapse:collapse;margin-bottom:10px">
+      <tr><td colspan="2" style="background:#607d8b;color:white;padding:6px 8px;font-weight:600">Egresos</td></tr>`;
+    if(egFijo)      html += `<tr><td style="padding:5px 8px;border:1px solid #e0e0e0">📌 Gastos fijos</td><td style="padding:5px 8px;border:1px solid #e0e0e0;text-align:right">${pesos(egFijo)}</td></tr>`;
+    if(egInsumo)    html += `<tr><td style="padding:5px 8px;border:1px solid #e0e0e0">🛒 Insumos</td><td style="padding:5px 8px;border:1px solid #e0e0e0;text-align:right">${pesos(egInsumo)}</td></tr>`;
+    if(egExtra)     html += `<tr><td style="padding:5px 8px;border:1px solid #e0e0e0">⚡ Extraordinarios</td><td style="padding:5px 8px;border:1px solid #e0e0e0;text-align:right">${pesos(egExtra)}</td></tr>`;
+    if(egInversion) html += `<tr><td style="padding:5px 8px;border:1px solid #e0e0e0">🔧 Inversión</td><td style="padding:5px 8px;border:1px solid #e0e0e0;text-align:right">${pesos(egInversion)}</td></tr>`;
+    html += `<tr style="background:#fff9c4;font-weight:700"><td style="padding:6px 8px;border:1px solid #e0e0e0">Total</td><td style="padding:6px 8px;border:1px solid #e0e0e0;text-align:right">${pesos(totalEgresos)}</td></tr>
+    </table>`;
+  }
+
+  // ── Envases: solo ganancia indirecta ──
+  let ganEnvTotal = 0;
+  envasesData.forEach(r => { const f=normFecha(r[0]); if(f&&f>=desde&&f<=hasta) ganEnvTotal+=parseFloat(r[7])||0; });
+  if (ganEnvTotal > 0) {
+    html += `<table style="width:100%;border-collapse:collapse;margin-bottom:10px">
+      <tr><td style="background:#7b1fa2;color:white;padding:6px 8px;font-weight:600">Envases devolución</td>
+      <td style="background:#7b1fa2;color:white;padding:6px 8px;text-align:right;font-weight:600">${pesos(ganEnvTotal)}</td></tr>
+    </table>`;
+  }
+
+  // ── Costos fijos ──
+  html += `<table style="width:100%;border-collapse:collapse;margin-bottom:10px">
+    <tr><td colspan="2" style="background:#455a64;color:white;padding:6px 8px;font-weight:600">Costos fijos</td></tr>
+    <tr style="background:#f5f5f5">
+      <td style="padding:5px 8px;border:1px solid #e0e0e0;color:#666">Semana ${numSemana} — cuota cubierta</td>
+      <td style="padding:5px 8px;border:1px solid #e0e0e0;text-align:right">${pesos(ganBruta)} / ${pesos(fijosSemanales)} (${pctCubierto}%)</td>
+    </tr>
+    <tr style="background:${ganNeta>=0?'#E8F5E9':'#FFEBEE'};font-weight:700">
+      <td style="padding:6px 8px;border:1px solid #e0e0e0">Ganancia neta</td>
+      <td style="padding:6px 8px;border:1px solid #e0e0e0;text-align:right;color:${ganNeta>=0?'#2e7d32':'#c62828'}">${pesos(ganNeta)}</td>
+    </tr>
+  </table>`;
+
+  // ── Caja ──
+  html += `<table style="width:100%;border-collapse:collapse">
+    <tr><td colspan="2" style="background:#37474f;color:white;padding:6px 8px;font-weight:600">Caja</td></tr>
+    <tr><td style="padding:5px 8px;border:1px solid #e0e0e0">💵 Cash</td><td style="padding:5px 8px;border:1px solid #e0e0e0;text-align:right;font-weight:500">${pesos(cash)}</td></tr>
+    <tr><td style="padding:5px 8px;border:1px solid #e0e0e0">🏦 Transfe</td><td style="padding:5px 8px;border:1px solid #e0e0e0;text-align:right;font-weight:500">${pesos(transfe)}</td></tr>
+    <tr style="background:#FFF8E1"><td style="padding:5px 8px;border:1px solid #e0e0e0">⏳ Pendiente de cobro</td><td style="padding:5px 8px;border:1px solid #e0e0e0;text-align:right;color:#E65100;font-weight:500">${pesos(pendiente)}</td></tr>
+  </table></div>`;
+
+  document.getElementById('rep-visual').innerHTML = html;
+}
+
+function toggleRepTexto() {
+  const panel = document.getElementById('rep-texto-panel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
+// =====================
+// PERDIDA ACUMULADA
+// =====================
+let perdidaAcumulada = parseFloat(localStorage.getItem('es_perdida_acum') || '0');
+
+function actualizarPerdidaAcumulada(ganNetaSemanal) {
+  perdidaAcumulada += ganNetaSemanal;
+  localStorage.setItem('es_perdida_acum', perdidaAcumulada.toString());
+}
+
+// =====================
+// COBROS PENDIENTES
+// =====================
+let cobros_pendientes_rows = [];
+let cobros_pendientes_indices = [];
+
+async function consultarCobros() {
+  const local = document.getElementById('cob-local').value.trim().toLowerCase();
+  const desde = document.getElementById('cob-desde').value;
+  const hasta = document.getElementById('cob-hasta').value;
+  // All filters are optional now
+
+  document.getElementById('cob-spinner').style.display = 'block';
+  document.getElementById('cob-content').style.display = 'none';
+  document.getElementById('cob-empty').style.display = 'none';
+
+  try {
+    const data = await sheetsGet('Ventas!A:K');
+    cobros_pendientes_rows = [];
+    cobros_pendientes_indices = [];
+
+    data.slice(1).forEach((r, i) => {
+      const f = normFecha(r[0]);
+      const prod = (r[4]||'').trim();
+      const localRow = (r[3]||'').trim().toLowerCase();
+      const estado = (r[10]||'').toLowerCase();
+      if (!f || !PRODUCTOS_VALIDOS.includes(prod) || estado === 'cobrado') return;
+      if (local && localRow !== local) return;
+      if (desde && f < desde) return;
+      if (hasta && f > hasta) return;
+      cobros_pendientes_rows.push(r);
+      cobros_pendientes_indices.push(i + 2);
+    });
+
+    // Also load envases pendientes for this local/period to show discount
+    const envData = await sheetsGet('Envases!A:H');
+    const envPend = envData.slice(1).filter(r => {
+      const f = normFecha(r[0]);
+      const loc = (r[2]||'').trim().toLowerCase();
+      if (!f) return false;
+      if (local && loc !== local) return false;
+      if (desde && f < desde) return false;
+      if (hasta && f > hasta) return false;
+      return true;
+    });
+    const totalDescEnvCob = envPend.reduce((s,r) => s + (parseFloat(r[6])||0), 0);
+    const ganEnvCob = envPend.reduce((s,r) => s + (parseFloat(r[7])||0), 0);
+
+    if (!cobros_pendientes_rows.length) {
+      document.getElementById('cob-spinner').style.display = 'none';
+      document.getElementById('cob-empty').style.display = 'block';
+      return;
+    }
+
+    // Detalle
+    const tbody = document.getElementById('cob-tabla-body');
+    tbody.innerHTML = '';
+    let totalGeneral = 0;
+    const porProducto = {};
+
+    cobros_pendientes_rows.forEach(r => {
+      const prod = (r[4]||'').trim();
+      const cant = parseFloat(r[5])||0;
+      const precio = parseFloat(r[6])||0;
+      let total = parseFloat(r[7]); if(isNaN(total)) total = precio * cant;
+      totalGeneral += total;
+      tbody.innerHTML += `<tr>
+        <td>${r[0]}</td><td style="font-weight:500">${r[3]||'—'}</td><td>${prod}</td><td>${cant}</td>
+        <td>${pesos(precio)}</td><td style="font-weight:500">${pesos(total)}</td>
+      </tr>`;
+      if (!porProducto[prod]) porProducto[prod] = {cant:0, total:0};
+      porProducto[prod].cant += cant;
+      porProducto[prod].total += total;
+    });
+
+    // Resumen por producto
+    const tbody2 = document.getElementById('cob-resumen-body');
+    tbody2.innerHTML = '';
+    Object.entries(porProducto).sort((a,b)=>b[1].total-a[1].total).forEach(([prod,d]) => {
+      tbody2.innerHTML += `<tr>
+        <td>${prod}</td><td>${d.cant}</td>
+        <td style="font-weight:500">${pesos(d.total)}</td>
+      </tr>`;
+    });
+    tbody2.innerHTML += `<tr class="total-row"><td>TOTAL</td><td></td><td style="color:var(--verde)">${pesos(totalGeneral)}</td></tr>`;
+
+    document.getElementById('cob-total-badge').textContent = pesos(totalGeneral);
+
+    // Resumen por local (para mensaje interno)
+    const porLocalCob = {};
+    cobros_pendientes_rows.forEach(r => {
+      const loc = (r[3]||'—').trim();
+      const precio2 = parseFloat(r[6])||0, cant2 = parseFloat(r[5])||0;
+      let tot2 = parseFloat(r[7]); if(isNaN(tot2)) tot2=precio2*cant2;
+      if(!porLocalCob[loc]) porLocalCob[loc]={cant:0,total:0};
+      porLocalCob[loc].cant+=cant2; porLocalCob[loc].total+=tot2;
+    });
+
+    // Mensaje WhatsApp — diferente según filtro
+    const fDesde = desde ? (() => { const d=new Date(desde+'T12:00:00'); return `${d.getDate()}/${d.getMonth()+1}`; })() : '';
+    const fHasta = hasta ? (() => { const d=new Date(hasta+'T12:00:00'); return `${d.getDate()}/${d.getMonth()+1}`; })() : '';
+    const periodoLabel = (desde&&hasta) ? `${fDesde} al ${fHasta}` : desde ? `desde ${fDesde}` : hasta ? `hasta ${fHasta}` : 'histórico';
+
+    let wpp = '';
+    if (local) {
+      const localNombre = local.charAt(0).toUpperCase()+local.slice(1);
+      wpp += `🌿 *Hola ${localNombre}!*\n`;
+      wpp += `Te paso el resumen pendiente (${periodoLabel}):\n\n`;
+      Object.entries(porProducto).sort((a,b)=>b[1].total-a[1].total).forEach(([prod,d]) => {
+        wpp += `${emojiProducto(prod)} ${prod} — ${d.cant} u.  ${pesos(d.total)}\n`;
+      });
+      if (totalDescEnvCob > 0) {
+        const envCount = envPend.reduce((s,r)=>s+(parseFloat(r[4])||0),0);
+        wpp += `\n♻️ Envases devueltos (${envCount} u.): -${pesos(totalDescEnvCob)}\n`;
+        wpp += `💰 *Total a cobrar: ${pesos(totalGeneral - totalDescEnvCob)}*\n`;
+      } else {
+        wpp += `\n💰 *Total: ${pesos(totalGeneral)}*\n`;
+      }
+      wpp += `Cualquier duda avisá 🙌`;
+    } else {
+      // Resumen interno por local
+      wpp += `📋 *ES — Pendientes por local (${periodoLabel})*\n\n`;
+      Object.entries(porLocalCob).sort((a,b)=>b[1].total-a[1].total).forEach(([loc,d]) => {
+        wpp += `📍 *${loc}*: ${pesos(d.total)} (${d.cant} u.)\n`;
+      });
+      wpp += `\n💰 *Total pendiente: ${pesos(totalGeneral)}*`;
+    }
+    document.getElementById('cob-wpp-texto').textContent = wpp;
+
+    // Default fecha cobro
+    document.getElementById('cob-fecha-cobro').value = hoy();
+
+    document.getElementById('cob-spinner').style.display = 'none';
+    document.getElementById('cob-content').style.display = 'block';
+  } catch(e) {
+    document.getElementById('cob-spinner').style.display = 'none';
+    alert('Error: ' + e.message);
+  }
+}
+
+function copiarCobro() {
+  const txt = document.getElementById('cob-wpp-texto').textContent;
+  navigator.clipboard.writeText(txt).then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ Copiado';
+    setTimeout(() => btn.textContent = '📋 Copiar para WhatsApp', 2000);
+  });
+}
+
+async function marcarCobros() {
+  if (!cobros_pendientes_indices.length) return;
+  const pago = document.getElementById('cob-pago').value;
+  const fechaCobro = document.getElementById('cob-fecha-cobro').value;
+  if (!fechaCobro) { alert('Ingresá la fecha de cobro'); return; }
+
+  document.getElementById('cob-mark-spinner').style.display = 'block';
+  try {
+    // Update each row individually
+    for (const idx of cobros_pendientes_indices) {
+      await sheetsUpdate(`Ventas!I${idx}:K${idx}`, [[pago, fechaCobro, 'Cobrado']]);
+    }
+    document.getElementById('cob-mark-spinner').style.display = 'none';
+    document.getElementById('cob-success').style.display = 'block';
+    setTimeout(() => document.getElementById('cob-success').style.display = 'none', 3000);
+    cobros_pendientes_rows = [];
+    cobros_pendientes_indices = [];
+    document.getElementById('cob-content').style.display = 'none';
+  } catch(e) {
+    document.getElementById('cob-mark-spinner').style.display = 'none';
+    document.getElementById('cob-error').textContent = 'Error: ' + e.message;
+    document.getElementById('cob-error').style.display = 'block';
+  }
+}
+
+// =====================
+// PRECIOS Y PRODUCTOS
+// =====================
+let preciosActuales = {};
+let preciosSimulados = {};
+let modoSimulacion = false;
+
+async function cargarPrecios() {
+  document.getElementById('prec-loading').style.display = 'flex';
+  document.getElementById('prec-content').style.display = 'none';
+  try {
+    const [prodData, histData] = await Promise.all([
+      sheetsGet('Productos!A:G'),
+      sheetsGet('Historial_precios!A:I')
+    ]);
+
+    // Parse productos from sheet, fallback to hardcoded PRECIOS
+    preciosActuales = {};
+    if (prodData.length > 1) {
+      prodData.slice(1).forEach(r => {
+        if (!r[0]) return;
+        preciosActuales[r[0]] = {
+          costo: parseFloat(r[1])||0,
+          umepay: parseFloat(r[2])||0,
+          afuera: parseFloat(r[3])||0,
+          personas: parseFloat(r[4])||0,
+          costo_envase: parseFloat(r[5])||0,
+          vigente: r[6]||''
+        };
+      });
+    } else {
+      // Fallback to hardcoded
+      Object.entries(PRECIOS).forEach(([k,v]) => {
+        preciosActuales[k] = {...v, vigente: ''};
+      });
+    }
+
+    renderTablaPrecios(preciosActuales);
+
+    // Historial
+    const histBody = document.getElementById('prec-historial-body');
+    histBody.innerHTML = '';
+    if (histData.length > 1) {
+      histData.slice(1).reverse().forEach(r => {
+        histBody.innerHTML += `<tr>
+          <td>${r[0]||''}</td><td>${r[1]||''}</td>
+          <td style="color:var(--texto-muted)">${r[2]?pesos(r[2]):''}</td>
+          <td style="font-weight:500">${r[5]?pesos(r[5]):''}</td>
+          <td style="color:var(--texto-muted)">${r[3]?pesos(r[3]):''}</td>
+          <td style="font-weight:500">${r[6]?pesos(r[6]):''}</td>
+        </tr>`;
+      });
+    } else {
+      histBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--texto-muted);padding:1.5rem">Sin cambios registrados aún</td></tr>';
+    }
+
+    document.getElementById('prec-loading').style.display = 'none';
+    document.getElementById('prec-content').style.display = 'block';
+  } catch(e) {
+    document.getElementById('prec-loading').innerHTML = '<span style="color:var(--rojo)">Error: ' + e.message + '</span>';
+  }
+}
+
+function renderTablaPrecios(precios) {
+  const tbody = document.getElementById('prec-tabla-body');
+  tbody.innerHTML = '';
+  const hoyRender = hoy();
+  Object.entries(precios).forEach(([prod, p]) => {
+    const costoReal = getCostoParaFecha(prod, hoyRender);
+    const mUme = p.umepay - costoReal;
+    const mAfu = p.afuera - costoReal;
+    const mPer = p.personas - costoReal;
+    const editable = modoSimulacion;
+
+    if (editable) {
+      tbody.innerHTML += `<tr data-prod="${prod}">
+        <td style="font-weight:500">${prod}</td>
+        <td style="color:var(--texto-muted)">${pesos(costoReal)}</td>
+        <td>
+          <input type="number" id="sim-ume-${prod.replace(/[^a-z0-9]/gi,'_')}"
+            style="width:90px;border:1px solid var(--verde);border-radius:6px;padding:4px 8px;font-size:13px"
+            value="${p.umepay}"
+            onchange="actualizarSimulado('${prod}','umepay',this.value)" />
+        </td>
+        <td style="color:${mUme>=0?'var(--verde)':'var(--rojo)'};font-weight:500" id="sim-mume-${prod.replace(/[^a-z0-9]/gi,'_')}">${pesos(mUme)}</td>
+        <td id="sim-afu-${prod.replace(/[^a-z0-9]/gi,'_')}">${pesos(p.afuera)}</td>
+        <td style="color:${mAfu>=0?'var(--verde)':'var(--rojo)'};font-weight:500" id="sim-mafu-${prod.replace(/[^a-z0-9]/gi,'_')}">${pesos(mAfu)}</td>
+        <td id="sim-per-${prod.replace(/[^a-z0-9]/gi,'_')}">${pesos(p.personas)}</td>
+        <td style="color:${mPer>=0?'var(--verde)':'var(--rojo)'};font-weight:500" id="sim-mper-${prod.replace(/[^a-z0-9]/gi,'_')}">${pesos(mPer)}</td>
+        <td style="color:var(--texto-muted);font-size:12px">${p.vigente||'—'}</td>
+      </tr>`;
+    } else {
+      tbody.innerHTML += `<tr data-prod="${prod}">
+        <td style="font-weight:500">${prod}</td>
+        <td style="color:var(--texto-muted)">${pesos(costoReal)}</td>
+        <td>${pesos(p.umepay)}</td>
+        <td style="color:${mUme>=0?'var(--verde)':'var(--rojo)'};font-weight:500">${pesos(mUme)}</td>
+        <td>${pesos(p.afuera)}</td>
+        <td style="color:${mAfu>=0?'var(--verde)':'var(--rojo)'};font-weight:500">${pesos(mAfu)}</td>
+        <td>${pesos(p.personas)}</td>
+        <td style="color:${mPer>=0?'var(--verde)':'var(--rojo)'};font-weight:500">${pesos(mPer)}</td>
+        <td style="color:var(--texto-muted);font-size:12px">${p.vigente||'—'}</td>
+      </tr>`;
+    }
+  });
+}
+
+function activarSimulacion() {
+  modoSimulacion = true;
+  preciosSimulados = JSON.parse(JSON.stringify(preciosActuales));
+  renderTablaPrecios(preciosSimulados);
+  document.getElementById('prec-simulando-badge').style.display = 'block';
+  document.getElementById('btn-aplicar').style.display = 'inline-block';
+  document.getElementById('btn-cancelar').style.display = 'inline-block';
+  document.querySelector('button[onclick="activarSimulacion()"]').style.display = 'none';
+}
+
+function cancelarSimulacion() {
+  modoSimulacion = false;
+  preciosSimulados = {};
+  renderTablaPrecios(preciosActuales);
+  document.getElementById('prec-simulando-badge').style.display = 'none';
+  document.getElementById('btn-aplicar').style.display = 'none';
+  document.getElementById('btn-cancelar').style.display = 'none';
+  document.querySelector('button[onclick="activarSimulacion()"]').style.display = 'inline-block';
+}
+
+function actualizarSimulado(prod, campo, val) {
+  if (!preciosSimulados[prod]) return;
+  const nuevo = Math.round(parseFloat(val)||0);
+  preciosSimulados[prod][campo] = nuevo;
+  // Auto-calc Afuera and Personas from Umepay
+  if (campo === 'umepay') {
+    preciosSimulados[prod].afuera   = Math.round(nuevo * 1.10);
+    preciosSimulados[prod].personas = Math.round(nuevo * 1.20);
+  }
+  // Update cells inline without full re-render
+  const key = prod.replace(/[^a-z0-9]/gi,'_');
+  const costoReal = getCostoParaFecha(prod, hoy());
+  const p = preciosSimulados[prod];
+  const setCell = (id, val) => { const el=document.getElementById(id); if(el) el.textContent=pesos(val); };
+  const setColor = (id, val) => { const el=document.getElementById(id); if(el) { el.textContent=pesos(val); el.style.color=val>=0?'var(--verde)':'var(--rojo)'; }};
+  if (campo === 'umepay') {
+    const inpAfu = document.getElementById(`sim-afu-${key}`);
+    const inpPer = document.getElementById(`sim-per-${key}`);
+    if(inpAfu) inpAfu.textContent = pesos(p.afuera);
+    if(inpPer) inpPer.textContent = pesos(p.personas);
+    setColor(`sim-mafu-${key}`, p.afuera - costoReal);
+    setColor(`sim-mper-${key}`, p.personas - costoReal);
+  }
+  setColor(`sim-mume-${key}`, p.umepay - costoReal);
+}
+
+async function aplicarPrecios() {
+  if (!confirm('¿Aplicar los nuevos precios? Esto guardará los cambios en el Sheet y registrará el historial.')) return;
+  const fechaHoy = hoy();
+
+  try {
+    // Build historial rows for changed products
+    const histRows = [];
+    Object.entries(preciosSimulados).forEach(([prod, nuevo]) => {
+      const ant = preciosActuales[prod];
+      if (!ant) return;
+      if (ant.umepay !== nuevo.umepay || ant.afuera !== nuevo.afuera || ant.personas !== nuevo.personas) {
+        histRows.push([fechaHoy, prod, ant.umepay, ant.afuera, ant.personas, nuevo.umepay, nuevo.afuera, nuevo.personas, nuevo.costo]);
+      }
+    });
+
+    if (!histRows.length) { alert('No hay cambios para aplicar.'); return; }
+
+    // Save historial
+    await sheetsAppend('Historial_precios!A:I', histRows);
+
+    // Update Productos sheet
+    const prodData = await sheetsGet('Productos!A:G');
+    for (let i = 1; i < prodData.length; i++) {
+      const prod = (prodData[i][0]||'').trim();
+      if (!preciosSimulados[prod]) continue;
+      const p = preciosSimulados[prod];
+      await sheetsUpdate(`Productos!B${i+1}:G${i+1}`, [[p.costo, p.umepay, p.afuera, p.personas, p.costo_envase, fechaHoy]]);
+      // Also update in-memory PRECIOS object so new sales use new prices
+      if (PRECIOS[prod]) {
+        PRECIOS[prod].umepay = p.umepay;
+        PRECIOS[prod].afuera = p.afuera;
+        PRECIOS[prod].personas = p.personas;
+      }
+    }
+
+    preciosActuales = JSON.parse(JSON.stringify(preciosSimulados));
+    cancelarSimulacion();
+    await cargarPrecios();
+    alert(`✓ Precios actualizados. ${histRows.length} producto(s) modificados.`);
+  } catch(e) {
+    alert('Error al guardar: ' + e.message);
+  }
+}
+
+// =====================
+// INIT
+// =====================
+function iniciarApp() {
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+
+  // Set default dates
+  document.getElementById('v-fecha').value = hoy();
+  document.getElementById('v-estado').value = 'Pendiente';
+  renderProductosGrid();
+  document.getElementById('e-fecha').value = hoy();
+  document.getElementById('eg-fecha').value = hoy();
+  document.getElementById('costos-mes').value = getMes();
+  renderFijos();
+  setFechas('dash-desde','dash-hasta');
+  setFechas('rep-desde','rep-hasta');
+  setFechas('caja-desde','caja-hasta');
+}
+
+// Check if config exists
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('es_config');
+  if (saved) {
+    try {
+      CONFIG = JSON.parse(saved);
+      iniciarApp();
+    } catch(e) { localStorage.removeItem('es_config'); }
+  }
+});
+</script>
+</body>
+</html>
