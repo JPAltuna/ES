@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Emprendimiento ES</title>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ES App">
+<meta name="theme-color" content="#085041">
+<link rel="manifest" href="manifest.json">
+
 <style>
   :root {
     --verde: #1D9E75;
@@ -580,6 +587,110 @@
     border-top: 1px solid var(--borde);
     background: var(--gris-claro);
   }
+
+  /* ===== RESPONSIVE MOBILE ===== */
+  @media (max-width: 768px) {
+    .sidebar {
+      width: 100%;
+      height: auto;
+      position: fixed;
+      bottom: 0;
+      top: auto;
+      left: 0;
+      right: 0;
+      flex-direction: row;
+      padding: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      z-index: 200;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .sidebar-logo, .sidebar-version, .sidebar-bottom { display: none; }
+
+    .nav-item {
+      flex-direction: column;
+      gap: 2px;
+      padding: 8px 10px 6px;
+      border-radius: 0;
+      font-size: 10px;
+      min-width: 60px;
+      text-align: center;
+      white-space: nowrap;
+      margin: 0;
+    }
+
+    .nav-item.active {
+      background: rgba(255,255,255,0.2);
+      border-bottom: none;
+      border-top: 2px solid #9FE1CB;
+    }
+
+    .nav-icon { font-size: 18px; }
+
+    .content {
+      margin-left: 0;
+      padding: 1rem;
+      padding-bottom: 80px; /* space for bottom nav */
+    }
+
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .metrics-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .metric-card { padding: 0.75rem 1rem; }
+    .metric-value { font-size: 18px; }
+
+    .card { padding: 1rem; }
+    .card-title { font-size: 12px; }
+
+    .page-title { font-size: 20px; }
+
+    .btn-row { flex-direction: column; }
+    .btn-verde, .btn-outline { width: 100%; text-align: center; padding: 0.75rem; }
+
+    .table-wrapper { font-size: 12px; }
+    th, td { padding: 0.5rem 0.4rem; }
+
+    /* Productos grid en ventas - 2 columnas en mobile */
+    #v-productos-grid {
+      grid-template-columns: 1fr 1fr !important;
+    }
+
+    /* Ocultar columnas menos importantes en tablas */
+    .hide-mobile { display: none !important; }
+
+    /* Reporte visual más compacto */
+    #rep-visual table { font-size: 12px; }
+
+    /* Setup screen */
+    .setup-card { padding: 1.5rem; }
+
+    /* Semana selector */
+    .semana-selector {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .semana-selector input { width: 100%; }
+    .semana-selector .btn-verde { width: 100%; }
+
+    /* Dashboard grid */
+    #dash-content > div[style*="grid-template-columns: 1fr 1fr"] {
+      grid-template-columns: 1fr !important;
+    }
+  }
+
+  @media (max-width: 400px) {
+    .metrics-grid { grid-template-columns: 1fr; }
+    #v-productos-grid { grid-template-columns: 1fr !important; }
+  }
+  .nav-label { display: inline; }
+  @media (max-width: 768px) { .nav-label { display: block; } }
 </style>
 </head>
 <body>
@@ -617,40 +728,40 @@
       <div class="sidebar-version">Emprendimiento ES</div>
 
       <button class="nav-item active" onclick="showPage('dashboard', this)">
-        <span class="nav-icon">📊</span> Dashboard
+        <span class="nav-icon">📊</span> <span class="nav-label">Dashboard</span>
       </button>
       <button class="nav-item" onclick="showPage('ventas', this)">
-        <span class="nav-icon">📝</span> Cargar ventas
+        <span class="nav-icon">📝</span> <span class="nav-label">Ventas</span>
       </button>
       <button class="nav-item" onclick="showPage('envases', this)">
-        <span class="nav-icon">♻️</span> Envases
+        <span class="nav-icon">♻️</span> <span class="nav-label">Envases</span>
       </button>
       <button class="nav-item" onclick="showPage('egresos', this)">
-        <span class="nav-icon">💸</span> Egresos
+        <span class="nav-icon">💸</span> <span class="nav-label">Egresos</span>
       </button>
       <button class="nav-item" onclick="showPage('caja', this)">
-        <span class="nav-icon">💰</span> Caja semanal
+        <span class="nav-icon">💰</span> <span class="nav-label">Caja</span>
       </button>
       <button class="nav-item" onclick="showPage('reporte', this)">
-        <span class="nav-icon">📋</span> Rep. semanal
+        <span class="nav-icon">📋</span> <span class="nav-label">Semanal</span>
       </button>
       <button class="nav-item" onclick="showPage('reporte-mensual', this)">
-        <span class="nav-icon">📅</span> Rep. mensual
+        <span class="nav-icon">📅</span> <span class="nav-label">Mensual</span>
       </button>
       <button class="nav-item" onclick="showPage('costos', this)">
-        <span class="nav-icon">🧮</span> Costos
+        <span class="nav-icon">🧮</span> <span class="nav-label">Costos</span>
       </button>
       <button class="nav-item" onclick="showPage('cobros', this)">
-        <span class="nav-icon">🧾</span> Cobros
+        <span class="nav-icon">🧾</span> <span class="nav-label">Cobros</span>
       </button>
       <button class="nav-item" onclick="showPage('precios', this)">
-        <span class="nav-icon">🏷️</span> Precios
+        <span class="nav-icon">🏷️</span> <span class="nav-label">Precios</span>
       </button>
       <button class="nav-item" onclick="showPage('insumos', this)">
-        <span class="nav-icon">🧪</span> Insumos
+        <span class="nav-icon">🧪</span> <span class="nav-label">Insumos</span>
       </button>
       <button class="nav-item" onclick="showPage('cierre', this)">
-        <span class="nav-icon">🔒</span> Cierre mes
+        <span class="nav-icon">🔒</span> <span class="nav-label">Cierre</span>
       </button>
 
       <div class="sidebar-bottom">
