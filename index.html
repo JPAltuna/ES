@@ -1654,28 +1654,34 @@
         </div>
 
         <div class="card">
-          <div class="card-title">Costos fijos del mes</div>
-          <div style="font-size:12px;color:var(--texto-muted);margin-bottom:1rem">Activá o desactivá conceptos para ajustar el análisis. Los cambios afectan el reporte semanal y el punto de equilibrio.</div>
-          <div id="fijos-lista" style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem 2rem;margin-bottom:1rem"></div>
-          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:0.75rem;border-top:1px solid var(--borde)">
-            <span style="font-size:13px;color:var(--texto-muted)">Total fijos considerados:</span>
+          <div class="card-title">Costos fijos por mes</div>
+          <div style="font-size:12px;color:var(--texto-muted);margin-bottom:1rem">Elegí el mes y poné el monto de cada costo fijo que considerás ese mes. Si un costo no va, dejalo en 0. Si hay un aumento, ponés el nuevo valor en el mes que toca. Los reportes y el punto de equilibrio usan los fijos del mes correspondiente. Se guarda en la pestaña <strong>Costos_fijos</strong> del Sheet.</div>
+          <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:1rem">
+            <div class="form-group" style="flex:0 0 170px">
+              <label>Mes</label>
+              <input type="month" id="fijos-mes" onchange="cambiarMesFijos()" />
+            </div>
+            <button class="btn-outline" onclick="copiarFijosMesAnterior()">Copiar del mes anterior</button>
+          </div>
+          <div id="fijos-lista"></div>
+          <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;margin-top:0.75rem">
+            <div class="form-group" style="flex:2;min-width:140px">
+              <label>Agregar concepto</label>
+              <input type="text" id="fijo-nuevo-nombre" placeholder="Ej: Seguro" />
+            </div>
+            <button class="btn-outline" onclick="agregarConceptoFijo()" style="margin-bottom:1px">+ Agregar</button>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:0.75rem;margin-top:0.75rem;border-top:1px solid var(--borde)">
+            <span style="font-size:13px;color:var(--texto-muted)">Total fijos del mes:</span>
             <span id="fijos-total" style="font-size:18px;font-weight:600;color:var(--verde-oscuro)">—</span>
           </div>
           <div style="font-size:12px;color:var(--texto-muted);margin-top:0.4rem;text-align:right">Cuota semanal: <strong id="fijos-cuota">—</strong></div>
-          <hr style="border:none;border-top:1px solid var(--borde);margin:1rem 0">
-          <div style="font-size:13px;font-weight:500;margin-bottom:0.5rem">Agregar costo extra del mes</div>
-          <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap">
-            <div class="form-group" style="flex:2;min-width:140px">
-              <label>Concepto</label>
-              <input type="text" id="fijo-extra-nombre" placeholder="Ej: Gasoil especial" />
-            </div>
-            <div class="form-group" style="flex:1;min-width:100px">
-              <label>Monto</label>
-              <input type="number" id="fijo-extra-monto" placeholder="0" />
-            </div>
-            <button class="btn-outline" onclick="agregarFijoExtra()" style="margin-bottom:1px">+ Agregar</button>
+          <div class="btn-row" style="margin-top:1rem">
+            <button class="btn-verde" onclick="guardarFijosMes()">💾 Guardar mes</button>
+            <div class="spinner" id="fijos-spinner" style="display:none"></div>
           </div>
-          <div id="fijos-extras" style="margin-top:0.5rem"></div>
+          <div class="msg-success" id="fijos-success">✓ Costos fijos guardados en el Sheet.</div>
+          <div class="msg-error" id="fijos-error"></div>
         </div>
 
         <div class="card">
@@ -2307,7 +2313,7 @@ function showPage(name, btn) {
   if (name === 'dashboard') { setFechas('dash-desde','dash-hasta'); }
   if (name === 'reporte') { setFechas('rep-desde','rep-hasta'); }
   if (name === 'caja') { setFechas('caja-desde','caja-hasta'); }
-  if (name === 'costos') renderFijos();
+  if (name === 'costos') abrirCostosFijos();
   if (name === 'cobros') { setFechas('cob-desde','cob-hasta'); }
   if (name === 'precios') cargarPrecios();
   if (name === 'insumos') cargarInsumos();
@@ -3101,7 +3107,8 @@ async function guardarCierreCaja() {
 
   // Get current ganancia bruta and cuota from reporte if available
   const ganBrutaGuardada = parseFloat(document.getElementById('dash-ganancia')?.textContent?.replace(/[^0-9-]/g,''))||0;
-  const cuotaFijos = Math.round(getTotalFijos() / 4);
+  await cargarFijosPorMes();
+  const cuotaFijos = Math.round(getFijosTotalMes((desde||hoy()).slice(0,7)) / 4);
 
   const row = [
     label,
@@ -3193,8 +3200,9 @@ async function generarReporte() {
     });
     const totalEgresos = egFijo+egExtra+egInsumo+egInversion;
 
-    // Costo fijo semanal (mes / 4)
-    const totalFijosmes = getFijosReporte();
+    // Costo fijo semanal (fijos del mes / 4)
+    await cargarFijosPorMes();
+    const totalFijosmes = getFijosTotalMes(desde.slice(0,7));
     const fijosSemanales = totalFijosmes / 4;
     const numSemana = getSemanaDelMes(desde);
     const cuotaAcum = fijosSemanales * numSemana;
@@ -3300,7 +3308,8 @@ async function analizarCostos() {
     });
 
     const ganBruta = totalVenta - totalCosto;
-    const fijosDelMes = getTotalFijos();
+    await cargarFijosPorMes();
+    const fijosDelMes = getFijosTotalMes(mes);
     const ganNeta = ganBruta - fijosDelMes;
 
 
@@ -3714,14 +3723,16 @@ async function generarReporteMensual() {
       monotributo: ['monotributo'],
     };
     const egresosTexto = egresos.map(r => (r[1]||'').toLowerCase()).join(' ');
+    await cargarFijosPorMes();
+    const fijosMesArr = (FIJOS_POR_MES[mes] || []).filter(f => f.monto > 0);
     const fijosNoReg = [];
-    fijosActivos.filter(f => f.activo).forEach(f => {
-      const kws = keywords[f.id] || [f.nombre.toLowerCase()];
-      const registrado = kws.some(k => egresosTexto.includes(k));
-      if (!registrado) fijosNoReg.push(f);
+    fijosMesArr.forEach(f => {
+      const palabras = f.concepto.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+      const registrado = palabras.some(w => egresosTexto.includes(w));
+      if (!registrado) fijosNoReg.push({ nombre: f.concepto, monto: f.monto });
     });
     const totalFijosNoReg = fijosNoReg.reduce((s,f) => s+f.monto, 0);
-    const totalFijosConsiderados = getTotalFijos();
+    const totalFijosConsiderados = getFijosTotalMes(mes);
     // Ganancia neta = bruta - costos fijos tildados (sin importar egresos registrados)
     const ganNeta = totalGanancia - totalFijosConsiderados;
     const pctCubierto = totalFijosConsiderados > 0 ? Math.min(Math.round((totalGanancia/totalFijosConsiderados)*100),999) : 0;
@@ -3935,62 +3946,181 @@ function copiarReporteMensual() {
 // =====================
 // COSTOS FIJOS EDITABLES
 // =====================
-const FIJOS_BASE = [
-  { id: 'alquiler',   nombre: 'Alquiler',       monto: 250000, activo: true },
-  { id: 'julia',      nombre: 'Sueldo Julia',    monto: 160000, activo: true },
-  { id: 'negri',      nombre: 'Sueldo Negri',    monto: 600000, activo: true },
-  { id: 'gasoil',     nombre: 'Nafta/Gasoil',    monto: 120000, activo: true },
-  { id: 'monotributo',nombre: 'Monotributo',     monto: 50000,  activo: true },
-];
+// Conceptos base (sugerencias si un mes arranca vacío)
+const FIJOS_CONCEPTOS_BASE = ['Alquiler','Sueldo Julia','Sueldo Negri','Nafta','Monotributo'];
 
-let fijosActivos = JSON.parse(localStorage.getItem('es_fijos') || 'null') || FIJOS_BASE.map(f => ({...f}));
+// Cache en memoria: { 'YYYY-MM': [ {concepto, monto}, ... ] }
+let FIJOS_POR_MES = null;          // null = todavía no cargado desde el Sheet
+let fijosMesSeleccionado = null;   // mes que se está editando en la pestaña Costos
+let fijosEditMes = [];             // estado en edición [{concepto, monto}]
 
-function getTotalFijos() {
-  return fijosActivos.filter(f => f.activo).reduce((s, f) => s + f.monto, 0);
+const _esMes = v => /^\d{4}-\d{2}$/.test((v||'').toString().trim());
+
+// Lee la pestaña Costos_fijos del Sheet y arma FIJOS_POR_MES.
+// Soporta el formato nuevo (Mes|Concepto|Monto) y migra en memoria el viejo (Concepto|Monto_mensual|Activo).
+async function cargarFijosPorMes(force) {
+  if (FIJOS_POR_MES && !force) return FIJOS_POR_MES;
+  FIJOS_POR_MES = {};
+  let data;
+  try { data = await sheetsGet('Costos_fijos!A:C'); } catch(e) { data = []; }
+  const rows = data.slice(1).filter(r => ((r[0]||'').toString().trim() !== '') || ((r[1]||'').toString().trim() !== ''));
+  const esNuevo = rows.length > 0 && rows.some(r => _esMes(r[0]));
+  if (esNuevo) {
+    rows.forEach(r => {
+      const mes = (r[0]||'').toString().trim();
+      const concepto = (r[1]||'').toString().trim();
+      const monto = parseFloat(r[2]) || 0;
+      if (!_esMes(mes) || !concepto) return;
+      if (!FIJOS_POR_MES[mes]) FIJOS_POR_MES[mes] = [];
+      FIJOS_POR_MES[mes].push({ concepto, monto });
+    });
+  } else {
+    // Formato viejo (Concepto | Monto_mensual | Activo): lo migramos en memoria al mes actual
+    const baseMes = getMes();
+    FIJOS_POR_MES[baseMes] = rows.map(r => {
+      const activo = (r[2]||'').toString().trim().toLowerCase().startsWith('s');
+      return { concepto: (r[0]||'').toString().trim(), monto: activo ? (parseFloat(r[1])||0) : 0 };
+    }).filter(x => x.concepto);
+  }
+  return FIJOS_POR_MES;
+}
+
+// Total de fijos considerados en un mes (suma de montos > 0)
+function getFijosTotalMes(mes) {
+  const arr = (FIJOS_POR_MES && FIJOS_POR_MES[mes]) ? FIJOS_POR_MES[mes] : [];
+  return arr.reduce((s, f) => s + (f.monto > 0 ? f.monto : 0), 0);
+}
+
+function getMesesFijos() {
+  return Object.keys(FIJOS_POR_MES || {}).sort();
+}
+
+function mesAnteriorConFijos(mes) {
+  const previos = getMesesFijos().filter(m => m < mes);
+  return previos.length ? previos[previos.length - 1] : null;
+}
+
+// Unión de todos los conceptos vistos + los base
+function getConceptosFijos() {
+  const set = new Set(FIJOS_CONCEPTOS_BASE);
+  Object.values(FIJOS_POR_MES || {}).forEach(arr => arr.forEach(f => set.add(f.concepto)));
+  return Array.from(set);
+}
+
+// Se llama al entrar a la pestaña Costos
+async function abrirCostosFijos() {
+  if (!fijosMesSeleccionado) fijosMesSeleccionado = getMes();
+  const inp = document.getElementById('fijos-mes');
+  if (inp) inp.value = fijosMesSeleccionado;
+  await cargarFijosPorMes(true);
+  cargarMesEnEditor(fijosMesSeleccionado);
+}
+
+function cargarMesEnEditor(mes) {
+  fijosMesSeleccionado = mes;
+  const guardados = (FIJOS_POR_MES && FIJOS_POR_MES[mes]) ? FIJOS_POR_MES[mes] : null;
+  if (guardados && guardados.length) {
+    fijosEditMes = guardados.map(f => ({ concepto: f.concepto, monto: f.monto }));
+  } else {
+    fijosEditMes = getConceptosFijos().map(c => ({ concepto: c, monto: 0 }));
+  }
+  renderFijos();
+}
+
+function cambiarMesFijos() {
+  const mes = document.getElementById('fijos-mes').value;
+  if (!mes) return;
+  cargarMesEnEditor(mes);
+}
+
+function copiarFijosMesAnterior() {
+  const ant = mesAnteriorConFijos(fijosMesSeleccionado);
+  if (!ant) { alert('No hay un mes anterior cargado para copiar.'); return; }
+  fijosEditMes = (FIJOS_POR_MES[ant] || []).map(f => ({ concepto: f.concepto, monto: f.monto }));
+  renderFijos();
 }
 
 function renderFijos() {
   const lista = document.getElementById('fijos-lista');
   if (!lista) return;
   lista.innerHTML = '';
-  fijosActivos.forEach((f, i) => {
-    const esExtra = f.id.startsWith('extra_');
-    lista.innerHTML += `<div style="display:flex;align-items:center;gap:8px;padding:0.4rem 0">
-      <input type="checkbox" id="fijo-${f.id}" ${f.activo?'checked':''} 
-        onchange="toggleFijo(${i})" style="width:16px;height:16px;accent-color:var(--verde);cursor:pointer" />
-      <label for="fijo-${f.id}" style="font-size:13px;cursor:pointer;flex:1">${f.nombre}${esExtra?' <span style="font-size:10px;color:var(--texto-muted)">(extra)</span>':''}</label>
-      <span style="font-size:13px;color:var(--texto-muted);margin-right:4px">${pesos(f.monto)}</span>
-      ${esExtra ? `<button onclick="eliminarFijoExtra(${i})" style="background:none;border:none;cursor:pointer;color:var(--texto-muted);font-size:14px;padding:0 2px" title="Eliminar">✕</button>` : ''}
+  fijosEditMes.forEach((f, i) => {
+    lista.innerHTML += `<div style="display:flex;align-items:center;gap:8px;padding:0.45rem 0;border-bottom:1px solid var(--gris-claro)">
+      <span style="font-size:13px;flex:1">${f.concepto}</span>
+      <input type="number" min="0" value="${f.monto ? f.monto : ''}" placeholder="0"
+        style="width:130px;border:1px solid var(--borde);border-radius:6px;padding:5px 8px;font-size:14px;text-align:right"
+        oninput="onFijoMontoChange(${i}, this.value)" />
+      <button onclick="quitarConceptoFijo(${i})" style="background:none;border:none;cursor:pointer;color:var(--texto-muted);font-size:14px;padding:0 2px" title="Quitar">✕</button>
     </div>`;
   });
-  const total = getTotalFijos();
-  document.getElementById('fijos-total').textContent = pesos(total);
-  document.getElementById('fijos-cuota').textContent = pesos(total / 4);
+  actualizarTotalFijos();
 }
 
+function onFijoMontoChange(i, val) {
+  if (!fijosEditMes[i]) return;
+  fijosEditMes[i].monto = parseFloat(val) || 0;
+  actualizarTotalFijos();
+}
 
-function agregarFijoExtra() {
-  const nombre = document.getElementById('fijo-extra-nombre').value.trim();
-  const monto = parseFloat(document.getElementById('fijo-extra-monto').value) || 0;
-  if (!nombre || !monto) { alert('Completá nombre y monto'); return; }
-  const id = 'extra_' + Date.now();
-  fijosActivos.push({ id, nombre, monto, activo: true });
-  localStorage.setItem('es_fijos', JSON.stringify(fijosActivos));
-  document.getElementById('fijo-extra-nombre').value = '';
-  document.getElementById('fijo-extra-monto').value = '';
+function actualizarTotalFijos() {
+  const total = fijosEditMes.reduce((s, f) => s + (f.monto > 0 ? f.monto : 0), 0);
+  const t = document.getElementById('fijos-total');
+  const c = document.getElementById('fijos-cuota');
+  if (t) t.textContent = pesos(total);
+  if (c) c.textContent = pesos(total / 4);
+}
+
+function agregarConceptoFijo() {
+  const nombre = (document.getElementById('fijo-nuevo-nombre').value || '').trim();
+  if (!nombre) { alert('Escribí el nombre del concepto'); return; }
+  if (fijosEditMes.some(f => f.concepto.toLowerCase() === nombre.toLowerCase())) { alert('Ese concepto ya está en la lista'); return; }
+  fijosEditMes.push({ concepto: nombre, monto: 0 });
+  document.getElementById('fijo-nuevo-nombre').value = '';
   renderFijos();
 }
 
-function eliminarFijoExtra(idx) {
-  fijosActivos.splice(idx, 1);
-  localStorage.setItem('es_fijos', JSON.stringify(fijosActivos));
+function quitarConceptoFijo(i) {
+  fijosEditMes.splice(i, 1);
   renderFijos();
 }
 
-function toggleFijo(idx) {
-  fijosActivos[idx].activo = !fijosActivos[idx].activo;
-  localStorage.setItem('es_fijos', JSON.stringify(fijosActivos));
-  renderFijos();
+function padRows(rows, n) {
+  const out = rows.slice();
+  while (out.length < n) out.push(['', '', '']);
+  return out;
+}
+
+async function guardarFijosMes() {
+  const mes = fijosMesSeleccionado;
+  if (!mes) return;
+  const spin = document.getElementById('fijos-spinner');
+  const err = document.getElementById('fijos-error');
+  spin.style.display = 'block';
+  err.style.display = 'none';
+  try {
+    await cargarFijosPorMes(true); // refresca cache (migra formato viejo a mes actual en memoria)
+    // Conservar todos los meses salvo el que estamos editando
+    const otras = [];
+    Object.entries(FIJOS_POR_MES).forEach(([m, arr]) => {
+      if (m === mes) return;
+      arr.forEach(f => { if (f.concepto) otras.push([m, f.concepto, Math.round(f.monto) || 0]); });
+    });
+    const delMes = fijosEditMes.filter(f => f.concepto).map(f => [mes, f.concepto, Math.round(f.monto) || 0]);
+    const cuerpo = otras.concat(delMes);
+    const valores = [['Mes', 'Concepto', 'Monto']].concat(cuerpo);
+    const n = Math.max(200, valores.length + 5);
+    await sheetsUpdate('Costos_fijos!A1:C' + n, padRows(valores, n));
+    FIJOS_POR_MES = null;
+    await cargarFijosPorMes(true);
+    cargarMesEnEditor(mes);
+    spin.style.display = 'none';
+    document.getElementById('fijos-success').style.display = 'block';
+    setTimeout(() => document.getElementById('fijos-success').style.display = 'none', 3000);
+  } catch(e) {
+    spin.style.display = 'none';
+    err.textContent = 'Error: ' + e.message;
+    err.style.display = 'block';
+  }
 }
 
 // Calcula qué semana del mes corresponde al inicio del período
@@ -4002,11 +4132,6 @@ function getSemanaDelMes(fechaDesde) {
   if (dia <= 14) return 2;
   if (dia <= 21) return 3;
   return 4;
-}
-
-// Devuelve el total de fijos a usar en el reporte (usa fijosActivos)
-function getFijosReporte() {
-  return getTotalFijos();
 }
 
 
@@ -4076,7 +4201,8 @@ async function cerrarMes() {
     envasesData.slice(1).filter(r=>{ const f=normFecha(r[0]); return f&&f.startsWith(mes); })
       .forEach(r => ganEnvases+=parseFloat(r[7])||0);
 
-    const fijosConsiderados = getTotalFijos();
+    await cargarFijosPorMes();
+    const fijosConsiderados = getFijosTotalMes(mes);
     const ganNeta = totalGanancia - fijosConsiderados;
 
     // Snapshot current prices and costs
@@ -4087,7 +4213,7 @@ async function cerrarMes() {
       }]))
     );
     const fijosSnapshot = JSON.stringify(
-      fijosActivos.filter(f=>f.activo).map(f=>({nombre:f.nombre,monto:f.monto}))
+      (FIJOS_POR_MES[mes] || []).filter(f=>f.monto>0).map(f=>({nombre:f.concepto,monto:f.monto}))
     );
 
     // Row: Mes, Unidades, TotalVenta, GananciaBruta, FijosConsiderados, GananciaNeta,
@@ -4676,7 +4802,6 @@ function iniciarApp() {
   document.getElementById('e-fecha').value = hoy();
   document.getElementById('eg-fecha').value = hoy();
   document.getElementById('costos-mes').value = getMes();
-  renderFijos();
   setFechas('dash-desde','dash-hasta');
   setFechas('rep-desde','rep-hasta');
   setFechas('caja-desde','caja-hasta');
