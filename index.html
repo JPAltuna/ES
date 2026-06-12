@@ -1998,6 +1998,24 @@
           </div>
 
           <div class="card" style="margin-top:1.25rem">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem">
+              <div class="card-title" style="margin:0">Lista de precios para WhatsApp</div>
+              <button class="btn-outline" onclick="copiarListaPrecios()">📋 Copiar</button>
+            </div>
+            <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:0.75rem">
+              <div class="form-group" style="flex:0 0 200px">
+                <label>Lista para</label>
+                <select id="wpp-precio-canal" onchange="generarListaPreciosWpp()">
+                  <option value="Umepay">Umepay</option>
+                  <option value="Afuera">Afuera</option>
+                  <option value="Personas">Personas</option>
+                </select>
+              </div>
+            </div>
+            <div class="reporte-box" id="wpp-precio-texto"></div>
+          </div>
+
+          <div class="card" style="margin-top:1.25rem">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
               <div class="card-title" style="margin:0">Historial de cambios</div>
             </div>
@@ -4598,6 +4616,28 @@ let preciosActuales = {};
 let preciosSimulados = {};
 let modoSimulacion = false;
 
+// Sincroniza los precios vigentes desde la pestaña Productos del Sheet hacia
+// el objeto PRECIOS (que usa el formulario de Cargar ventas). Se llama al iniciar
+// la app para que ventas siempre cobre con los precios actuales, no los del código.
+async function sincronizarPreciosDesdeSheet() {
+  try {
+    const prodData = await sheetsGet('Productos!A:G');
+    if (!prodData || prodData.length <= 1) return;
+    prodData.slice(1).forEach(r => {
+      const prod = (r[0]||'').toString().trim();
+      if (!PRECIOS[prod]) return;
+      const costo = parseFloat(r[1]); if (!isNaN(costo)) PRECIOS[prod].costo = costo;
+      const ume = parseFloat(r[2]);   if (!isNaN(ume))   PRECIOS[prod].umepay = ume;
+      const afu = parseFloat(r[3]);   if (!isNaN(afu))   PRECIOS[prod].afuera = afu;
+      const per = parseFloat(r[4]);   if (!isNaN(per))   PRECIOS[prod].personas = per;
+    });
+    renderProductosGrid();
+  } catch(e) {
+    // Si falla, se mantienen los precios por defecto del código
+    console.warn('No se pudieron sincronizar precios desde el Sheet:', e.message);
+  }
+}
+
 async function cargarPrecios() {
   document.getElementById('prec-loading').style.display = 'flex';
   document.getElementById('prec-content').style.display = 'none';
@@ -4649,9 +4689,44 @@ async function cargarPrecios() {
 
     document.getElementById('prec-loading').style.display = 'none';
     document.getElementById('prec-content').style.display = 'block';
+    generarListaPreciosWpp();
   } catch(e) {
     document.getElementById('prec-loading').innerHTML = '<span style="color:var(--rojo)">Error: ' + e.message + '</span>';
   }
+}
+
+// =====================
+// LISTA DE PRECIOS PARA WHATSAPP
+// =====================
+function generarListaPreciosWpp() {
+  const sel = document.getElementById('wpp-precio-canal');
+  if (!sel) return;
+  const canal = sel.value;
+  const canalKey = canal === 'Umepay' ? 'umepay' : canal === 'Afuera' ? 'afuera' : 'personas';
+  const fuente = (preciosActuales && Object.keys(preciosActuales).length) ? preciosActuales : PRECIOS;
+  const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const d = new Date();
+  const fecha = `${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}`;
+  let txt = `🌿 *Precios ES — ${canal}*\n📅 Al ${fecha}\n\n`;
+  PRODUCTOS_LISTA.forEach(prod => {
+    const p = fuente[prod];
+    if (!p) return;
+    const precio = p[canalKey] || 0;
+    if (!precio) return;
+    txt += `${emojiProducto(prod)} ${prod} — ${pesos(precio)}\n`;
+  });
+  const box = document.getElementById('wpp-precio-texto');
+  if (box) box.textContent = txt.trim();
+}
+
+function copiarListaPrecios() {
+  generarListaPreciosWpp();
+  const txt = document.getElementById('wpp-precio-texto').textContent;
+  navigator.clipboard.writeText(txt).then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ Copiado';
+    setTimeout(() => btn.textContent = '📋 Copiar', 2000);
+  });
 }
 
 function renderTablaPrecios(precios) {
@@ -4724,8 +4799,8 @@ function actualizarSimulado(prod, campo, val) {
   preciosSimulados[prod][campo] = nuevo;
   // Auto-calc Afuera and Personas from Umepay
   if (campo === 'umepay') {
-    preciosSimulados[prod].afuera   = Math.round(nuevo * 1.10);
-    preciosSimulados[prod].personas = Math.round(nuevo * 1.20);
+    preciosSimulados[prod].afuera   = Math.ceil(nuevo * 1.10 / 100) * 100;
+    preciosSimulados[prod].personas = Math.ceil(nuevo * 1.20 / 100) * 100;
   }
   // Update cells inline without full re-render
   const key = prod.replace(/[^a-z0-9]/gi,'_');
@@ -4805,6 +4880,10 @@ function iniciarApp() {
   setFechas('dash-desde','dash-hasta');
   setFechas('rep-desde','rep-hasta');
   setFechas('caja-desde','caja-hasta');
+
+  // Sincroniza precios desde el Sheet para que el formulario de ventas
+  // use siempre los precios vigentes (no los del código).
+  sincronizarPreciosDesdeSheet();
 
   // En celular arranca en la pantalla de inicio (grilla de cuadrados)
   if (window.matchMedia('(max-width: 768px)').matches) {
