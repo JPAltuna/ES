@@ -1974,7 +1974,7 @@
             </div>
 
             <div id="prec-simulando-badge" style="display:none;background:var(--amarillo-claro);color:var(--amarillo);padding:0.5rem 1rem;border-radius:8px;font-size:13px;margin-bottom:1rem">
-              🧪 Modo simulación — editá el precio Umepay y Afuera/Personas se calculan solos (×1.10 y ×1.20). Los cambios no se guardan hasta "Aplicar precios".
+              🧪 Modo simulación — editá el precio Umepay y Afuera/Personas se calculan solos (×1.20 y ×1.25, redondeado a cientos para arriba). Los cambios no se guardan hasta "Aplicar precios".
             </div>
 
             <div class="table-wrapper">
@@ -4799,8 +4799,8 @@ function actualizarSimulado(prod, campo, val) {
   preciosSimulados[prod][campo] = nuevo;
   // Auto-calc Afuera and Personas from Umepay
   if (campo === 'umepay') {
-    preciosSimulados[prod].afuera   = Math.ceil(nuevo * 1.10 / 100) * 100;
-    preciosSimulados[prod].personas = Math.ceil(nuevo * 1.20 / 100) * 100;
+    preciosSimulados[prod].afuera   = Math.ceil(nuevo * 1.20 / 100) * 100;
+    preciosSimulados[prod].personas = Math.ceil(nuevo * 1.25 / 100) * 100;
   }
   // Update cells inline without full re-render
   const key = prod.replace(/[^a-z0-9]/gi,'_');
