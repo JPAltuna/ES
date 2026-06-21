@@ -1006,7 +1006,7 @@
           <div class="form-grid">
             <div class="form-group">
               <label>Fecha</label>
-              <input type="date" id="v-fecha" />
+              <input type="date" id="v-fecha" onchange="onFechaVentaChange()" />
             </div>
             <div class="form-group">
               <label>Canal</label>
@@ -1124,6 +1124,35 @@
               <tbody id="ventas-recientes-body"></tbody>
             </table>
           </div>
+        </div>
+
+        <!-- Corregir precios por fecha -->
+        <div class="card">
+          <div class="card-title">🔧 Corregir precios por fecha</div>
+          <div style="font-size:12px;color:var(--texto-muted);margin-bottom:0.75rem">
+            Si cargaste ventas con fecha vieja pero tomaron el precio actual, esto las recalcula con el precio que correspondía a esa fecha (según el historial de precios). Te muestra los cambios antes de aplicar.
+          </div>
+          <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:0.75rem">
+            <div class="form-group" style="flex:0 0 150px"><label>Desde</label><input type="date" id="fix-desde" /></div>
+            <div class="form-group" style="flex:0 0 150px"><label>Hasta</label><input type="date" id="fix-hasta" /></div>
+            <button class="btn-outline" onclick="revisarPreciosFecha()">Revisar</button>
+          </div>
+          <div id="fix-spinner" class="loading" style="display:none"><div class="spinner"></div> Revisando...</div>
+          <div id="fix-preview" style="display:none">
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Fecha</th><th>Local</th><th>Producto</th><th>Canal</th><th>Precio cargado</th><th>Precio correcto</th><th>Nuevo total</th></tr></thead>
+                <tbody id="fix-preview-body"></tbody>
+              </table>
+            </div>
+            <div class="btn-row" style="margin-top:1rem">
+              <button class="btn-verde" onclick="aplicarCorreccionPrecios()">✓ Aplicar correcciones</button>
+              <div class="spinner" id="fix-apply-spinner" style="display:none"></div>
+            </div>
+            <div class="msg-success" id="fix-success">✓ Precios corregidos en el Sheet.</div>
+            <div class="msg-error" id="fix-error"></div>
+          </div>
+          <div id="fix-empty" class="empty-state" style="display:none">No hay diferencias para corregir en ese rango. (Si esperabas correcciones, puede que el cambio de precios no esté registrado en el historial.)</div>
         </div>
       </div>
 
@@ -2435,12 +2464,13 @@ function actualizarProductosDelPedido() {
 
 function renderProductosGrid() {
   const canal = document.getElementById('v-canal').value;
+  const fechaVenta = (document.getElementById('v-fecha')||{}).value || hoy();
   const grid = document.getElementById('v-productos-grid');
   if (!grid) return;
   grid.innerHTML = '';
   PRODUCTOS_LISTA.forEach(prod => {
     const canalKey = canal==='Umepay'?'umepay':canal==='Afuera'?'afuera':canal==='Personas'?'personas':null;
-    const precio = canalKey && PRECIOS[prod] ? PRECIOS[prod][canalKey] : 0;
+    const precio = canalKey ? getPrecioVentaFecha(prod, canalKey, fechaVenta) : 0;
     const inputId = `vp-${prod.replace(/[^a-z0-9]/gi,'_')}`;
     grid.innerHTML += `<div style="background:var(--gris-claro);border-radius:10px;padding:0.75rem;border:1px solid var(--borde)">
       <div style="font-size:13px;font-weight:500;margin-bottom:0.4rem">${emojiProducto(prod)} ${prod}</div>
@@ -2478,6 +2508,7 @@ function actualizarProductosDelPedido() {
 
 function actualizarTotalPedido() {
   const canal = document.getElementById('v-canal').value;
+  const fechaVenta = (document.getElementById('v-fecha')||{}).value || hoy();
   const canalKey = canal==='Umepay'?'umepay':canal==='Afuera'?'afuera':canal==='Personas'?'personas':null;
   let totalProd = 0, unidades = 0;
   const lineas = [];
@@ -2487,7 +2518,7 @@ function actualizarTotalPedido() {
     if (!el) return;
     const cant = parseFloat(el.value) || 0;
     if (cant > 0) {
-      const precio = canalKey && PRECIOS[prod] ? PRECIOS[prod][canalKey] : 0;
+      const precio = canalKey ? getPrecioVentaFecha(prod, canalKey, fechaVenta) : 0;
       totalProd += cant * precio;
       unidades += cant;
       lineas.push(`${prod} ×${cant}`);
@@ -2536,6 +2567,7 @@ async function guardarPedido() {
 
   const canalKey = canal==='Umepay'?'umepay':canal==='Afuera'?'afuera':canal==='Personas'?'personas':null;
   const mes = mesStr(fecha.split('-').length===3 ? new Date(fecha+'T12:00:00') : new Date(fecha.split('/').reverse().join('-')+'T12:00:00'));
+  await cargarHistPreciosVenta();
   const rows = [];
 
   PRODUCTOS_LISTA.forEach(prod => {
@@ -2543,7 +2575,7 @@ async function guardarPedido() {
     const el = document.getElementById(inputId);
     const cant = parseFloat(el?.value) || 0;
     if (cant <= 0) return;
-    const precio = canalKey && PRECIOS[prod] ? PRECIOS[prod][canalKey] : 0;
+    const precio = canalKey ? getPrecioVentaFecha(prod, canalKey, fecha) : 0;
     const total = cant * precio;
     rows.push([fecha, mes, canal, local, prod, cant, precio, total, pago, fechaPago, estado]);
   });
@@ -4616,6 +4648,139 @@ let preciosActuales = {};
 let preciosSimulados = {};
 let modoSimulacion = false;
 
+// =====================
+// PRECIO DE VENTA POR FECHA (historial)
+// =====================
+// Reconstruye, por producto, la línea de tiempo de precios de venta a partir de
+// la pestaña Historial_precios. Cada cambio registró el precio anterior y el nuevo,
+// así que podemos saber qué precio regía en cualquier fecha pasada.
+let HIST_PRECIOS_VENTA = null;
+
+async function cargarHistPreciosVenta(force) {
+  if (HIST_PRECIOS_VENTA && !force) return HIST_PRECIOS_VENTA;
+  HIST_PRECIOS_VENTA = {};
+  let data;
+  try { data = await sheetsGet('Historial_precios!A:I'); } catch(e) { data = []; }
+  // Cols: A fecha, B prod, C umeAnt, D afuAnt, E perAnt, F umeNuevo, G afuNuevo, H perNuevo, I costo
+  const cambios = {};
+  data.slice(1).forEach(r => {
+    const fecha = normFecha(r[0]);
+    const prod = (r[1]||'').toString().trim();
+    if (!fecha || !prod) return;
+    if (!cambios[prod]) cambios[prod] = [];
+    cambios[prod].push({
+      fecha,
+      ant:   { umepay:parseFloat(r[2])||0, afuera:parseFloat(r[3])||0, personas:parseFloat(r[4])||0 },
+      nuevo: { umepay:parseFloat(r[5])||0, afuera:parseFloat(r[6])||0, personas:parseFloat(r[7])||0 },
+    });
+  });
+  Object.entries(cambios).forEach(([prod, arr]) => {
+    arr.sort((a,b)=>a.fecha.localeCompare(b.fecha));
+    const tl = [{ desde:'0000-01-01', ...arr[0].ant }]; // precio antes del primer cambio
+    arr.forEach(c => tl.push({ desde:c.fecha, ...c.nuevo }));
+    HIST_PRECIOS_VENTA[prod] = tl;
+  });
+  return HIST_PRECIOS_VENTA;
+}
+
+// Precio de venta que correspondía a `fecha`. Para fechas vigentes (>= último cambio)
+// usa el precio ACTUAL sincronizado (PRECIOS), que es la fuente de verdad de hoy.
+function getPrecioVentaFecha(prod, canalKey, fecha) {
+  const actual = (PRECIOS[prod] && canalKey) ? (PRECIOS[prod][canalKey]||0) : 0;
+  if (!canalKey) return 0;
+  const tl = HIST_PRECIOS_VENTA && HIST_PRECIOS_VENTA[prod];
+  if (!tl || tl.length < 2) return actual;     // sin cambios registrados → precio actual
+  const f = normFecha(fecha);
+  const ultimoCambio = tl[tl.length-1].desde;
+  if (f >= ultimoCambio) return actual;        // período vigente → precio actual
+  let elegido = tl[0];
+  for (const v of tl) { if (f >= v.desde) elegido = v; }
+  const val = elegido[canalKey];
+  return (val != null && !isNaN(val)) ? val : actual;
+}
+
+// Recalcula la grilla y el total cuando cambia la fecha de la venta
+function onFechaVentaChange() {
+  cargarHistPreciosVenta().then(() => {
+    renderProductosGrid();
+    actualizarTotalPedido();
+  });
+}
+
+// =====================
+// CORREGIR PRECIOS DE VENTAS YA CARGADAS
+// =====================
+let correccionesPendientes = [];
+
+async function revisarPreciosFecha() {
+  const desde = document.getElementById('fix-desde').value;
+  const hasta = document.getElementById('fix-hasta').value || desde;
+  if (!desde) { alert('Elegí al menos la fecha "Desde".'); return; }
+  document.getElementById('fix-spinner').style.display = 'flex';
+  document.getElementById('fix-preview').style.display = 'none';
+  document.getElementById('fix-empty').style.display = 'none';
+  correccionesPendientes = [];
+  try {
+    await cargarHistPreciosVenta(true);
+    const data = await sheetsGet('Ventas!A:K');
+    const body = document.getElementById('fix-preview-body');
+    body.innerHTML = '';
+    data.slice(1).forEach((r, i) => {
+      const f = normFecha(r[0]);
+      if (!f || f < desde || f > hasta) return;
+      const canal = (r[2]||'').trim();
+      const prod = (r[4]||'').trim();
+      if (!PRODUCTOS_VALIDOS.includes(prod)) return;
+      const canalKey = canal==='Umepay'?'umepay':canal==='Afuera'?'afuera':canal==='Personas'?'personas':null;
+      if (!canalKey) return; // Regalo u otros: no se corrigen
+      const cant = parseFloat(r[5])||0;
+      const precioCargado = parseFloat(r[6])||0;
+      const precioCorrecto = getPrecioVentaFecha(prod, canalKey, f);
+      if (!precioCorrecto || precioCorrecto === precioCargado) return;
+      const totalNuevo = precioCorrecto * cant;
+      correccionesPendientes.push({ rowIdx: i + 2, precioNuevo: precioCorrecto, totalNuevo });
+      body.innerHTML += `<tr>
+        <td>${r[0]}</td><td>${r[3]||'—'}</td><td>${prod}</td><td>${canal}</td>
+        <td style="color:var(--rojo)">${pesos(precioCargado)}</td>
+        <td style="color:var(--verde);font-weight:600">${pesos(precioCorrecto)}</td>
+        <td>${pesos(totalNuevo)}</td>
+      </tr>`;
+    });
+    document.getElementById('fix-spinner').style.display = 'none';
+    if (!correccionesPendientes.length) {
+      document.getElementById('fix-empty').style.display = 'block';
+    } else {
+      document.getElementById('fix-preview').style.display = 'block';
+    }
+  } catch(e) {
+    document.getElementById('fix-spinner').style.display = 'none';
+    alert('Error: ' + e.message);
+  }
+}
+
+async function aplicarCorreccionPrecios() {
+  if (!correccionesPendientes.length) return;
+  if (!confirm(`¿Corregir ${correccionesPendientes.length} venta(s)? Se actualizan precio y total en el Sheet.`)) return;
+  document.getElementById('fix-apply-spinner').style.display = 'block';
+  document.getElementById('fix-error').style.display = 'none';
+  try {
+    for (const c of correccionesPendientes) {
+      // Col G = precio, Col H = total
+      await sheetsUpdate(`Ventas!G${c.rowIdx}:H${c.rowIdx}`, [[c.precioNuevo, c.totalNuevo]]);
+    }
+    document.getElementById('fix-apply-spinner').style.display = 'none';
+    document.getElementById('fix-success').style.display = 'block';
+    setTimeout(()=>document.getElementById('fix-success').style.display='none', 4000);
+    document.getElementById('fix-preview').style.display = 'none';
+    correccionesPendientes = [];
+    cargarVentasRecientes();
+  } catch(e) {
+    document.getElementById('fix-apply-spinner').style.display = 'none';
+    document.getElementById('fix-error').textContent = 'Error: ' + e.message;
+    document.getElementById('fix-error').style.display = 'block';
+  }
+}
+
 // Sincroniza los precios vigentes desde la pestaña Productos del Sheet hacia
 // el objeto PRECIOS (que usa el formulario de Cargar ventas). Se llama al iniciar
 // la app para que ventas siempre cobre con los precios actuales, no los del código.
@@ -4884,6 +5049,8 @@ function iniciarApp() {
   // Sincroniza precios desde el Sheet para que el formulario de ventas
   // use siempre los precios vigentes (no los del código).
   sincronizarPreciosDesdeSheet();
+  // Carga el historial de precios para poder cobrar según la fecha de la venta.
+  cargarHistPreciosVenta();
 
   // En celular arranca en la pantalla de inicio (grilla de cuadrados)
   if (window.matchMedia('(max-width: 768px)').matches) {
