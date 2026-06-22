@@ -853,6 +853,7 @@
       <button class="home-tile" onclick="goToPage('dashboard')"><span class="home-tile-icon">📊</span><span class="home-tile-label">Dashboard</span></button>
       <button class="home-tile" onclick="goToPage('reporte')"><span class="home-tile-icon">📋</span><span class="home-tile-label">Semanal</span></button>
       <button class="home-tile" onclick="goToPage('reporte-mensual')"><span class="home-tile-icon">📅</span><span class="home-tile-label">Mensual</span></button>
+      <button class="home-tile" onclick="goToPage('analisis')"><span class="home-tile-icon">📈</span><span class="home-tile-label">Análisis</span></button>
       <button class="home-tile" onclick="goToPage('egresos')"><span class="home-tile-icon">💸</span><span class="home-tile-label">Egresos</span></button>
       <button class="home-tile" onclick="goToPage('envases')"><span class="home-tile-icon">♻️</span><span class="home-tile-label">Envases</span></button>
       <button class="home-tile" onclick="goToPage('precios')"><span class="home-tile-icon">🏷️</span><span class="home-tile-label">Precios</span></button>
@@ -889,6 +890,9 @@
       </button>
       <button class="nav-item" onclick="showPage('reporte-mensual', this)">
         <span class="nav-icon">📅</span> <span class="nav-label">Mensual</span>
+      </button>
+      <button class="nav-item" onclick="showPage('analisis', this)">
+        <span class="nav-icon">📈</span> <span class="nav-label">Análisis</span>
       </button>
       <button class="nav-item" onclick="showPage('costos', this)">
         <span class="nav-icon">🧮</span> <span class="nav-label">Costos</span>
@@ -1039,7 +1043,7 @@
             </div>
             <div class="form-group">
               <label>Estado de pago</label>
-              <select id="v-estado">
+              <select id="v-estado" onchange="onEstadoVentaChange()">
                 <option value="Pendiente">Pendiente</option>
                 <option value="Cobrado">Cobrado</option>
               </select>
@@ -1047,6 +1051,7 @@
             <div class="form-group">
               <label>Fecha de pago</label>
               <input type="date" id="v-fecha-pago" />
+              <div style="font-size:11px;color:var(--texto-muted)">Si lo cobrás el día de la venta, dejala igual a la fecha de venta. Si queda pendiente, se completa al cobrar.</div>
             </div>
           </div>
 
@@ -1124,35 +1129,6 @@
               <tbody id="ventas-recientes-body"></tbody>
             </table>
           </div>
-        </div>
-
-        <!-- Corregir precios por fecha -->
-        <div class="card">
-          <div class="card-title">🔧 Corregir precios por fecha</div>
-          <div style="font-size:12px;color:var(--texto-muted);margin-bottom:0.75rem">
-            Si cargaste ventas con fecha vieja pero tomaron el precio actual, esto las recalcula con el precio que correspondía a esa fecha (según el historial de precios). Te muestra los cambios antes de aplicar.
-          </div>
-          <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:0.75rem">
-            <div class="form-group" style="flex:0 0 150px"><label>Desde</label><input type="date" id="fix-desde" /></div>
-            <div class="form-group" style="flex:0 0 150px"><label>Hasta</label><input type="date" id="fix-hasta" /></div>
-            <button class="btn-outline" onclick="revisarPreciosFecha()">Revisar</button>
-          </div>
-          <div id="fix-spinner" class="loading" style="display:none"><div class="spinner"></div> Revisando...</div>
-          <div id="fix-preview" style="display:none">
-            <div class="table-wrapper">
-              <table>
-                <thead><tr><th>Fecha</th><th>Local</th><th>Producto</th><th>Canal</th><th>Precio cargado</th><th>Precio correcto</th><th>Nuevo total</th></tr></thead>
-                <tbody id="fix-preview-body"></tbody>
-              </table>
-            </div>
-            <div class="btn-row" style="margin-top:1rem">
-              <button class="btn-verde" onclick="aplicarCorreccionPrecios()">✓ Aplicar correcciones</button>
-              <div class="spinner" id="fix-apply-spinner" style="display:none"></div>
-            </div>
-            <div class="msg-success" id="fix-success">✓ Precios corregidos en el Sheet.</div>
-            <div class="msg-error" id="fix-error"></div>
-          </div>
-          <div id="fix-empty" class="empty-state" style="display:none">No hay diferencias para corregir en ese rango. (Si esperabas correcciones, puede que el cambio de precios no esté registrado en el historial.)</div>
         </div>
       </div>
 
@@ -2061,6 +2037,100 @@
         </div>
       </div>
 
+      <!-- ANALISIS -->
+      <div class="page" id="page-analisis">
+        <div class="page-header">
+          <div class="page-title">Análisis</div>
+          <div class="page-desc">Clientes, canales, gastos y ganancias del período</div>
+        </div>
+
+        <div class="semana-selector" style="margin-bottom:0">
+          <label>Mes</label>
+          <input type="month" id="an-mes" />
+          <button class="btn-verde" onclick="generarAnalisis()">Analizar</button>
+        </div>
+
+        <div id="an-loading" class="loading" style="display:none"><div class="spinner"></div> Analizando...</div>
+        <div id="an-empty" class="empty-state" style="display:none">No hay ventas en el mes seleccionado.</div>
+
+        <div id="an-content" style="display:none">
+          <!-- Resumen -->
+          <div class="metrics-grid" style="margin-top:1rem">
+            <div class="metric-card">
+              <div class="metric-label">Total vendido</div>
+              <div class="metric-value" id="an-venta">—</div>
+              <div class="metric-sub" id="an-unidades-sub"></div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Ganancia bruta</div>
+              <div class="metric-value verde" id="an-bruta">—</div>
+              <div class="metric-sub" id="an-margen-sub"></div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Egresos del mes</div>
+              <div class="metric-value naranja" id="an-egresos">—</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Resultado (venta − egresos)</div>
+              <div class="metric-value" id="an-resultado">—</div>
+              <div class="metric-sub">Caja real del mes</div>
+            </div>
+          </div>
+
+          <!-- Por canal -->
+          <div class="card">
+            <div class="card-title">Por canal</div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Canal</th><th>Unidades</th><th>Total vendido</th><th>Ganancia</th><th>% del total</th></tr></thead>
+                <tbody id="an-canal-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Top clientes -->
+          <div class="card">
+            <div class="card-title">Ranking de clientes (locales)</div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>#</th><th>Local</th><th>Canal</th><th>Unidades</th><th>Total</th><th>% del total</th></tr></thead>
+                <tbody id="an-clientes-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Ganancia por producto -->
+          <div class="card">
+            <div class="card-title">Ganancia por producto</div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Producto</th><th>Unidades</th><th>Total vendido</th><th>Ganancia</th><th>Margen %</th></tr></thead>
+                <tbody id="an-producto-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Gastos vs ventas -->
+          <div class="card">
+            <div class="card-title">Gastos por categoría</div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Categoría</th><th>Total</th><th>% de egresos</th></tr></thead>
+                <tbody id="an-gastos-body"></tbody>
+              </table>
+            </div>
+            <div style="margin-top:1rem">
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--texto-muted);margin-bottom:0.3rem">
+                <span>Egresos sobre ventas</span><span id="an-gv-pct">—%</span>
+              </div>
+              <div style="background:var(--gris-claro);border-radius:20px;height:20px;overflow:hidden">
+                <div id="an-gv-barra" style="height:100%;border-radius:20px;transition:width 0.6s;background:var(--naranja);width:0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div><!-- end content -->
   </div><!-- end layout -->
 </div><!-- end app -->
@@ -2126,16 +2196,6 @@ function getCostoParaFecha(prod, fecha) {
     if (f >= v.desde) version = v;
   }
   return version.productos[prod] || 0;
-}
-
-// Devuelve costos fijos mensuales para una fecha
-function getFijosParaFecha(fecha) {
-  const f = fecha || '2025-01-01';
-  let version = HISTORIAL_COSTOS[0];
-  for (const v of HISTORIAL_COSTOS) {
-    if (f >= v.desde) version = v;
-  }
-  return version.costos_fijos;
 }
 
 // COSTOS_FIJOS actual (para el módulo de costos del mes actual)
@@ -2354,7 +2414,7 @@ function showPage(name, btn) {
   document.getElementById('page-' + name).classList.add('active');
   if (btn) btn.classList.add('active');
 
-  if (name === 'ventas') { cargarVentasRecientes(); if(!document.getElementById('v-productos-grid').innerHTML) renderProductosGrid(); }
+  if (name === 'ventas') { cargarVentasRecientes(); cargarLocalesPorCanal(); if(!document.getElementById('v-productos-grid').innerHTML) renderProductosGrid(); }
   if (name === 'envases') cargarEnvasesRecientes();
   if (name === 'egresos') cargarEgresosRecientes();
   if (name === 'dashboard') { setFechas('dash-desde','dash-hasta'); }
@@ -2366,6 +2426,7 @@ function showPage(name, btn) {
   if (name === 'insumos') cargarInsumos();
   if (name === 'cierre') { document.getElementById('cierre-mes').value = getMes(); cargarHistorialCierres(); }
   if (name === 'reporte-mensual') { document.getElementById('repmes-mes').value = getMes(); }
+  if (name === 'analisis') { if(!document.getElementById('an-mes').value) document.getElementById('an-mes').value = getMes(); }
 }
 
 // =====================
@@ -2396,90 +2457,43 @@ function setFechas(desdeId, hastaId) {
 }
 
 // =====================
-// VENTAS
-// =====================
-function actualizarPrecio() {
-  const canal = document.getElementById('v-canal').value;
-  const prod = document.getElementById('v-producto').value;
-  const cant = parseInt(document.getElementById('v-cantidad').value) || 1;
-  const preview = document.getElementById('precio-preview');
-
-  if (!canal || !prod || !PRECIOS[prod]) { preview.style.display = 'none'; return; }
-
-  const canalKey = canal === 'Umepay' ? 'umepay' : canal === 'Afuera' ? 'afuera' : canal === 'Personas' ? 'personas' : null;
-  if (!canalKey) { preview.style.display = 'none'; return; }
-
-  const precio = PRECIOS[prod][canalKey] || 0;
-  document.getElementById('v-precio').value = precio;
-  const total = precio * cant;
-  preview.textContent = `Precio: ${pesos(precio)} × ${cant} = ${pesos(total)}`;
-  preview.style.display = 'block';
-}
-
-async function guardarVenta() {
-  const fecha = document.getElementById('v-fecha').value;
-  const canal = document.getElementById('v-canal').value;
-  const local = document.getElementById('v-local').value;
-  const prod = document.getElementById('v-producto').value;
-  const cant = parseInt(document.getElementById('v-cantidad').value);
-  const precio = parseFloat(document.getElementById('v-precio').value);
-  const pago = document.getElementById('v-pago').value;
-  const estado = document.getElementById('v-estado').value;
-  const fechaPago = document.getElementById('v-fecha-pago').value;
-
-  if (!fecha || !canal || !prod || !cant || !precio) {
-    showMsg('v-error', false, 'Completá todos los campos obligatorios.');
-    document.getElementById('v-error').style.display = 'block'; return;
-  }
-
-  const total = precio * cant;
-  const mes = mesStr(fecha);
-  const row = [fecha, mes, canal, local, prod, cant, precio, total, pago, fechaPago, estado];
-
-  document.getElementById('v-spinner').style.display = 'block';
-  try {
-    await sheetsAppend('Ventas!A:K', [row]);
-    document.getElementById('v-spinner').style.display = 'none';
-    showMsg('v-success', true, 'Venta guardada correctamente en el Sheet.');
-    document.getElementById('v-success').style.display = 'block';
-    limpiarFormVenta();
-    cargarVentasRecientes();
-  } catch(e) {
-    document.getElementById('v-spinner').style.display = 'none';
-    document.getElementById('v-error').textContent = 'Error: ' + e.message;
-    document.getElementById('v-error').style.display = 'block';
-  }
-}
-
-
-// =====================
 // CARGA DE PEDIDO (multi-producto)
 // =====================
 const PRODUCTOS_LISTA = ['1/2l Suico','1l Suico','1/2l Leche','1l Leche','Kesir','Kesir petit','1/2l Hibiscus','1l Hibiscus'];
-
-function actualizarProductosDelPedido() {
-  renderProductosGrid();
-  actualizarTotalPedido();
-}
 
 function renderProductosGrid() {
   const canal = document.getElementById('v-canal').value;
   const fechaVenta = (document.getElementById('v-fecha')||{}).value || hoy();
   const grid = document.getElementById('v-productos-grid');
   if (!grid) return;
+  grid.style.display = 'flex';
+  grid.style.flexDirection = 'column';
+  grid.style.gap = '8px';
   grid.innerHTML = '';
   PRODUCTOS_LISTA.forEach(prod => {
     const canalKey = canal==='Umepay'?'umepay':canal==='Afuera'?'afuera':canal==='Personas'?'personas':null;
     const precio = canalKey ? getPrecioVentaFecha(prod, canalKey, fechaVenta) : 0;
     const inputId = `vp-${prod.replace(/[^a-z0-9]/gi,'_')}`;
-    grid.innerHTML += `<div style="background:var(--gris-claro);border-radius:10px;padding:0.75rem;border:1px solid var(--borde)">
-      <div style="font-size:13px;font-weight:500;margin-bottom:0.4rem">${emojiProducto(prod)} ${prod}</div>
-      ${precio ? `<div style="font-size:11px;color:var(--texto-muted);margin-bottom:0.4rem">${pesos(precio)} c/u</div>` : ''}
-      <input type="number" id="${inputId}" min="0" placeholder="0" value=""
-        style="width:100%;border:1px solid var(--borde);border-radius:6px;padding:5px 8px;font-size:16px;text-align:center"
+    grid.innerHTML += `<div style="display:flex;align-items:center;gap:8px;background:var(--gris-claro);border-radius:10px;padding:0.5rem 0.6rem;border:1px solid var(--borde)">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500;line-height:1.2">${emojiProducto(prod)} ${prod}</div>
+        ${precio ? `<div style="font-size:11px;color:var(--texto-muted)">${pesos(precio)} c/u</div>` : ''}
+      </div>
+      <button type="button" onclick="stepProd('${inputId}',-1)" style="width:34px;height:34px;border:1px solid var(--borde);background:var(--bg);border-radius:8px;font-size:18px;line-height:1;cursor:pointer;flex-shrink:0">−</button>
+      <input type="number" id="${inputId}" min="0" placeholder="0" value="" inputmode="numeric"
+        style="width:52px;border:1px solid var(--borde);border-radius:6px;padding:6px 4px;font-size:16px;text-align:center;flex-shrink:0"
         oninput="actualizarTotalPedido()" />
+      <button type="button" onclick="stepProd('${inputId}',1)" style="width:34px;height:34px;border:1px solid var(--borde);background:var(--bg);border-radius:8px;font-size:18px;line-height:1;cursor:pointer;flex-shrink:0">+</button>
     </div>`;
   });
+}
+
+function stepProd(id, delta) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const v = Math.max(0, (parseFloat(el.value)||0) + delta);
+  el.value = v || '';
+  actualizarTotalPedido();
 }
 
 const ENV_TIPOS = ['Litro', 'Medio litro', 'Kesir gr', 'Kesir ch'];
@@ -2489,6 +2503,7 @@ const ENV_DESC  = {'Litro':800,'Medio litro':600,'Kesir gr':0,'Kesir ch':0};
 function actualizarProductosDelPedido() {
   const canal = document.getElementById('v-canal').value;
   renderProductosGrid();
+  filtrarLocalesPorCanal(canal);
   // Update envase descriptions based on canal
   ENV_TIPOS.forEach(tipo => {
     const desc = document.getElementById(`env-desc-${tipo}`);
@@ -2504,6 +2519,54 @@ function actualizarProductosDelPedido() {
     }
   });
   actualizarTotalPedido();
+}
+
+// Al elegir "Cobrado" en el momento de la venta, la fecha de pago = fecha de venta.
+function onEstadoVentaChange() {
+  const estado = document.getElementById('v-estado').value;
+  const fp = document.getElementById('v-fecha-pago');
+  if (estado === 'Cobrado' && !fp.value) {
+    fp.value = document.getElementById('v-fecha').value || hoy();
+  } else if (estado === 'Pendiente') {
+    fp.value = '';
+  }
+}
+
+// Prefiltro de locales según el canal, aprendido del historial de ventas.
+let LOCALES_POR_CANAL = null;
+
+async function cargarLocalesPorCanal() {
+  if (LOCALES_POR_CANAL) return LOCALES_POR_CANAL;
+  LOCALES_POR_CANAL = {};
+  try {
+    const data = await sheetsGet('Ventas!C:D'); // C = canal, D = local
+    data.slice(1).forEach(r => {
+      const canal = (r[0]||'').trim();
+      const local = (r[1]||'').trim();
+      if (!canal || !local) return;
+      if (!LOCALES_POR_CANAL[canal]) LOCALES_POR_CANAL[canal] = new Set();
+      LOCALES_POR_CANAL[canal].add(local);
+    });
+  } catch(e) { /* sin datos: se dejan las sugerencias por defecto */ }
+  return LOCALES_POR_CANAL;
+}
+
+function filtrarLocalesPorCanal(canal) {
+  cargarLocalesPorCanal().then(() => {
+    const dl = document.getElementById('locales-list');
+    if (!dl) return;
+    const set = (canal && LOCALES_POR_CANAL[canal]) ? LOCALES_POR_CANAL[canal] : null;
+    let locales;
+    if (set && set.size) {
+      locales = Array.from(set);
+    } else {
+      const u = new Set();
+      Object.values(LOCALES_POR_CANAL).forEach(s => s.forEach(x => u.add(x)));
+      locales = Array.from(u);
+    }
+    if (!locales.length) return; // si no hay historial, no piso las sugerencias del HTML
+    dl.innerHTML = locales.sort((a,b)=>a.localeCompare(b)).map(l => `<option value="${l}">`).join('');
+  });
 }
 
 function actualizarTotalPedido() {
@@ -2557,9 +2620,12 @@ async function guardarPedido() {
   const local = document.getElementById('v-local').value.trim();
   const pago = document.getElementById('v-pago').value;
   const estado = document.getElementById('v-estado').value;
-  const fechaPago = document.getElementById('v-fecha-pago').value;
+  // Regla de fecha de pago: si se cobra el día de la venta (estado Cobrado),
+  // la fecha de pago es la de la venta. Si queda Pendiente, va vacía y se completa al cobrar.
+  const fechaPagoCampo = document.getElementById('v-fecha-pago').value;
+  const fechaPago = estado === 'Cobrado' ? (fechaPagoCampo || document.getElementById('v-fecha').value) : '';
 
-  if (!fecha || !canal) {
+  if (!document.getElementById('v-fecha').value || !document.getElementById('v-canal').value) {
     document.getElementById('v-error').textContent = 'Completá fecha y canal.';
     document.getElementById('v-error').style.display = 'block';
     return;
@@ -2631,15 +2697,6 @@ async function guardarPedido() {
   }
 }
 
-function limpiarFormVenta() {
-  // Clear quantities only
-  PRODUCTOS_LISTA.forEach(prod => {
-    const el = document.getElementById(`vp-${prod.replace(/[^a-z0-9]/gi,'_')}`);
-    if (el) el.value = '';
-  });
-  document.getElementById('v-total-preview').style.display = 'none';
-}
-
 function limpiarFormVentaCompleto() {
   document.getElementById('v-fecha').value = hoy();
   document.getElementById('v-canal').value = '';
@@ -2657,14 +2714,23 @@ async function cargarVentasRecientes() {
   document.getElementById('ventas-recientes-tabla').style.display = 'none';
   try {
     const data = await sheetsGet('Ventas!A:K');
-    const rows = data.slice(1).filter(r => r[0]).reverse().slice(0, 30);
+    const all = data.slice(1)
+      .map((r, i) => ({ r, idx: i + 2 }))   // idx = fila real en el Sheet (1-based, +1 por encabezado)
+      .filter(o => o.r[0]);
+    all.sort((a, b) => {
+      const fa = normFecha(a.r[0]), fb = normFecha(b.r[0]);
+      if (fa !== fb) return fb.localeCompare(fa);  // fecha descendente
+      return b.idx - a.idx;                         // misma fecha: la cargada después primero
+    });
+    const rows = all.slice(0, 30);
     const tbody = document.getElementById('ventas-recientes-body');
     tbody.innerHTML = '';
     if (!rows.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--texto-muted);padding:2rem">Sin ventas registradas</td></tr>'; }
-    rows.forEach((r, i) => {
+    rows.forEach(o => {
+      const r = o.r;
+      const realIdx = o.idx;
       const estado = r[10] || 'Pendiente';
       const badgeClass = estado.toLowerCase() === 'cobrado' ? 'badge-verde' : 'badge-amarillo';
-      const realIdx = data.length - i;
       tbody.innerHTML += `<tr>
         <td>${r[0] || ''}</td>
         <td>${r[2] || ''}</td>
@@ -2945,7 +3011,7 @@ async function cargarDashboard() {
       const gan = d.venta - d.costo;
       totalU+=d.unidades; totalV+=d.venta; totalC+=d.costo; totalG+=gan;
       tbody.innerHTML += `<tr>
-        <td>${prod}</td>
+        <td>${emojiProducto(prod)} ${prod}</td>
         <td>${d.unidades}</td>
         <td>${pesos(d.venta)}</td>
         <td style="color:var(--texto-muted)">${pesos(d.costo)}</td>
@@ -3994,6 +4060,157 @@ function copiarReporteMensual() {
 }
 
 // =====================
+// ANALISIS
+// =====================
+async function generarAnalisis() {
+  const mes = document.getElementById('an-mes').value;
+  if (!mes) { document.getElementById('an-mes').value = getMes(); return generarAnalisis(); }
+
+  document.getElementById('an-loading').style.display = 'flex';
+  document.getElementById('an-content').style.display = 'none';
+  document.getElementById('an-empty').style.display = 'none';
+
+  try {
+    const [ventasData, egresosData] = await Promise.all([
+      sheetsGet('Ventas!A:K'),
+      sheetsGet('Egresos!A:H')
+    ]);
+
+    const ventas = ventasData.slice(1).filter(r => {
+      const f = normFecha(r[0]);
+      return f && f.startsWith(mes) && PRODUCTOS_VALIDOS.includes((r[4]||'').trim());
+    });
+
+    if (!ventas.length) {
+      document.getElementById('an-loading').style.display = 'none';
+      document.getElementById('an-empty').style.display = 'block';
+      return;
+    }
+
+    let totalUnidades = 0, totalVenta = 0, totalCosto = 0;
+    const porCanal = {};      // canal -> {unidades, venta, ganancia}
+    const porLocal = {};      // local -> {unidades, venta, canal}
+    const porProducto = {};   // prod -> {unidades, venta, costo}
+
+    ventas.forEach(r => {
+      const canal = (r[2]||'—').trim();
+      const local = (r[3]||'—').trim() || '—';
+      const prod = (r[4]||'').trim();
+      const cant = parseFloat(r[5])||0;
+      const precio = parseFloat(r[6])||0;
+      let total = parseFloat(r[7]); if (isNaN(total)) total = precio*cant;
+      const costo = getCostoParaFecha(prod, normFecha(r[0])) * cant;
+      const gan = total - costo;
+
+      totalUnidades += cant; totalVenta += total; totalCosto += costo;
+
+      if (!porCanal[canal]) porCanal[canal] = {unidades:0, venta:0, ganancia:0};
+      porCanal[canal].unidades += cant; porCanal[canal].venta += total; porCanal[canal].ganancia += gan;
+
+      if (!porLocal[local]) porLocal[local] = {unidades:0, venta:0, canal};
+      porLocal[local].unidades += cant; porLocal[local].venta += total;
+
+      if (!porProducto[prod]) porProducto[prod] = {unidades:0, venta:0, costo:0};
+      porProducto[prod].unidades += cant; porProducto[prod].venta += total; porProducto[prod].costo += costo;
+    });
+
+    const ganBruta = totalVenta - totalCosto;
+
+    // Egresos del mes
+    const egresos = egresosData.slice(1).filter(r => { const f=normFecha(r[0]); return f && f.startsWith(mes); });
+    const porCategoria = {};
+    let totalEgresos = 0;
+    egresos.forEach(r => {
+      const cat = (r[2]||'Otro').trim() || 'Otro';
+      const tot = parseFloat(r[5])||0;
+      porCategoria[cat] = (porCategoria[cat]||0) + tot;
+      totalEgresos += tot;
+    });
+
+    // ── Resumen ──
+    document.getElementById('an-venta').textContent = pesos(totalVenta);
+    document.getElementById('an-unidades-sub').textContent = totalUnidades + ' unidades';
+    document.getElementById('an-bruta').textContent = pesos(ganBruta);
+    document.getElementById('an-margen-sub').textContent = totalVenta>0 ? `margen ${Math.round(ganBruta/totalVenta*100)}%` : '';
+    document.getElementById('an-egresos').textContent = pesos(totalEgresos);
+    const resultado = totalVenta - totalEgresos;
+    const resEl = document.getElementById('an-resultado');
+    resEl.textContent = pesos(resultado);
+    resEl.className = 'metric-value ' + (resultado>=0 ? 'verde' : 'naranja');
+
+    // ── Por canal ──
+    const canalBody = document.getElementById('an-canal-body');
+    canalBody.innerHTML = '';
+    Object.entries(porCanal).sort((a,b)=>b[1].venta-a[1].venta).forEach(([canal, d]) => {
+      const pct = totalVenta>0 ? Math.round(d.venta/totalVenta*100) : 0;
+      canalBody.innerHTML += `<tr>
+        <td style="font-weight:500">${canal}</td>
+        <td>${d.unidades}</td>
+        <td>${pesos(d.venta)}</td>
+        <td style="color:var(--verde)">${pesos(d.ganancia)}</td>
+        <td>${pct}%</td>
+      </tr>`;
+    });
+
+    // ── Top clientes ──
+    const cliBody = document.getElementById('an-clientes-body');
+    cliBody.innerHTML = '';
+    Object.entries(porLocal).sort((a,b)=>b[1].venta-a[1].venta).forEach(([local, d], i) => {
+      const pct = totalVenta>0 ? Math.round(d.venta/totalVenta*100) : 0;
+      cliBody.innerHTML += `<tr>
+        <td style="color:var(--texto-muted)">${i+1}</td>
+        <td style="font-weight:500">${local}</td>
+        <td><span class="badge badge-gris">${d.canal}</span></td>
+        <td>${d.unidades}</td>
+        <td>${pesos(d.venta)}</td>
+        <td>${pct}%</td>
+      </tr>`;
+    });
+
+    // ── Ganancia por producto ──
+    const prodBody = document.getElementById('an-producto-body');
+    prodBody.innerHTML = '';
+    Object.entries(porProducto).sort((a,b)=>(b[1].venta-b[1].costo)-(a[1].venta-a[1].costo)).forEach(([prod, d]) => {
+      const gan = d.venta - d.costo;
+      const margen = d.venta>0 ? Math.round(gan/d.venta*100) : 0;
+      prodBody.innerHTML += `<tr>
+        <td>${emojiProducto(prod)} ${prod}</td>
+        <td>${d.unidades}</td>
+        <td>${pesos(d.venta)}</td>
+        <td style="color:var(--verde);font-weight:500">${pesos(gan)}</td>
+        <td>${margen}%</td>
+      </tr>`;
+    });
+
+    // ── Gastos por categoría ──
+    const gastosBody = document.getElementById('an-gastos-body');
+    gastosBody.innerHTML = '';
+    if (!Object.keys(porCategoria).length) {
+      gastosBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--texto-muted);padding:1rem">Sin egresos este mes</td></tr>';
+    } else {
+      Object.entries(porCategoria).sort((a,b)=>b[1]-a[1]).forEach(([cat, tot]) => {
+        const pct = totalEgresos>0 ? Math.round(tot/totalEgresos*100) : 0;
+        gastosBody.innerHTML += `<tr>
+          <td style="font-weight:500">${cat}</td>
+          <td>${pesos(tot)}</td>
+          <td>${pct}%</td>
+        </tr>`;
+      });
+      gastosBody.innerHTML += `<tr class="total-row"><td>Total</td><td>${pesos(totalEgresos)}</td><td>100%</td></tr>`;
+    }
+
+    const gvPct = totalVenta>0 ? Math.round(totalEgresos/totalVenta*100) : 0;
+    document.getElementById('an-gv-pct').textContent = gvPct + '%';
+    document.getElementById('an-gv-barra').style.width = Math.min(gvPct,100) + '%';
+
+    document.getElementById('an-loading').style.display = 'none';
+    document.getElementById('an-content').style.display = 'block';
+  } catch(e) {
+    document.getElementById('an-loading').innerHTML = '<span style="color:var(--rojo)">Error: ' + e.message + '</span>';
+  }
+}
+
+// =====================
 // COSTOS FIJOS EDITABLES
 // =====================
 // Conceptos base (sugerencias si un mes arranca vacío)
@@ -4361,17 +4578,6 @@ async function guardarIngresoExtra() {
 // =====================
 // REPORTE VISUAL (tabla estilo Excel)
 // =====================
-const COLORES_PROD = {
-  '1/2l Suico':    '#E8F5E9',
-  '1l Suico':      '#C8E6C9',
-  '1/2l Leche':    '#E3F2FD',
-  '1l Leche':      '#BBDEFB',
-  'Kesir':         '#FFF3E0',
-  'Kesir petit':   '#FFE0B2',
-  '1/2l Hibiscus': '#FCE4EC',
-  '1l Hibiscus':   '#F8BBD9',
-};
-
 function renderReporteVisual(desde, hasta, porProducto, totalUnidades, totalVenta, totalGanancia,
                               ganBruta, fijosSemanales, numSemana, ganNeta, pctCubierto,
                               egFijo, egInsumo, egExtra, egInversion, totalEgresos,
@@ -4450,21 +4656,6 @@ function renderReporteVisual(desde, hasta, porProducto, totalUnidades, totalVent
   document.getElementById('rep-caja-cash').textContent = pesos(cash);
   document.getElementById('rep-caja-transfe').textContent = pesos(transfe);
   document.getElementById('rep-caja-pend').textContent = pesos(pendiente);
-}
-
-function toggleRepTexto() {
-  const panel = document.getElementById('rep-texto-panel');
-  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-}
-
-// =====================
-// PERDIDA ACUMULADA
-// =====================
-let perdidaAcumulada = parseFloat(localStorage.getItem('es_perdida_acum') || '0');
-
-function actualizarPerdidaAcumulada(ganNetaSemanal) {
-  perdidaAcumulada += ganNetaSemanal;
-  localStorage.setItem('es_perdida_acum', perdidaAcumulada.toString());
 }
 
 // =====================
@@ -4705,80 +4896,6 @@ function onFechaVentaChange() {
     renderProductosGrid();
     actualizarTotalPedido();
   });
-}
-
-// =====================
-// CORREGIR PRECIOS DE VENTAS YA CARGADAS
-// =====================
-let correccionesPendientes = [];
-
-async function revisarPreciosFecha() {
-  const desde = document.getElementById('fix-desde').value;
-  const hasta = document.getElementById('fix-hasta').value || desde;
-  if (!desde) { alert('Elegí al menos la fecha "Desde".'); return; }
-  document.getElementById('fix-spinner').style.display = 'flex';
-  document.getElementById('fix-preview').style.display = 'none';
-  document.getElementById('fix-empty').style.display = 'none';
-  correccionesPendientes = [];
-  try {
-    await cargarHistPreciosVenta(true);
-    const data = await sheetsGet('Ventas!A:K');
-    const body = document.getElementById('fix-preview-body');
-    body.innerHTML = '';
-    data.slice(1).forEach((r, i) => {
-      const f = normFecha(r[0]);
-      if (!f || f < desde || f > hasta) return;
-      const canal = (r[2]||'').trim();
-      const prod = (r[4]||'').trim();
-      if (!PRODUCTOS_VALIDOS.includes(prod)) return;
-      const canalKey = canal==='Umepay'?'umepay':canal==='Afuera'?'afuera':canal==='Personas'?'personas':null;
-      if (!canalKey) return; // Regalo u otros: no se corrigen
-      const cant = parseFloat(r[5])||0;
-      const precioCargado = parseFloat(r[6])||0;
-      const precioCorrecto = getPrecioVentaFecha(prod, canalKey, f);
-      if (!precioCorrecto || precioCorrecto === precioCargado) return;
-      const totalNuevo = precioCorrecto * cant;
-      correccionesPendientes.push({ rowIdx: i + 2, precioNuevo: precioCorrecto, totalNuevo });
-      body.innerHTML += `<tr>
-        <td>${r[0]}</td><td>${r[3]||'—'}</td><td>${prod}</td><td>${canal}</td>
-        <td style="color:var(--rojo)">${pesos(precioCargado)}</td>
-        <td style="color:var(--verde);font-weight:600">${pesos(precioCorrecto)}</td>
-        <td>${pesos(totalNuevo)}</td>
-      </tr>`;
-    });
-    document.getElementById('fix-spinner').style.display = 'none';
-    if (!correccionesPendientes.length) {
-      document.getElementById('fix-empty').style.display = 'block';
-    } else {
-      document.getElementById('fix-preview').style.display = 'block';
-    }
-  } catch(e) {
-    document.getElementById('fix-spinner').style.display = 'none';
-    alert('Error: ' + e.message);
-  }
-}
-
-async function aplicarCorreccionPrecios() {
-  if (!correccionesPendientes.length) return;
-  if (!confirm(`¿Corregir ${correccionesPendientes.length} venta(s)? Se actualizan precio y total en el Sheet.`)) return;
-  document.getElementById('fix-apply-spinner').style.display = 'block';
-  document.getElementById('fix-error').style.display = 'none';
-  try {
-    for (const c of correccionesPendientes) {
-      // Col G = precio, Col H = total
-      await sheetsUpdate(`Ventas!G${c.rowIdx}:H${c.rowIdx}`, [[c.precioNuevo, c.totalNuevo]]);
-    }
-    document.getElementById('fix-apply-spinner').style.display = 'none';
-    document.getElementById('fix-success').style.display = 'block';
-    setTimeout(()=>document.getElementById('fix-success').style.display='none', 4000);
-    document.getElementById('fix-preview').style.display = 'none';
-    correccionesPendientes = [];
-    cargarVentasRecientes();
-  } catch(e) {
-    document.getElementById('fix-apply-spinner').style.display = 'none';
-    document.getElementById('fix-error').textContent = 'Error: ' + e.message;
-    document.getElementById('fix-error').style.display = 'block';
-  }
 }
 
 // Sincroniza los precios vigentes desde la pestaña Productos del Sheet hacia
