@@ -851,7 +851,6 @@
       <button class="home-tile" onclick="goToPage('cobros')"><span class="home-tile-icon">🧾</span><span class="home-tile-label">Cobros</span></button>
       <button class="home-tile" onclick="goToPage('caja')"><span class="home-tile-icon">💰</span><span class="home-tile-label">Caja</span></button>
       <button class="home-tile" onclick="goToPage('dashboard')"><span class="home-tile-icon">📊</span><span class="home-tile-label">Dashboard</span></button>
-      <button class="home-tile" onclick="goToPage('reporte')"><span class="home-tile-icon">📋</span><span class="home-tile-label">Semanal</span></button>
       <button class="home-tile" onclick="goToPage('reporte-mensual')"><span class="home-tile-icon">📅</span><span class="home-tile-label">Mensual</span></button>
       <button class="home-tile" onclick="goToPage('analisis')"><span class="home-tile-icon">📈</span><span class="home-tile-label">Análisis</span></button>
       <button class="home-tile" onclick="goToPage('egresos')"><span class="home-tile-icon">💸</span><span class="home-tile-label">Egresos</span></button>
@@ -884,9 +883,6 @@
       </button>
       <button class="nav-item" onclick="showPage('caja', this)">
         <span class="nav-icon">💰</span> <span class="nav-label">Caja</span>
-      </button>
-      <button class="nav-item" onclick="showPage('reporte', this)">
-        <span class="nav-icon">📋</span> <span class="nav-label">Semanal</span>
       </button>
       <button class="nav-item" onclick="showPage('reporte-mensual', this)">
         <span class="nav-icon">📅</span> <span class="nav-label">Mensual</span>
@@ -974,22 +970,59 @@
             </div>
           </div>
 
-          <div class="card section-gap">
-            <div class="card-title">Detalle por producto</div>
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Producto</th>
-                    <th>Unidades</th>
-                    <th>Total venta</th>
-                    <th>Costo total</th>
-                    <th>Ganancia</th>
-                  </tr>
-                </thead>
-                <tbody id="dash-tabla-productos"></tbody>
-              </table>
+          <!-- Detalle por producto (mitad) + análisis de costos (mitad) -->
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;" class="section-gap">
+            <div class="card" style="margin:0">
+              <div class="card-title">Detalle por producto</div>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr><th>Producto</th><th>Unid.</th><th>Total</th><th>Ganancia</th></tr>
+                  </thead>
+                  <tbody id="dash-tabla-productos"></tbody>
+                </table>
+              </div>
             </div>
+
+            <div style="display:flex;flex-direction:column;gap:1.25rem">
+              <div class="card" style="margin:0">
+                <div class="card-title">Costos fijos del período</div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:0.4rem">
+                  <span style="color:var(--texto-muted)" id="dash-fijos-label">Cuota semanal</span>
+                  <strong id="dash-fijos-cuota">—</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:0.5rem">
+                  <span style="color:var(--texto-muted)">Cubierto</span>
+                  <strong id="dash-fijos-cubierto">—</strong>
+                </div>
+                <div style="background:var(--gris-claro);border-radius:20px;height:18px;overflow:hidden;margin-bottom:0.75rem">
+                  <div id="dash-fijos-barra" style="height:100%;border-radius:20px;transition:width 0.6s;background:var(--verde);width:0%"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding-top:0.5rem;border-top:1px solid var(--borde)">
+                  <span style="font-size:13px;color:var(--texto-muted)">Ganancia neta sem.</span>
+                  <span id="dash-neta" style="font-size:18px;font-weight:600">—</span>
+                </div>
+              </div>
+
+              <div class="card" id="dash-egresos-card" style="margin:0;display:none">
+                <div class="card-title">Egresos del período</div>
+                <div id="dash-egresos-body"></div>
+              </div>
+
+              <div class="card" id="dash-pend-card" style="margin:0;display:none">
+                <div class="card-title">Pendiente por local</div>
+                <div id="dash-pend-body"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resumen para WhatsApp -->
+          <div class="card section-gap">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+              <div class="card-title" style="margin:0">Resumen para WhatsApp</div>
+              <button class="btn-outline" onclick="copiarResumenDash()">📋 Copiar</button>
+            </div>
+            <div class="reporte-box" id="dash-wpp-texto"></div>
           </div>
         </div>
 
@@ -1445,101 +1478,6 @@
           </div>
         </div>
       </div>
-
-      <!-- REPORTE -->
-      <div class="page" id="page-reporte">
-        <div class="page-header">
-          <div class="page-title">Reporte semanal</div>
-          <div class="page-desc">Resumen para la dueña</div>
-        </div>
-
-        <div class="card">
-          <div class="semana-selector" style="margin-bottom:0">
-            <label>Semana del</label>
-            <input type="date" id="rep-desde" />
-            <label>al</label>
-            <input type="date" id="rep-hasta" />
-            <button class="btn-verde" onclick="generarReporte()">Generar</button>
-          </div>
-        </div>
-
-        <div id="rep-loading" class="loading" style="display:none"><div class="spinner"></div> Generando...</div>
-
-        <div id="rep-content" style="display:none">
-
-          <!-- Período header -->
-          <div id="rep-periodo-header" style="text-align:center;padding:0.5rem 0 1rem;font-size:13px;color:var(--texto-muted)"></div>
-
-          <!-- Métricas principales -->
-          <div class="metrics-grid" style="margin-bottom:1rem">
-            <div class="metric-card" style="border-left:4px solid var(--verde)">
-              <div class="metric-label">Unidades</div>
-              <div class="metric-value verde" id="rep-m-unidades">—</div>
-            </div>
-            <div class="metric-card" style="border-left:4px solid var(--azul)">
-              <div class="metric-label">Total vendido</div>
-              <div class="metric-value" id="rep-m-venta">—</div>
-            </div>
-            <div class="metric-card" style="border-left:4px solid var(--verde)">
-              <div class="metric-label">Ganancia bruta</div>
-              <div class="metric-value verde" id="rep-m-bruta">—</div>
-            </div>
-            <div class="metric-card" id="rep-m-neta-card" style="border-left:4px solid var(--naranja)">
-              <div class="metric-label">Ganancia neta</div>
-              <div class="metric-value" id="rep-m-neta">—</div>
-              <div class="metric-sub" id="rep-m-neta-sub">sem. N — cuota cubierta X%</div>
-            </div>
-          </div>
-
-          <!-- Distribución de unidades (torta) -->
-          <div class="card">
-            <div class="card-title">Unidades vendidas por producto</div>
-            <div id="rep-pie-svg" style="width:100%;display:flex;justify-content:center"></div>
-          </div>
-
-          <!-- Egresos (si hay) -->
-          <div class="card" id="rep-egresos-card" style="display:none">
-            <div class="card-title">Egresos del período</div>
-            <div id="rep-egresos-body"></div>
-          </div>
-
-          <!-- Envases (si hay) -->
-          <div class="card" id="rep-envases-card" style="display:none">
-            <div class="card-title">♻️ Ganancia indirecta envases</div>
-            <div class="metric-value verde" id="rep-envases-val" style="font-size:20px"></div>
-          </div>
-
-          <!-- Caja -->
-          <div class="card">
-            <div class="card-title">Caja</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-              <div style="text-align:center;padding:0.75rem;background:var(--gris-claro);border-radius:8px">
-                <div style="font-size:11px;color:var(--texto-muted);margin-bottom:0.25rem">💵 Cash</div>
-                <div style="font-weight:600;font-size:15px" id="rep-caja-cash">—</div>
-              </div>
-              <div style="text-align:center;padding:0.75rem;background:var(--gris-claro);border-radius:8px">
-                <div style="font-size:11px;color:var(--texto-muted);margin-bottom:0.25rem">🏦 Transfe</div>
-                <div style="font-weight:600;font-size:15px" id="rep-caja-transfe">—</div>
-              </div>
-              <div style="text-align:center;padding:0.75rem;background:var(--amarillo-claro);border-radius:8px">
-                <div style="font-size:11px;color:var(--amarillo);margin-bottom:0.25rem">⏳ Pend.</div>
-                <div style="font-weight:600;font-size:15px;color:var(--amarillo)" id="rep-caja-pend">—</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- WPP texto -->
-          <div class="card">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
-              <div class="card-title" style="margin:0">Texto WhatsApp</div>
-              <button class="btn-outline" onclick="copiarReporte()">📋 Copiar</button>
-            </div>
-            <div class="reporte-box" id="reporte-texto"></div>
-          </div>
-
-        </div>
-      </div>
-
 
       <!-- REPORTE MENSUAL -->
       <div class="page" id="page-reporte-mensual">
@@ -2418,7 +2356,6 @@ function showPage(name, btn) {
   if (name === 'envases') cargarEnvasesRecientes();
   if (name === 'egresos') cargarEgresosRecientes();
   if (name === 'dashboard') { setFechas('dash-desde','dash-hasta'); }
-  if (name === 'reporte') { setFechas('rep-desde','rep-hasta'); }
   if (name === 'caja') { setFechas('caja-desde','caja-hasta'); }
   if (name === 'costos') abrirCostosFijos();
   if (name === 'cobros') { setFechas('cob-desde','cob-hasta'); }
@@ -2943,13 +2880,12 @@ async function cargarDashboard() {
       return;
     }
 
-    let totalUnidades = 0, totalVenta = 0, totalGanancia = 0;
-    const porProducto = {}, porCanal = {}, cajaData = { Cash: 0, Transfe: 0 };
+    let totalUnidades = 0, totalVenta = 0, totalGanancia = 0, pendiente = 0;
+    const porProducto = {}, porCanal = {}, cajaData = { Cash: 0, Transfe: 0 }, pendPorLocal = {};
 
     ventas.forEach(r => {
       const prod = r[4].trim(), cant = parseFloat(r[5])||0;
       const precio = parseFloat(r[6])||0;
-      // Si total es null/vacío, lo calculamos nosotros
       let total = parseFloat(r[7]);
       if (isNaN(total)) total = precio * cant;
       const canal = (r[2]||'').trim(), estado = (r[10]||'').trim().toLowerCase(), pago = (r[8]||'').trim();
@@ -2969,13 +2905,37 @@ async function cargarDashboard() {
       porCanal[canal].unidades += cant;
       porCanal[canal].venta += total;
 
-      // Caja: si está cobrado (con o sin fecha de pago)
-      if (estado === 'cobrado' && pago) cajaData[pago] = (cajaData[pago]||0) + total;
+      // Caja: cobrado suma a caja; lo no cobrado se acumula como pendiente por local
+      if (estado === 'cobrado' && pago) {
+        cajaData[pago] = (cajaData[pago]||0) + total;
+      } else if (estado !== 'cobrado') {
+        pendiente += total;
+        const local = (r[3]||'—').trim() || '—';
+        pendPorLocal[local] = (pendPorLocal[local]||0) + total;
+      }
     });
 
     let totalGananciaEnvases = 0;
     let totalEnvases = 0;
     envases.forEach(r => { totalGananciaEnvases += parseFloat(r[7])||0; totalEnvases += parseFloat(r[4])||0; });
+
+    // Costos fijos del período (cuota semanal = fijos del mes / 4)
+    await cargarFijosPorMes();
+    const fijosMes = getFijosTotalMes(desde.slice(0,7));
+    const cuotaSem = fijosMes / 4;
+    const numSemana = getSemanaDelMes(desde);
+    const pctCubierto = cuotaSem > 0 ? Math.round(totalGanancia / cuotaSem * 100) : 0;
+    const ganNeta = totalGanancia - cuotaSem;
+
+    // Egresos del período por categoría
+    const egresos = egresosData.slice(1).filter(r => { const f=normFecha(r[0]); return f && f >= desde && f <= hasta; });
+    const egPorCat = {}; let totalEgresos = 0;
+    egresos.forEach(r => {
+      const cat = (r[2]||'Otro').trim() || 'Otro';
+      const tot = parseFloat(r[5])||0;
+      egPorCat[cat] = (egPorCat[cat]||0) + tot;
+      totalEgresos += tot;
+    });
 
     document.getElementById('dash-unidades').textContent = totalUnidades;
     document.getElementById('dash-total').textContent = pesos(totalVenta);
@@ -3004,30 +2964,94 @@ async function cargarDashboard() {
         <span>Total cobrado</span><span style="color:var(--verde)">${pesos((cajaData.Cash||0)+(cajaData.Transfe||0))}</span>
       </div>`;
 
+    // Detalle por producto (Producto · Unid. · Total · Ganancia)
     const tbody = document.getElementById('dash-tabla-productos');
     tbody.innerHTML = '';
-    let totalU=0, totalV=0, totalC=0, totalG=0;
+    let totalU=0, totalV=0, totalG=0;
     Object.entries(porProducto).sort((a,b)=>b[1].venta-a[1].venta).forEach(([prod, d]) => {
       const gan = d.venta - d.costo;
-      totalU+=d.unidades; totalV+=d.venta; totalC+=d.costo; totalG+=gan;
+      totalU+=d.unidades; totalV+=d.venta; totalG+=gan;
       tbody.innerHTML += `<tr>
         <td>${emojiProducto(prod)} ${prod}</td>
         <td>${d.unidades}</td>
         <td>${pesos(d.venta)}</td>
-        <td style="color:var(--texto-muted)">${pesos(d.costo)}</td>
         <td style="color:var(--verde);font-weight:500">${pesos(gan)}</td>
       </tr>`;
     });
     tbody.innerHTML += `<tr class="total-row">
-      <td>TOTAL</td><td>${totalU}</td><td>${pesos(totalV)}</td><td>${pesos(totalC)}</td>
+      <td>TOTAL</td><td>${totalU}</td><td>${pesos(totalV)}</td>
       <td style="color:var(--verde)">${pesos(totalG)}</td>
     </tr>`;
+
+    // ── Tarjeta: Costos fijos ──
+    document.getElementById('dash-fijos-label').textContent = `Cuota semana ${numSemana}`;
+    document.getElementById('dash-fijos-cuota').textContent = pesos(cuotaSem);
+    document.getElementById('dash-fijos-cubierto').textContent = `${pesos(totalGanancia)} (${pctCubierto}%)`;
+    const barra = document.getElementById('dash-fijos-barra');
+    barra.style.width = Math.min(pctCubierto,100) + '%';
+    barra.style.background = pctCubierto>=100?'var(--verde)':pctCubierto>=60?'var(--amarillo)':'var(--naranja)';
+    const netaEl = document.getElementById('dash-neta');
+    netaEl.textContent = pesos(ganNeta);
+    netaEl.style.color = ganNeta>=0?'var(--verde)':'var(--naranja)';
+
+    // ── Tarjeta: Egresos ──
+    const egCard = document.getElementById('dash-egresos-card');
+    const egBody = document.getElementById('dash-egresos-body');
+    if (totalEgresos > 0) {
+      egCard.style.display = 'block';
+      const iconCat = c => c.includes('fijo')?'📌':c.includes('insumo')?'🛒':c.includes('public')?'📣':c.includes('invers')?'🔧':c.includes('extraord')?'⚡':'•';
+      egBody.innerHTML = Object.entries(egPorCat).sort((a,b)=>b[1]-a[1]).map(([cat,tot]) =>
+        `<div style="display:flex;justify-content:space-between;padding:0.35rem 0;border-bottom:1px solid var(--gris-claro);font-size:13px"><span>${iconCat(cat.toLowerCase())} ${cat}</span><strong>${pesos(tot)}</strong></div>`
+      ).join('') + `<div style="display:flex;justify-content:space-between;padding:0.5rem 0 0;font-weight:600;font-size:13px"><span>Total egresos</span><span style="color:var(--naranja)">${pesos(totalEgresos)}</span></div>`;
+    } else { egCard.style.display = 'none'; }
+
+    // ── Tarjeta: Pendiente por local ──
+    const pendCard = document.getElementById('dash-pend-card');
+    const pendBody = document.getElementById('dash-pend-body');
+    const pendArr = Object.entries(pendPorLocal).sort((a,b)=>b[1]-a[1]);
+    if (pendArr.length) {
+      pendCard.style.display = 'block';
+      pendBody.innerHTML = pendArr.map(([loc,tot]) =>
+        `<div style="display:flex;justify-content:space-between;padding:0.35rem 0;border-bottom:1px solid var(--gris-claro);font-size:13px"><span>⏳ ${loc}</span><strong style="color:var(--amarillo)">${pesos(tot)}</strong></div>`
+      ).join('') + `<div style="display:flex;justify-content:space-between;padding:0.5rem 0 0;font-weight:600;font-size:13px"><span>Total pendiente</span><span style="color:var(--amarillo)">${pesos(pendiente)}</span></div>`;
+    } else { pendCard.style.display = 'none'; }
+
+    // ── Texto WhatsApp ──
+    const fechaStr = (f) => { const d=new Date(f+'T12:00:00'); return `${d.getDate()}/${d.getMonth()+1}`; };
+    let txt = `📊 *RESUMEN SEMANAL ES*\n📅 ${fechaStr(desde)} al ${fechaStr(hasta)}\n\n*VENTAS POR PRODUCTO*\n`;
+    const maxLen = Math.max(8, ...Object.keys(porProducto).map(k=>k.length));
+    Object.entries(porProducto).sort((a,b)=>b[1].unidades-a[1].unidades).forEach(([prod,d]) => {
+      txt += `${emojiProducto(prod)} ${prod.padEnd(maxLen)} ${String(d.unidades).padStart(3)} u.  ${pesos(d.venta - d.costo)}\n`;
+    });
+    txt += `\n*TOTALES*\nUnidades: ${totalUnidades}\nTotal vendido: ${pesos(totalVenta)}\nGanancia bruta: ${pesos(totalGanancia)}\n`;
+    if (totalGananciaEnvases) txt += `Envases (indirecto): ${pesos(totalGananciaEnvases)}\n`;
+    txt += `\n*COSTOS FIJOS*\nSemana ${numSemana} — cuota: ${pesos(cuotaSem)}\nCubierto: ${pesos(totalGanancia)} (${pctCubierto}%)\nGanancia neta sem.: ${pesos(ganNeta)}\n`;
+    if (totalEgresos > 0) {
+      txt += `\n*EGRESOS*\n`;
+      Object.entries(egPorCat).sort((a,b)=>b[1]-a[1]).forEach(([cat,tot]) => { txt += `${cat}: ${pesos(tot)}\n`; });
+      txt += `Total: ${pesos(totalEgresos)}\n`;
+    }
+    if (pendArr.length) {
+      txt += `\n*PENDIENTE POR LOCAL*\n`;
+      pendArr.forEach(([loc,tot]) => { txt += `⏳ ${loc}: ${pesos(tot)}\n`; });
+    }
+    txt += `\n*CAJA*\n💵 Cash: ${pesos(cajaData.Cash||0)}\n🏦 Transfe: ${pesos(cajaData.Transfe||0)}\n⏳ Pendiente: ${pesos(pendiente)}\n`;
+    document.getElementById('dash-wpp-texto').textContent = txt;
 
     document.getElementById('dash-loading').style.display = 'none';
     document.getElementById('dash-content').style.display = 'block';
   } catch(e) {
     document.getElementById('dash-loading').innerHTML = '<span style="color:var(--rojo)">Error: ' + e.message + '</span>';
   }
+}
+
+function copiarResumenDash() {
+  const txt = document.getElementById('dash-wpp-texto').textContent;
+  navigator.clipboard.writeText(txt).then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ Copiado';
+    setTimeout(() => btn.textContent = '📋 Copiar', 2000);
+  });
 }
 
 // =====================
@@ -3251,150 +3275,6 @@ async function guardarCierreCaja() {
     document.getElementById('caj-cierre-error').textContent = 'Error: ' + e.message;
     document.getElementById('caj-cierre-error').style.display = 'block';
   }
-}
-
-// =====================
-// REPORTE SEMANAL
-// =====================
-async function generarReporte() {
-  const desde = document.getElementById('rep-desde').value;
-  const hasta = document.getElementById('rep-hasta').value;
-  if (!desde || !hasta) return;
-
-  document.getElementById('rep-loading').style.display = 'flex';
-  document.getElementById('rep-content').style.display = 'none';
-
-  try {
-    const [ventasData, envasesData, egresosData] = await Promise.all([
-      sheetsGet('Ventas!A:K'),
-      sheetsGet('Envases!A:H'),
-      sheetsGet('Egresos!A:H')
-    ]);
-
-    const ventas = ventasData.slice(1).filter(r => {
-      const f = normFecha(r[0]);
-      const prod = (r[4]||'').trim();
-      return f && f >= desde && f <= hasta && PRODUCTOS_VALIDOS.includes(prod);
-    });
-    const envases = envasesData.slice(1).filter(r => { const f=normFecha(r[0]); return f && f >= desde && f <= hasta; });
-
-    const porProducto = {};
-    let totalVenta=0, totalGanancia=0, cash=0, transfe=0, pendiente=0;
-
-    ventas.forEach(r => {
-      const prod=(r[4]||'').trim(), cant=parseFloat(r[5])||0, precio=parseFloat(r[6])||0;
-      let total=parseFloat(r[7]); if(isNaN(total)) total=precio*cant;
-      const costo=getCostoParaFecha(prod, normFecha(r[0]))*cant;
-      const estado=(r[10]||'').toLowerCase();
-      const pago=(r[8]||'').trim();
-      if (!porProducto[prod]) porProducto[prod]={unidades:0,venta:0,ganancia:0};
-      porProducto[prod].unidades+=cant;
-      porProducto[prod].venta+=total;
-      porProducto[prod].ganancia+=total-costo;
-      totalVenta+=total; totalGanancia+=total-costo;
-      if (estado==='cobrado') {
-        if(pago==='Cash') cash+=total;
-        else if(pago==='Transfe') transfe+=total;
-      } else { pendiente+=total; }
-    });
-
-    let gananciaEnvases=0;
-    envases.forEach(r => gananciaEnvases+=parseFloat(r[7])||0);
-
-    const fechaStr = (f) => { const d=new Date(f+'T12:00:00'); return `${d.getDate()}/${d.getMonth()+1}`; };
-
-    // Egresos del período
-    const egresos = egresosData.slice(1).filter(r => { const f=normFecha(r[0]); return f && f >= desde && f <= hasta; });
-    let egFijo=0, egExtra=0, egInsumo=0, egInversion=0;
-    egresos.forEach(r => {
-      const cat=(r[2]||'').toLowerCase();
-      const tot=parseFloat(r[5])||0;
-      if(cat.includes('fijo')) egFijo+=tot;
-      else if(cat.includes('extraordinario')) egExtra+=tot;
-      else if(cat.includes('inversion') || cat.includes('inversión')) egInversion+=tot;
-      else egInsumo+=tot;
-    });
-    const totalEgresos = egFijo+egExtra+egInsumo+egInversion;
-
-    // Costo fijo semanal (fijos del mes / 4)
-    await cargarFijosPorMes();
-    const totalFijosmes = getFijosTotalMes(desde.slice(0,7));
-    const fijosSemanales = totalFijosmes / 4;
-    const numSemana = getSemanaDelMes(desde);
-    const cuotaAcum = fijosSemanales * numSemana;
-    const ganNeta = totalGanancia - fijosSemanales;
-    const pctCubierto = Math.round((totalGanancia / fijosSemanales) * 100);
-
-    let txt = `📊 *REPORTE SEMANAL ES*\n`;
-    txt += `📅 ${fechaStr(desde)} al ${fechaStr(hasta)}\n\n`;
-    txt += `*VENTAS POR PRODUCTO*\n`;
-
-    const maxLen = Math.max(8, ...Object.keys(porProducto).map(k=>k.length));
-    Object.entries(porProducto).sort((a,b)=>b[1].unidades-a[1].unidades).forEach(([prod,d]) => {
-      txt += `${emojiProducto(prod)} ${prod.padEnd(maxLen)} ${String(d.unidades).padStart(3)} u.  ${pesos(d.ganancia)}\n`;
-    });
-
-    txt += `\n*TOTALES*\n`;
-    txt += `Unidades vendidas: ${ventas.reduce((a,r)=>a+(parseFloat(r[5])||0),0)}\n`;
-    txt += `Total vendido:     ${pesos(totalVenta)}\n`;
-    txt += `Ganancia bruta:    ${pesos(totalGanancia)}\n`;
-    if (gananciaEnvases) txt += `Envases (indirecto): ${pesos(gananciaEnvases)}\n`;
-
-    txt += `\n*COSTOS FIJOS*\n`;
-    txt += `Semana ${numSemana} del mes — cuota: ${pesos(fijosSemanales)}\n`;
-    txt += `Cubierto: ${pesos(totalGanancia)} (${pctCubierto}%)\n`;
-    txt += `Ganancia neta sem.: ${pesos(ganNeta)}\n`;
-
-    if (totalEgresos > 0) {
-      txt += `\n*EGRESOS*\n`;
-      if(egFijo)     txt += `📌 Fijos:         ${pesos(egFijo)}\n`;
-      if(egInsumo)   txt += `🛒 Insumos:       ${pesos(egInsumo)}\n`;
-      if(egExtra)    txt += `⚡ Extraordin.:   ${pesos(egExtra)}\n`;
-      if(egInversion) txt += `🔧 Inversión:     ${pesos(egInversion)}\n`;
-      txt += `Total egresos:    ${pesos(totalEgresos)}\n`;
-    }
-
-    // Pendientes de la semana por local
-    const pendLocalesSem = {};
-    ventas.filter(r => (r[10]||'').toLowerCase() !== 'cobrado').forEach(r => {
-      const loc = (r[3]||'—').trim();
-      const precio2 = parseFloat(r[6])||0, cant2 = parseFloat(r[5])||0;
-      let tot2 = parseFloat(r[7]); if(isNaN(tot2)) tot2=precio2*cant2;
-      if(!pendLocalesSem[loc]) pendLocalesSem[loc]=0;
-      pendLocalesSem[loc]+=tot2;
-    });
-    const pendLocalesArr = Object.entries(pendLocalesSem).sort((a,b)=>b[1]-a[1]);
-    if (pendLocalesArr.length) {
-      txt += `\n*PENDIENTE POR LOCAL*\n`;
-      pendLocalesArr.forEach(([loc, tot]) => { txt += `⏳ ${loc}: ${pesos(tot)}\n`; });
-    }
-    txt += `\n*CAJA*\n`;
-    txt += `💵 Cash:      ${pesos(cash)}\n`;
-    txt += `🏦 Transfe:   ${pesos(transfe)}\n`;
-    txt += `⏳ Pendiente: ${pesos(pendiente)}\n`;
-
-    document.getElementById('reporte-texto').textContent = txt;
-
-    // Render visual table
-    renderReporteVisual(desde, hasta, porProducto, ventas.reduce((a,r)=>a+(parseFloat(r[5])||0),0),
-      totalVenta, totalGanancia, totalGanancia, fijosSemanales, numSemana, ganNeta, pctCubierto,
-      egFijo, egInsumo, egExtra, egInversion, totalEgresos,
-      envasesData, cash, transfe, pendiente);
-
-    document.getElementById('rep-loading').style.display = 'none';
-    document.getElementById('rep-content').style.display = 'block';
-  } catch(e) {
-    document.getElementById('rep-loading').innerHTML = '<span style="color:var(--rojo)">Error: ' + e.message + '</span>';
-  }
-}
-
-function copiarReporte() {
-  const txt = document.getElementById('reporte-texto').textContent;
-  navigator.clipboard.writeText(txt).then(() => {
-    const btn = event.target;
-    btn.textContent = '✓ Copiado';
-    setTimeout(() => btn.textContent = '📋 Copiar texto', 2000);
-  });
 }
 
 // =====================
@@ -4576,153 +4456,6 @@ async function guardarIngresoExtra() {
 }
 
 // =====================
-// TORTA DE UNIDADES (SVG puro)
-// =====================
-const COLORES_PIE = {
-  '1/2l Suico':    '#7CB342',
-  '1l Suico':      '#558B2F',
-  '1/2l Leche':    '#42A5F5',
-  '1l Leche':      '#1565C0',
-  'Kesir':         '#FFB300',
-  'Kesir petit':   '#EF6C00',
-  '1/2l Hibiscus': '#EC407A',
-  '1l Hibiscus':   '#AD1457',
-};
-
-function renderPieUnidades(porProducto) {
-  const svgWrap = document.getElementById('rep-pie-svg');
-  if (!svgWrap) return;
-
-  const CORTO = {
-    '1/2l Suico':'½ Suico','1l Suico':'1L Suico',
-    '1/2l Leche':'½ Leche','1l Leche':'1L Leche',
-    'Kesir':'Kesir','Kesir petit':'Kesir P',
-    '1/2l Hibiscus':'½ Hibisco','1l Hibiscus':'1L Hibisco',
-  };
-
-  // Datos: unidades por producto, en orden de PRODUCTOS_LISTA, solo > 0
-  const items = PRODUCTOS_LISTA
-    .map(prod => ({ prod, u: (porProducto[prod]?.unidades) || 0 }))
-    .filter(x => x.u > 0);
-  const total = items.reduce((s, x) => s + x.u, 0);
-
-  if (!total) {
-    svgWrap.innerHTML = '<div style="color:var(--texto-muted);font-size:13px;padding:1rem">Sin unidades en el período</div>';
-    return;
-  }
-
-  const cx = 110, cy = 110, r = 105;
-  const polar = (a, rad) => {
-    const t = (a - 90) * Math.PI / 180;
-    return [cx + rad * Math.cos(t), cy + rad * Math.sin(t)];
-  };
-  // Etiqueta dentro de la porción: nombre + unidades (adapta según el tamaño del gajo)
-  const etiqueta = (lx, ly, prod, u, ang) => {
-    const nombre = CORTO[prod] || prod;
-    const out = 'stroke="rgba(0,0,0,0.5)" stroke-width="2.6" paint-order="stroke" fill="#fff"';
-    if (ang >= 28) {
-      return `<text x="${lx.toFixed(1)}" y="${(ly-5).toFixed(1)}" text-anchor="middle" font-size="9.5" font-weight="600" ${out}>${nombre}</text>`
-           + `<text x="${lx.toFixed(1)}" y="${(ly+9).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="700" ${out}>${u}</text>`;
-    } else if (ang >= 12) {
-      return `<text x="${lx.toFixed(1)}" y="${(ly+4).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" ${out}>${u}</text>`;
-    }
-    return ''; // gajo muy fino: el color lo identifica
-  };
-
-  let svg = `<svg viewBox="0 0 220 220" width="100%" style="max-width:340px;height:auto" role="img" aria-label="Unidades vendidas por producto">`;
-
-  if (items.length === 1) {
-    const x = items[0];
-    svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${COLORES_PIE[x.prod] || '#999'}" />`;
-    svg += etiqueta(cx, cy, x.prod, x.u, 360);
-  } else {
-    let ang = 0;
-    const labels = [];
-    items.forEach(x => {
-      const slice = (x.u / total) * 360;
-      const [x1, y1] = polar(ang, r);
-      const [x2, y2] = polar(ang + slice, r);
-      const large = slice > 180 ? 1 : 0;
-      const color = COLORES_PIE[x.prod] || '#999';
-      svg += `<path d="M ${cx} ${cy} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z" fill="${color}" stroke="#fff" stroke-width="2" />`;
-      const [lx, ly] = polar(ang + slice/2, r*0.62);
-      labels.push(etiqueta(lx, ly, x.prod, x.u, slice));
-      ang += slice;
-    });
-    svg += labels.join(''); // etiquetas arriba de todos los gajos
-  }
-  svg += `</svg>`;
-  svgWrap.innerHTML = svg;
-}
-
-// =====================
-// REPORTE VISUAL (tabla estilo Excel)
-// =====================
-function renderReporteVisual(desde, hasta, porProducto, totalUnidades, totalVenta, totalGanancia,
-                              ganBruta, fijosSemanales, numSemana, ganNeta, pctCubierto,
-                              egFijo, egInsumo, egExtra, egInversion, totalEgresos,
-                              envasesData, cash, transfe, pendiente) {
-
-  const fD = (() => { const d=new Date(desde+'T12:00:00'); return `${d.getDate()}/${d.getMonth()+1}`; })();
-  const fH = (() => { const d=new Date(hasta+'T12:00:00'); return `${d.getDate()}/${d.getMonth()+1}`; })();
-
-  // ── Header ──
-  document.getElementById('rep-periodo-header').textContent = `Semana ${numSemana} · ${fD} al ${fH}`;
-
-  // ── Métricas principales ──
-  document.getElementById('rep-m-unidades').textContent = totalUnidades;
-  document.getElementById('rep-m-venta').textContent = pesos(totalVenta);
-  document.getElementById('rep-m-bruta').textContent = pesos(ganBruta);
-  const netaEl = document.getElementById('rep-m-neta');
-  netaEl.textContent = pesos(ganNeta);
-  netaEl.style.color = ganNeta >= 0 ? 'var(--verde)' : 'var(--naranja)';
-  document.getElementById('rep-m-neta-card').style.borderLeftColor = ganNeta >= 0 ? 'var(--verde)' : 'var(--naranja)';
-  document.getElementById('rep-m-neta-sub').textContent = `Sem. ${numSemana} · cuota ${pctCubierto}% cubierta`;
-
-  // ── Torta de unidades ──
-  renderPieUnidades(porProducto);
-
-  // ── Egresos ──
-  if (totalEgresos > 0) {
-    const egCard = document.getElementById('rep-egresos-card');
-    const egBody = document.getElementById('rep-egresos-body');
-    egCard.style.display = 'block';
-    egBody.innerHTML = '';
-    const cats = [
-      ['📌 Gastos fijos', egFijo],
-      ['🛒 Insumos', egInsumo],
-      ['⚡ Extraordinarios', egExtra],
-      ['🔧 Inversión', egInversion],
-    ].filter(([,v]) => v > 0);
-    cats.forEach(([label, val]) => {
-      egBody.innerHTML += `<div style="display:flex;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid var(--borde);font-size:13px">
-        <span>${label}</span><strong>${pesos(val)}</strong>
-      </div>`;
-    });
-    egBody.innerHTML += `<div style="display:flex;justify-content:space-between;padding:0.5rem 0;font-weight:600;font-size:14px">
-      <span>Total</span><span style="color:var(--naranja)">${pesos(totalEgresos)}</span>
-    </div>`;
-  } else {
-    document.getElementById('rep-egresos-card').style.display = 'none';
-  }
-
-  // ── Envases ──
-  let ganEnvTotal = 0;
-  envasesData.forEach(r => { const f=normFecha(r[0]); if(f&&f>=desde&&f<=hasta) ganEnvTotal+=parseFloat(r[7])||0; });
-  if (ganEnvTotal > 0) {
-    document.getElementById('rep-envases-card').style.display = 'block';
-    document.getElementById('rep-envases-val').textContent = pesos(ganEnvTotal);
-  } else {
-    document.getElementById('rep-envases-card').style.display = 'none';
-  }
-
-  // ── Caja ──
-  document.getElementById('rep-caja-cash').textContent = pesos(cash);
-  document.getElementById('rep-caja-transfe').textContent = pesos(transfe);
-  document.getElementById('rep-caja-pend').textContent = pesos(pendiente);
-}
-
-// =====================
 // COBROS PENDIENTES
 // =====================
 let cobros_pendientes_rows = [];
@@ -5224,7 +4957,6 @@ function iniciarApp() {
   document.getElementById('eg-fecha').value = hoy();
   document.getElementById('costos-mes').value = getMes();
   setFechas('dash-desde','dash-hasta');
-  setFechas('rep-desde','rep-hasta');
   setFechas('caja-desde','caja-hasta');
 
   // Sincroniza precios desde el Sheet para que el formulario de ventas
