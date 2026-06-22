@@ -1497,6 +1497,15 @@
             <div id="rep-prod-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
           </div>
 
+          <!-- Distribución de unidades (torta) -->
+          <div class="card">
+            <div class="card-title">Distribución de unidades vendidas</div>
+            <div id="rep-pie-wrap" style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;justify-content:center">
+              <div id="rep-pie-svg"></div>
+              <div id="rep-pie-legend" style="flex:1;min-width:160px"></div>
+            </div>
+          </div>
+
           <!-- Egresos (si hay) -->
           <div class="card" id="rep-egresos-card" style="display:none">
             <div class="card-title">Egresos del período</div>
@@ -4576,6 +4585,79 @@ async function guardarIngresoExtra() {
 }
 
 // =====================
+// TORTA DE UNIDADES (SVG puro)
+// =====================
+const COLORES_PIE = {
+  '1/2l Suico':    '#7CB342',
+  '1l Suico':      '#558B2F',
+  '1/2l Leche':    '#42A5F5',
+  '1l Leche':      '#1565C0',
+  'Kesir':         '#FFB300',
+  'Kesir petit':   '#EF6C00',
+  '1/2l Hibiscus': '#EC407A',
+  '1l Hibiscus':   '#AD1457',
+};
+
+function renderPieUnidades(porProducto) {
+  const svgWrap = document.getElementById('rep-pie-svg');
+  const legend = document.getElementById('rep-pie-legend');
+  if (!svgWrap || !legend) return;
+
+  // Datos: unidades por producto, en orden de PRODUCTOS_LISTA, solo > 0
+  const items = PRODUCTOS_LISTA
+    .map(prod => ({ prod, u: (porProducto[prod]?.unidades) || 0 }))
+    .filter(x => x.u > 0);
+  const total = items.reduce((s, x) => s + x.u, 0);
+
+  if (!total) {
+    svgWrap.innerHTML = '';
+    legend.innerHTML = '<div style="color:var(--texto-muted);font-size:13px">Sin unidades en el período</div>';
+    return;
+  }
+
+  const cx = 100, cy = 100, r = 95;
+  const polar = (a) => {
+    const rad = (a - 90) * Math.PI / 180;
+    return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
+  };
+
+  let svg = `<svg viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="Distribución de unidades">`;
+
+  if (items.length === 1) {
+    // Un solo producto = círculo completo
+    svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${COLORES_PIE[items[0].prod] || '#999'}" />`;
+  } else {
+    let ang = 0;
+    items.forEach(x => {
+      const slice = (x.u / total) * 360;
+      const [x1, y1] = polar(ang);
+      const [x2, y2] = polar(ang + slice);
+      const large = slice > 180 ? 1 : 0;
+      const color = COLORES_PIE[x.prod] || '#999';
+      svg += `<path d="M ${cx} ${cy} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z" fill="${color}" stroke="#fff" stroke-width="1.5" />`;
+      ang += slice;
+    });
+  }
+  svg += `</svg>`;
+  svgWrap.innerHTML = svg;
+
+  // Leyenda
+  legend.innerHTML = items
+    .slice()
+    .sort((a, b) => b.u - a.u)
+    .map(x => {
+      const pct = Math.round((x.u / total) * 100);
+      const color = COLORES_PIE[x.prod] || '#999';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:13px">
+        <span style="width:12px;height:12px;border-radius:3px;background:${color};flex-shrink:0"></span>
+        <span style="flex:1">${emojiProducto(x.prod)} ${x.prod}</span>
+        <span style="font-weight:600">${x.u}</span>
+        <span style="color:var(--texto-muted);width:38px;text-align:right">${pct}%</span>
+      </div>`;
+    }).join('');
+}
+
+// =====================
 // REPORTE VISUAL (tabla estilo Excel)
 // =====================
 function renderReporteVisual(desde, hasta, porProducto, totalUnidades, totalVenta, totalGanancia,
@@ -4617,6 +4699,9 @@ function renderReporteVisual(desde, hasta, porProducto, totalUnidades, totalVent
       <div style="font-size:12px;color:${margenColor};font-weight:500;margin-top:0.2rem">${pesos(d.ganancia)}</div>
     </div>`;
   });
+
+  // ── Torta de unidades ──
+  renderPieUnidades(porProducto);
 
   // ── Egresos ──
   if (totalEgresos > 0) {
