@@ -848,6 +848,7 @@
     </div>
     <div class="home-grid">
       <button class="home-tile" onclick="goToPage('ventas')"><span class="home-tile-icon">📝</span><span class="home-tile-label">Cargar ventas</span></button>
+      <button class="home-tile" onclick="goToPage('pedidos')"><span class="home-tile-icon">🛒</span><span class="home-tile-label">PedidES</span></button>
       <button class="home-tile" onclick="goToPage('cobros')"><span class="home-tile-icon">🧾</span><span class="home-tile-label">Cobros</span></button>
       <button class="home-tile" onclick="goToPage('caja')"><span class="home-tile-icon">💰</span><span class="home-tile-label">Caja</span></button>
       <button class="home-tile" onclick="goToPage('dashboard')"><span class="home-tile-icon">📊</span><span class="home-tile-label">Dashboard</span></button>
@@ -874,6 +875,9 @@
       </button>
       <button class="nav-item" onclick="showPage('ventas', this)">
         <span class="nav-icon">📝</span> <span class="nav-label">Ventas</span>
+      </button>
+      <button class="nav-item" onclick="showPage('pedidos', this)">
+        <span class="nav-icon">🛒</span> <span class="nav-label">PedidES</span>
       </button>
       <button class="nav-item" onclick="showPage('envases', this)">
         <span class="nav-icon">♻️</span> <span class="nav-label">Envases</span>
@@ -1162,6 +1166,67 @@
               <tbody id="ventas-recientes-body"></tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      <!-- PEDIDES -->
+      <div class="page" id="page-pedidos">
+        <div class="page-header">
+          <div class="page-title">PedidES</div>
+          <div class="page-desc">Pedidos de la semana para la salida al pueblo. Cargá cada pedido, mirá el total a llevar y al entregar registralo como venta.</div>
+        </div>
+
+        <!-- Total a llevar -->
+        <div class="card" id="ped-total-card" style="display:none">
+          <div class="card-title">📦 Total a llevar</div>
+          <div id="ped-total-resumen" style="display:flex;flex-direction:column;gap:6px;margin-bottom:0.75rem"></div>
+          <div style="background:var(--verde-claro);border-radius:8px;padding:0.6rem 1rem;font-size:14px;color:var(--verde-oscuro);font-weight:600" id="ped-total-unidades"></div>
+          <div class="btn-row" style="margin-top:0.75rem">
+            <button class="btn-outline" onclick="copiarTotalLlevar()">📋 Copiar lista para cargar</button>
+          </div>
+        </div>
+
+        <!-- Cargar / editar pedido -->
+        <div class="card">
+          <div class="card-title" id="ped-form-titulo">Nuevo pedido</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Cliente / Local</label>
+              <input type="text" id="ped-cliente" placeholder="Negra Fourcade, Despen..." list="locales-list" />
+            </div>
+            <div class="form-group">
+              <label>Lista de precios</label>
+              <select id="ped-lista-precio" onchange="renderPedidosForm()">
+                <option value="afuera">Afuera</option>
+                <option value="personas">Personas</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Nota (opcional)</label>
+              <input type="text" id="ped-nota" placeholder="Ej: avisar antes de llegar" />
+            </div>
+          </div>
+
+          <hr class="divider">
+          <div class="card-title" style="margin-bottom:0.75rem">Productos del pedido</div>
+          <div id="ped-productos-grid" style="display:flex;flex-direction:column;gap:8px;margin-bottom:1rem"></div>
+
+          <div id="ped-form-preview" style="display:none;background:var(--verde-claro);border-radius:8px;padding:0.75rem 1rem;font-size:14px;color:var(--verde-oscuro);margin-bottom:1rem"></div>
+
+          <div class="btn-row">
+            <button class="btn-verde" onclick="guardarPedidoLista()">➕ Agregar pedido</button>
+            <button class="btn-outline" onclick="limpiarFormPedido()">Limpiar</button>
+          </div>
+          <div class="msg-error" id="ped-error"></div>
+        </div>
+
+        <!-- Lista de pedidos -->
+        <div class="card">
+          <div class="card-title">📝 Pedidos de la salida</div>
+          <div class="msg-success" id="ped-success"></div>
+          <div id="ped-lista-loading" class="loading" style="display:none"><div class="spinner"></div> Cargando pedidos...</div>
+          <div id="ped-lista-vacia" style="font-size:13px;color:var(--texto-muted)">Todavía no cargaste pedidos.</div>
+          <div id="ped-lista" style="display:flex;flex-direction:column;gap:12px"></div>
         </div>
       </div>
 
@@ -2073,6 +2138,53 @@
   </div><!-- end layout -->
 </div><!-- end app -->
 
+<!-- MODAL ENTREGA PEDIDO -->
+<div id="ped-entrega-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.45);align-items:flex-start;justify-content:center;overflow-y:auto;padding:1rem">
+  <div style="background:var(--bg);border-radius:var(--radio-lg);border:1px solid var(--borde);max-width:520px;width:100%;margin:auto;padding:1.5rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+      <div class="card-title" style="margin:0">Entregar pedido</div>
+      <button onclick="cerrarEntrega()" style="border:none;background:none;font-size:22px;line-height:1;cursor:pointer;color:var(--texto-muted)">✕</button>
+    </div>
+    <div id="ped-ent-cliente" style="font-size:15px;font-weight:600;margin-bottom:0.25rem"></div>
+    <div id="ped-ent-resumen" style="font-size:13px;color:var(--texto-muted);margin-bottom:1rem"></div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Fecha de entrega</label>
+        <input type="date" id="ped-ent-fecha" />
+      </div>
+      <div class="form-group">
+        <label>Medio de pago</label>
+        <select id="ped-ent-pago">
+          <option value="">— a confirmar —</option>
+          <option value="Cash">Cash</option>
+          <option value="Transfe">Transfe</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Estado de pago</label>
+        <select id="ped-ent-estado">
+          <option value="Cobrado">Cobrado</option>
+          <option value="Pendiente">Pendiente</option>
+        </select>
+      </div>
+    </div>
+
+    <hr class="divider">
+    <div class="card-title" style="margin-bottom:0.75rem">♻️ Envases devueltos <span style="font-size:11px;color:var(--texto-muted);font-weight:400">(opcional)</span></div>
+    <div id="ped-ent-envases" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.75rem;margin-bottom:1rem"></div>
+
+    <div id="ped-ent-total" style="background:var(--verde-claro);border-radius:8px;padding:0.75rem 1rem;font-size:14px;color:var(--verde-oscuro);margin-bottom:1rem"></div>
+
+    <div class="btn-row">
+      <button class="btn-verde" onclick="confirmarEntrega()">✓ Confirmar entrega</button>
+      <button class="btn-outline" onclick="cerrarEntrega()">Cancelar</button>
+      <div class="spinner" id="ped-ent-spinner" style="display:none"></div>
+    </div>
+    <div class="msg-error" id="ped-ent-error"></div>
+  </div>
+</div>
+
 <script>
 // =====================
 // CONFIG & AUTH
@@ -2353,6 +2465,7 @@ function showPage(name, btn) {
   if (btn) btn.classList.add('active');
 
   if (name === 'ventas') { cargarVentasRecientes(); cargarLocalesPorCanal(); if(!document.getElementById('v-productos-grid').innerHTML) renderProductosGrid(); }
+  if (name === 'pedidos') { cargarLocalesPorCanal(); abrirPedidos(); }
   if (name === 'envases') cargarEnvasesRecientes();
   if (name === 'egresos') cargarEgresosRecientes();
   if (name === 'dashboard') { setFechas('dash-desde','dash-hasta'); }
@@ -4968,6 +5081,417 @@ function iniciarApp() {
   // En celular arranca en la pantalla de inicio (grilla de cuadrados)
   if (window.matchMedia('(max-width: 768px)').matches) {
     goHome();
+  }
+}
+
+// =====================
+// PEDIDES (pedidos de la salida al pueblo)
+// =====================
+const PED_TAB = 'Pedidos';       // pestaña del Sheet donde se guardan los pedidos pendientes
+let PEDIDOS = [];                 // pedidos pendientes cargados del Sheet
+let pedEdit = null;              // {_row, id, fecha} del pedido en edición (null = nuevo)
+let pedEntrega = null;           // pedido que se está entregando
+let pedSheetId = null;           // id interno de la pestaña Pedidos
+
+function nuevoIdPedido() { return 'p' + Date.now() + Math.floor(Math.random()*1000); }
+function pedInputId(prod) { return 'pedp-' + prod.replace(/[^a-z0-9]/gi,'_'); }
+function pedeId(tipo)     { return 'pede-' + tipo.replace(/[^a-z0-9]/gi,'_'); }
+function listaCanalKey(l)    { return l === 'personas' ? 'personas' : 'afuera'; }
+function listaCanalNombre(l) { return l === 'personas' ? 'Personas' : 'Afuera'; }
+function getListaForm()      { return (document.getElementById('ped-lista-precio')||{}).value || 'afuera'; }
+
+// --- Persistencia en el Sheet (pestaña "Pedidos") ---
+// La pestaña se crea sola la primera vez. Columnas: id, fecha, cliente, nota, lista, items(JSON), estado
+async function ensurePedidosTab() {
+  if (pedSheetId) return pedSheetId;
+  const token = await getAccessToken();
+  const meta = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.sheetId}?fields=sheets.properties`,
+    { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+  if (meta.error) throw new Error(meta.error.message);
+  const existente = (meta.sheets||[]).find(s => s.properties.title === PED_TAB);
+  if (existente) { pedSheetId = existente.properties.sheetId; return pedSheetId; }
+  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.sheetId}:batchUpdate`, {
+    method:'POST', headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+    body: JSON.stringify({ requests:[{ addSheet:{ properties:{ title: PED_TAB } } }] })
+  }).then(r => r.json());
+  if (res.error) throw new Error(res.error.message);
+  pedSheetId = res.replies[0].addSheet.properties.sheetId;
+  await sheetsUpdate(`${PED_TAB}!A1:G1`, [['id','fecha','cliente','nota','lista','items','estado']]);
+  return pedSheetId;
+}
+async function cargarPedidosDeSheet() {
+  await ensurePedidosTab();
+  const data = await sheetsGet(`${PED_TAB}!A:G`);
+  PEDIDOS = [];
+  (data||[]).forEach((r,i) => {
+    if (i === 0) return;                              // encabezado
+    if ((r[6]||'').trim() !== 'pendiente') return;    // solo pendientes
+    let items = {}; try { items = JSON.parse(r[5]||'{}'); } catch(e) { items = {}; }
+    PEDIDOS.push({ _row:i+1, id:r[0], fecha:r[1]||hoy(), cliente:r[2]||'', nota:r[3]||'', lista:(r[4]||'afuera'), items });
+  });
+}
+async function borrarFilaPedido(row) {
+  const sid = await ensurePedidosTab();
+  const token = await getAccessToken();
+  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.sheetId}:batchUpdate`, {
+    method:'POST', headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+    body: JSON.stringify({ requests:[{ deleteDimension:{ range:{ sheetId:sid, dimension:'ROWS', startIndex:row-1, endIndex:row } } }] })
+  }).then(r => r.json());
+  if (res.error) throw new Error(res.error.message);
+}
+// Carga desde el Sheet y dibuja la lista (con spinner)
+async function abrirPedidos() {
+  renderPedidosForm();
+  const load = document.getElementById('ped-lista-loading');
+  const lista = document.getElementById('ped-lista');
+  const vacia = document.getElementById('ped-lista-vacia');
+  if (load) load.style.display = 'flex';
+  if (vacia) vacia.style.display = 'none';
+  if (lista) lista.innerHTML = '';
+  document.getElementById('ped-total-card').style.display = 'none';
+  try {
+    await cargarPedidosDeSheet();
+    renderPedidosLista();
+  } catch(e) {
+    if (lista) lista.innerHTML = `<div style="color:var(--rojo);font-size:14px">No se pudieron cargar los pedidos.<br>${e.message}</div>`;
+  } finally {
+    if (load) load.style.display = 'none';
+  }
+}
+
+// Resumen de texto de un pedido: "🥛 1l Leche ×2, 🍋‍🟩 1/2l Suico ×3"
+function resumenItems(items) {
+  return PRODUCTOS_LISTA
+    .filter(p => (items[p]||0) > 0)
+    .map(p => `${emojiProducto(p)} ${p} ×${items[p]}`)
+    .join(', ');
+}
+// Monto de un pedido según la lista de precios elegida (afuera/personas) a la fecha dada
+function montoPedido(items, fecha, lista) {
+  const ck = listaCanalKey(lista);
+  let total = 0;
+  PRODUCTOS_LISTA.forEach(p => {
+    const cant = items[p]||0;
+    if (cant > 0) total += cant * getPrecioVentaFecha(p, ck, fecha);
+  });
+  return total;
+}
+
+// ---- Formulario: cargar / editar pedido ----
+function renderPedidosForm() {
+  const grid = document.getElementById('ped-productos-grid');
+  if (!grid) return;
+  const fecha = hoy();
+  const ck = listaCanalKey(getListaForm());
+  grid.innerHTML = '';
+  PRODUCTOS_LISTA.forEach(prod => {
+    const precio = getPrecioVentaFecha(prod, ck, fecha);
+    const id = pedInputId(prod);
+    grid.innerHTML += `<div style="display:flex;align-items:center;gap:10px;background:var(--gris-claro);border-radius:12px;padding:0.7rem 0.8rem;border:1px solid var(--borde)">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:600;line-height:1.2">${emojiProducto(prod)} ${prod}</div>
+        ${precio ? `<div style="font-size:12px;color:var(--texto-muted)">${pesos(precio)} c/u</div>` : ''}
+      </div>
+      <button type="button" onclick="stepPed('${id}',-1)" style="width:44px;height:44px;border:1px solid var(--borde);background:var(--bg);border-radius:10px;font-size:22px;line-height:1;cursor:pointer;flex-shrink:0">−</button>
+      <input type="number" id="${id}" min="0" placeholder="0" value="" inputmode="numeric"
+        style="width:60px;border:1px solid var(--borde);border-radius:8px;padding:8px 4px;font-size:19px;font-weight:600;text-align:center;flex-shrink:0"
+        oninput="actualizarPreviewPedido()" />
+      <button type="button" onclick="stepPed('${id}',1)" style="width:44px;height:44px;border:1px solid var(--borde);background:var(--bg);border-radius:10px;font-size:22px;line-height:1;cursor:pointer;flex-shrink:0">+</button>
+    </div>`;
+  });
+  actualizarPreviewPedido();
+}
+function stepPed(id, delta) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const v = Math.max(0, (parseFloat(el.value)||0) + delta);
+  el.value = v || '';
+  actualizarPreviewPedido();
+}
+// Lee los productos cargados en el formulario
+function leerItemsForm() {
+  const items = {};
+  let unidades = 0;
+  PRODUCTOS_LISTA.forEach(prod => {
+    const el = document.getElementById(pedInputId(prod));
+    const cant = parseFloat(el?.value) || 0;
+    if (cant > 0) { items[prod] = cant; unidades += cant; }
+  });
+  return { items, unidades };
+}
+function actualizarPreviewPedido() {
+  const { items, unidades } = leerItemsForm();
+  const total = montoPedido(items, hoy(), getListaForm());
+  const prev = document.getElementById('ped-form-preview');
+  if (unidades > 0) {
+    prev.textContent = `${unidades} u. — Total: ${pesos(total)}`;
+    prev.style.display = 'block';
+  } else {
+    prev.style.display = 'none';
+  }
+}
+async function guardarPedidoLista() {
+  const cliente = document.getElementById('ped-cliente').value.trim();
+  const nota = document.getElementById('ped-nota').value.trim();
+  const lista = getListaForm();
+  const err = document.getElementById('ped-error');
+  const { items, unidades } = leerItemsForm();
+
+  if (!cliente) { err.textContent = 'Poné el nombre del cliente.'; err.style.display = 'block'; return; }
+  if (unidades === 0) { err.textContent = 'Agregá al menos un producto.'; err.style.display = 'block'; return; }
+  err.style.display = 'none';
+
+  const btn = document.querySelector('button[onclick="guardarPedidoLista()"]');
+  btn.disabled = true; btn.textContent = '⏳ Guardando...';
+  try {
+    if (pedEdit) {
+      await sheetsUpdate(`${PED_TAB}!A${pedEdit._row}:G${pedEdit._row}`,
+        [[pedEdit.id, pedEdit.fecha, cliente, nota, lista, JSON.stringify(items), 'pendiente']]);
+    } else {
+      await sheetsAppend(`${PED_TAB}!A:G`,
+        [[nuevoIdPedido(), hoy(), cliente, nota, lista, JSON.stringify(items), 'pendiente']]);
+    }
+    limpiarFormPedido();
+    await abrirPedidos();
+    showMsg('ped-success', true, 'Pedido guardado en el Sheet.');
+  } catch(e) {
+    err.textContent = 'Error al guardar: ' + e.message; err.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = pedEdit ? '💾 Guardar cambios' : '➕ Agregar pedido';
+  }
+}
+function limpiarFormPedido() {
+  pedEdit = null;
+  document.getElementById('ped-form-titulo').textContent = 'Nuevo pedido';
+  document.getElementById('ped-cliente').value = '';
+  document.getElementById('ped-nota').value = '';
+  const sel = document.getElementById('ped-lista-precio'); if (sel) sel.value = 'afuera';
+  document.getElementById('ped-error').style.display = 'none';
+  renderPedidosForm();
+  const btn = document.querySelector('button[onclick="guardarPedidoLista()"]'); if (btn) btn.textContent = '➕ Agregar pedido';
+}
+function editarPedido(row) {
+  const p = PEDIDOS.find(x => x._row === row);
+  if (!p) return;
+  pedEdit = { _row: p._row, id: p.id, fecha: p.fecha };
+  document.getElementById('ped-form-titulo').textContent = '✏️ Editando pedido de ' + p.cliente;
+  document.getElementById('ped-cliente').value = p.cliente;
+  document.getElementById('ped-nota').value = p.nota || '';
+  const sel = document.getElementById('ped-lista-precio'); if (sel) sel.value = p.lista || 'afuera';
+  renderPedidosForm();
+  PRODUCTOS_LISTA.forEach(prod => { const el = document.getElementById(pedInputId(prod)); if (el) el.value = p.items[prod] || ''; });
+  actualizarPreviewPedido();
+  const btn = document.querySelector('button[onclick="guardarPedidoLista()"]'); if (btn) btn.textContent = '💾 Guardar cambios';
+  document.getElementById('ped-cliente').scrollIntoView({ behavior:'smooth', block:'center' });
+}
+async function borrarPedido(row) {
+  const p = PEDIDOS.find(x => x._row === row);
+  if (!p) return;
+  if (!confirm(`¿Borrar el pedido de ${p.cliente}?`)) return;
+  try {
+    await borrarFilaPedido(row);
+    if (pedEdit && pedEdit._row === row) limpiarFormPedido();
+    await abrirPedidos();
+  } catch(e) {
+    alert('Error al borrar: ' + e.message);
+  }
+}
+
+// ---- Lista + total a llevar ----
+function renderPedidosLista() {
+  const lista = document.getElementById('ped-lista');
+  const vacia = document.getElementById('ped-lista-vacia');
+  const totalCard = document.getElementById('ped-total-card');
+  const fecha = hoy();
+
+  // Total a llevar (agregado de todos los pedidos)
+  const agregado = {};
+  let totalUnidades = 0;
+  PEDIDOS.forEach(p => PRODUCTOS_LISTA.forEach(prod => {
+    const c = p.items[prod] || 0;
+    if (c > 0) { agregado[prod] = (agregado[prod]||0) + c; totalUnidades += c; }
+  }));
+
+  if (PEDIDOS.length === 0) {
+    vacia.style.display = 'block';
+    lista.innerHTML = '';
+    totalCard.style.display = 'none';
+    return;
+  }
+  vacia.style.display = 'none';
+  totalCard.style.display = 'block';
+
+  const resumenEl = document.getElementById('ped-total-resumen');
+  resumenEl.innerHTML = PRODUCTOS_LISTA
+    .filter(p => agregado[p] > 0)
+    .map(p => `<div style="display:flex;justify-content:space-between;align-items:center;font-size:16px;border-bottom:1px solid var(--gris-claro);padding:6px 0">
+        <span>${emojiProducto(p)} ${p}</span><strong style="font-size:18px">×${agregado[p]}</strong></div>`)
+    .join('');
+  document.getElementById('ped-total-unidades').textContent =
+    `${totalUnidades} unidades · ${PEDIDOS.length} pedido(s)`;
+
+  // Tarjetas de cada pedido
+  lista.innerHTML = PEDIDOS.map(p => {
+    const total = montoPedido(p.items, fecha, p.lista);
+    const chip = listaCanalNombre(p.lista);
+    const chipColor = p.lista === 'personas' ? 'var(--azul)' : 'var(--amarillo)';
+    const chipBg = p.lista === 'personas' ? 'var(--azul-claro)' : 'var(--amarillo-claro)';
+    return `<div style="border:1px solid var(--borde);border-radius:14px;padding:1rem;background:var(--bg);box-shadow:0 1px 3px rgba(0,0,0,0.04)">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:0.4rem">
+        <div style="font-size:18px;font-weight:700">${p.cliente}</div>
+        <div style="font-size:18px;font-weight:800;color:var(--verde-oscuro);white-space:nowrap">${pesos(total)}</div>
+      </div>
+      <div style="display:inline-block;font-size:11px;font-weight:600;color:${chipColor};background:${chipBg};border-radius:20px;padding:3px 11px;margin-bottom:0.5rem">${chip}</div>
+      <div style="font-size:15px;color:var(--texto);margin-bottom:0.3rem;line-height:1.5">${resumenItems(p.items)}</div>
+      ${p.nota ? `<div style="font-size:13px;color:var(--texto-muted);margin-bottom:0.3rem">📝 ${p.nota}</div>` : ''}
+      <div style="display:flex;gap:8px;margin-top:0.7rem">
+        <button onclick="abrirEntrega(${p._row})" style="flex:1;background:var(--verde);color:#fff;border:none;border-radius:10px;padding:14px;font-size:16px;font-weight:600;cursor:pointer">📦 Entregar</button>
+        <button onclick="editarPedido(${p._row})" style="width:54px;background:var(--bg);border:1px solid var(--borde);border-radius:10px;font-size:20px;cursor:pointer">✏️</button>
+        <button onclick="borrarPedido(${p._row})" style="width:54px;background:var(--bg);border:1px solid var(--borde);border-radius:10px;font-size:20px;cursor:pointer;color:var(--rojo)">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function copiarTotalLlevar() {
+  const agregado = {};
+  let totalUnidades = 0;
+  PEDIDOS.forEach(p => PRODUCTOS_LISTA.forEach(prod => {
+    const c = p.items[prod] || 0;
+    if (c > 0) { agregado[prod] = (agregado[prod]||0) + c; totalUnidades += c; }
+  }));
+  let txt = '📦 Total a llevar:\n';
+  txt += PRODUCTOS_LISTA.filter(p => agregado[p] > 0).map(p => `• ${p}: ${agregado[p]}`).join('\n');
+  txt += `\n\nTotal: ${totalUnidades} unidades · ${PEDIDOS.length} pedido(s)`;
+  navigator.clipboard.writeText(txt).then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ Copiado';
+    setTimeout(() => btn.textContent = '📋 Copiar lista para cargar', 2000);
+  });
+}
+
+// ---- Entrega: registra como venta + envases devueltos ----
+function abrirEntrega(row) {
+  const p = PEDIDOS.find(x => x._row === row);
+  if (!p) return;
+  pedEntrega = p;
+  document.getElementById('ped-ent-cliente').textContent = p.cliente + '  ·  ' + listaCanalNombre(p.lista);
+  document.getElementById('ped-ent-resumen').textContent = resumenItems(p.items);
+  document.getElementById('ped-ent-fecha').value = hoy();
+  document.getElementById('ped-ent-pago').value = '';
+  document.getElementById('ped-ent-estado').value = 'Cobrado';
+  document.getElementById('ped-ent-error').style.display = 'none';
+
+  // Grilla de envases devueltos
+  const grid = document.getElementById('ped-ent-envases');
+  grid.innerHTML = ENV_TIPOS.map(tipo => {
+    const id = pedeId(tipo);
+    const desc = ENV_DESC[tipo] || 0;
+    const descTxt = desc > 0 ? `Descuenta ${pesos(desc)} c/u` : 'Sin descuento';
+    return `<div style="background:var(--gris-claro);border-radius:12px;padding:0.7rem;border:1px solid var(--borde)">
+      <div style="font-size:14px;font-weight:600;margin-bottom:0.15rem">♻️ ${tipo}</div>
+      <div style="font-size:12px;color:var(--texto-muted);margin-bottom:0.45rem">${descTxt}</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button type="button" onclick="stepEnt('${id}',-1)" style="width:40px;height:40px;border:1px solid var(--borde);background:var(--bg);border-radius:10px;font-size:20px;cursor:pointer">−</button>
+        <input type="number" id="${id}" min="0" placeholder="0" value="" inputmode="numeric"
+          style="flex:1;width:100%;border:1px solid var(--borde);border-radius:8px;padding:8px 4px;font-size:18px;font-weight:600;text-align:center"
+          oninput="actualizarTotalEntrega()" />
+        <button type="button" onclick="stepEnt('${id}',1)" style="width:40px;height:40px;border:1px solid var(--borde);background:var(--bg);border-radius:10px;font-size:20px;cursor:pointer">+</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  actualizarTotalEntrega();
+  document.getElementById('ped-entrega-modal').style.display = 'flex';
+}
+function stepEnt(id, delta) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const v = Math.max(0, (parseFloat(el.value)||0) + delta);
+  el.value = v || '';
+  actualizarTotalEntrega();
+}
+function leerEnvasesEntrega() {
+  const env = {};
+  ENV_TIPOS.forEach(tipo => {
+    const el = document.getElementById(pedeId(tipo));
+    const cant = parseFloat(el?.value) || 0;
+    if (cant > 0) env[tipo] = cant;
+  });
+  return env;
+}
+function actualizarTotalEntrega() {
+  if (!pedEntrega) return;
+  const fecha = document.getElementById('ped-ent-fecha').value || hoy();
+  const totalProd = montoPedido(pedEntrega.items, fecha, pedEntrega.lista);
+  const env = leerEnvasesEntrega();
+  let descEnv = 0;
+  Object.keys(env).forEach(tipo => { descEnv += (ENV_DESC[tipo]||0) * env[tipo]; });
+  const final = totalProd - descEnv;
+  const box = document.getElementById('ped-ent-total');
+  let txt = `Productos: ${pesos(totalProd)}`;
+  if (descEnv > 0) txt += `<br>Descuento envases: −${pesos(descEnv)}`;
+  txt += `<br><strong style="font-size:17px">💰 Total a pagar: ${pesos(final)}</strong>`;
+  box.innerHTML = txt;
+}
+function cerrarEntrega() {
+  document.getElementById('ped-entrega-modal').style.display = 'none';
+  pedEntrega = null;
+}
+async function confirmarEntrega() {
+  if (!pedEntrega) return;
+  const p = pedEntrega;
+  const err = document.getElementById('ped-ent-error');
+  const fecha = document.getElementById('ped-ent-fecha').value;
+  const pago = document.getElementById('ped-ent-pago').value;
+  const estado = document.getElementById('ped-ent-estado').value;
+  if (!fecha) { err.textContent = 'Poné la fecha de entrega.'; err.style.display = 'block'; return; }
+  err.style.display = 'none';
+
+  const canal = listaCanalNombre(p.lista);     // Afuera o Personas
+  const canalKey = listaCanalKey(p.lista);
+  const local = p.cliente;
+  const mes = mesStr(fecha);
+  const fechaPago = estado === 'Cobrado' ? fecha : '';
+
+  await cargarHistPreciosVenta();
+
+  // Filas de Ventas (mismo formato que "Cargar ventas")
+  const rows = [];
+  PRODUCTOS_LISTA.forEach(prod => {
+    const cant = p.items[prod] || 0;
+    if (cant <= 0) return;
+    const precio = getPrecioVentaFecha(prod, canalKey, fecha);
+    rows.push([fecha, mes, canal, local, prod, cant, precio, cant*precio, pago, fechaPago, estado]);
+  });
+
+  // Filas de Envases devueltos (Afuera/Personas → aplica descuento)
+  const env = leerEnvasesEntrega();
+  const envRows = [];
+  Object.keys(env).forEach(tipo => {
+    const cant = env[tipo];
+    const descUnit = ENV_DESC[tipo] || 0;
+    const costoUnit = ENV_COSTO[tipo] || 0;
+    const ganUnit = costoUnit - descUnit;
+    envRows.push([fecha, canal, local, tipo, cant, descUnit, descUnit*cant, ganUnit*cant]);
+  });
+
+  if (rows.length === 0) { err.textContent = 'El pedido no tiene productos.'; err.style.display = 'block'; return; }
+
+  document.getElementById('ped-ent-spinner').style.display = 'block';
+  try {
+    if (rows.length > 0) await sheetsAppend('Ventas!A:K', rows);
+    if (envRows.length > 0) await sheetsAppend('Envases!A:H', envRows);
+    // Saca el pedido de la lista de pendientes (borra la fila del Sheet)
+    await borrarFilaPedido(p._row);
+    document.getElementById('ped-ent-spinner').style.display = 'none';
+    cerrarEntrega();
+    await abrirPedidos();
+    showMsg('ped-success', true, `Entrega de ${local} registrada como venta.`);
+  } catch(e) {
+    document.getElementById('ped-ent-spinner').style.display = 'none';
+    err.textContent = 'Error al guardar: ' + e.message;
+    err.style.display = 'block';
   }
 }
 
