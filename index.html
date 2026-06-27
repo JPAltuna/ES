@@ -1146,14 +1146,9 @@
             </div>
             <div class="form-group">
               <label>Local</label>
-              <input type="text" id="v-local" placeholder="Despen, Marilina..." list="locales-list" />
-              <datalist id="locales-list">
-                <option value="Despen"><option value="Dicha"><option value="Chacra">
-                <option value="Centro"><option value="Marilina"><option value="Calma Chicha">
-                <option value="Almacen Natural"><option value="El vergel Yacanto">
-                <option value="Mai StaRosa"><option value="comechingones"><option value="Ivan">
-                <option value="arrebol"><option value="Steph"><option value="Roman">
-              </datalist>
+              <select id="v-local" onchange="onLocalVentaChange()">
+                <option value="">— elegí el local —</option>
+              </select>
             </div>
             <div class="form-group">
               <label>Medio de pago</label>
@@ -1277,7 +1272,9 @@
           <div class="form-grid">
             <div class="form-group">
               <label>Cliente / Local</label>
-              <input type="text" id="ped-cliente" placeholder="Negra Fourcade, Despen..." list="locales-list" />
+              <select id="ped-cliente" onchange="onClientePedidoChange()">
+                <option value="">— elegí el cliente —</option>
+              </select>
             </div>
             <div class="form-group">
               <label>Lista de precios</label>
@@ -2320,6 +2317,34 @@
   </div>
 </div>
 
+<!-- MODAL GESTIONAR LOCALES -->
+<div id="locales-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.45);align-items:flex-start;justify-content:center;overflow-y:auto;padding:1rem">
+  <div style="background:var(--bg);border-radius:var(--radio-lg);border:1px solid var(--borde);max-width:480px;width:100%;margin:auto;padding:1.5rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.25rem">
+      <div class="card-title" style="margin:0">Locales y clientes</div>
+      <button onclick="cerrarGestionLocales()" style="border:none;background:none;font-size:22px;line-height:1;cursor:pointer;color:var(--texto-muted)">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--texto-muted);margin-bottom:1rem">Agregá un local nuevo o borrá los repetidos. Borrar de la lista no toca las ventas viejas.</div>
+
+    <div style="background:var(--gris-claro);border:1px solid var(--borde);border-radius:12px;padding:0.85rem;margin-bottom:1rem">
+      <div style="font-size:13px;font-weight:600;margin-bottom:0.5rem">➕ Agregar nuevo</div>
+      <input type="text" id="loc-nuevo-nombre" placeholder="Nombre del local o persona"
+        style="width:100%;border:1px solid var(--borde);border-radius:8px;padding:9px 10px;font-size:16px;margin-bottom:0.5rem" />
+      <div style="display:flex;gap:8px">
+        <select id="loc-nuevo-canal" style="flex:1;border:1px solid var(--borde);border-radius:8px;padding:9px 10px;font-size:15px">
+          <option value="Umepay">Umepay</option>
+          <option value="Afuera">Afuera</option>
+          <option value="Personas">Personas</option>
+        </select>
+        <button class="btn-verde" onclick="agregarLocalDesdeModal()" style="white-space:nowrap">Agregar</button>
+      </div>
+      <div class="msg-error" id="loc-modal-error"></div>
+    </div>
+
+    <div id="loc-lista"></div>
+  </div>
+</div>
+
 <script>
 // =====================
 // CONFIG & AUTH
@@ -2599,8 +2624,8 @@ function showPage(name, btn) {
   document.getElementById('page-' + name).classList.add('active');
   if (btn) btn.classList.add('active');
 
-  if (name === 'ventas') { cargarVentasRecientes(); cargarLocalesPorCanal(); if(!document.getElementById('v-productos-grid').innerHTML) renderProductosGrid(); }
-  if (name === 'pedidos') { cargarLocalesPorCanal(); abrirPedidos(); }
+  if (name === 'ventas') { cargarVentasRecientes(); cargarLocales().then(poblarSelectLocalesVentas); if(!document.getElementById('v-productos-grid').innerHTML) renderProductosGrid(); }
+  if (name === 'pedidos') { cargarLocales().then(poblarSelectLocalesPedidos); abrirPedidos(); }
   if (name === 'envases') cargarEnvasesRecientes();
   if (name === 'egresos') cargarEgresosRecientes();
   if (name === 'dashboard') { setFechas('dash-desde','dash-hasta'); }
@@ -2692,7 +2717,7 @@ const ENV_DESC  = {'Litro':800,'Medio litro':600,'Kesir gr':0,'Kesir ch':0};
 function actualizarProductosDelPedido() {
   const canal = document.getElementById('v-canal').value;
   renderProductosGrid();
-  filtrarLocalesPorCanal(canal);
+  poblarSelectLocalesVentas();   // el desplegable de local se filtra por canal
   // Update envase descriptions based on canal
   ENV_TIPOS.forEach(tipo => {
     const desc = document.getElementById(`env-desc-${tipo}`);
@@ -5338,6 +5363,7 @@ function renderPedidosForm() {
       <button type="button" onclick="stepPed('${id}',1)" style="width:44px;height:44px;border:1px solid var(--borde);background:var(--bg);border-radius:10px;font-size:22px;line-height:1;cursor:pointer;flex-shrink:0">+</button>
     </div>`;
   });
+  poblarSelectLocalesPedidos();   // el desplegable de cliente se filtra por la lista (Afuera/Personas)
   actualizarPreviewPedido();
 }
 function stepPed(id, delta) {
@@ -5415,10 +5441,10 @@ function editarPedido(row) {
   if (!p) return;
   pedEdit = { _row: p._row, id: p.id, fecha: p.fecha };
   document.getElementById('ped-form-titulo').textContent = '✏️ Editando pedido de ' + p.cliente;
-  document.getElementById('ped-cliente').value = p.cliente;
   document.getElementById('ped-nota').value = p.nota || '';
   const sel = document.getElementById('ped-lista-precio'); if (sel) sel.value = p.lista || 'afuera';
-  renderPedidosForm();
+  renderPedidosForm();                              // repuebla productos + clientes según la lista
+  setSelectValueEnsuring('ped-cliente', p.cliente); // selecciona el cliente (lo agrega si no está en la lista filtrada)
   PRODUCTOS_LISTA.forEach(prod => { const el = document.getElementById(pedInputId(prod)); if (el) el.value = p.items[prod] || ''; });
   actualizarPreviewPedido();
   const btn = document.querySelector('button[onclick="guardarPedidoLista()"]'); if (btn) btn.textContent = '💾 Guardar cambios';
@@ -5787,6 +5813,181 @@ function agruparCmp(rows, keyFn, top) {
   items.sort((a,b) => Math.abs(b.value) - Math.abs(a.value));
   if (top) items = items.slice(0, top);
   return items;
+}
+
+// =====================
+// LOCALES / CLIENTES (lista única, pestaña "Locales" del Sheet)
+// =====================
+const LOC_TAB = 'Locales';
+let LOCALES = [];            // [{nombre, canal, _row}]
+let localesSheetId = null;
+let localesCargados = false;
+
+function escAttr(s){ return String(s).replace(/"/g,'&quot;'); }
+
+async function ensureLocalesTab() {
+  if (localesSheetId) return localesSheetId;
+  const token = await getAccessToken();
+  const meta = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.sheetId}?fields=sheets.properties`,
+    { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+  if (meta.error) throw new Error(meta.error.message);
+  const ex = (meta.sheets||[]).find(s => s.properties.title === LOC_TAB);
+  if (ex) { localesSheetId = ex.properties.sheetId; return localesSheetId; }
+  // Crear la pestaña y sembrarla con los locales del historial de ventas
+  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.sheetId}:batchUpdate`, {
+    method:'POST', headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+    body: JSON.stringify({ requests:[{ addSheet:{ properties:{ title: LOC_TAB } } }] })
+  }).then(r => r.json());
+  if (res.error) throw new Error(res.error.message);
+  localesSheetId = res.replies[0].addSheet.properties.sheetId;
+  await sheetsUpdate(`${LOC_TAB}!A1:B1`, [['nombre','canal']]);
+  await cargarLocalesPorCanal();
+  const seed = [];
+  Object.keys(LOCALES_POR_CANAL||{}).forEach(canal => {
+    (LOCALES_POR_CANAL[canal] || new Set()).forEach(nombre => { if (nombre && nombre.trim()) seed.push([nombre.trim(), canal]); });
+  });
+  if (seed.length) await sheetsAppend(`${LOC_TAB}!A:B`, seed);
+  return localesSheetId;
+}
+
+async function cargarLocales(force) {
+  if (localesCargados && !force) return;
+  await ensureLocalesTab();
+  const data = await sheetsGet(`${LOC_TAB}!A:B`);
+  LOCALES = [];
+  (data||[]).forEach((r,i) => {
+    if (i === 0) return;
+    const nombre = (r[0]||'').trim(), canal = (r[1]||'').trim();
+    if (nombre) LOCALES.push({ nombre, canal, _row: i+1 });
+  });
+  localesCargados = true;
+}
+
+function localesDeCanal(canales) {
+  const set = Array.isArray(canales) ? canales : [canales];
+  return [...new Set(LOCALES.filter(l => set.includes(l.canal)).map(l => l.nombre))]
+    .sort((a,b) => a.localeCompare(b));
+}
+
+async function borrarFilaSheet(sheetId, row) {
+  const token = await getAccessToken();
+  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.sheetId}:batchUpdate`, {
+    method:'POST', headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+    body: JSON.stringify({ requests:[{ deleteDimension:{ range:{ sheetId, dimension:'ROWS', startIndex:row-1, endIndex:row } } }] })
+  }).then(r => r.json());
+  if (res.error) throw new Error(res.error.message);
+}
+
+// ---- Poblado de los desplegables ----
+const OPC_GESTION = '<option value="__gestionar__">➕ Nuevo / editar lista…</option>';
+
+function setSelectValueEnsuring(id, val) {
+  const sel = document.getElementById(id);
+  if (!sel) return;
+  if (val && ![...sel.options].some(o => o.value === val)) {
+    const opt = document.createElement('option');
+    opt.value = val; opt.textContent = val;
+    sel.insertBefore(opt, sel.lastElementChild); // antes de la opción "Nuevo / editar"
+  }
+  sel.value = val || '';
+}
+
+function poblarSelectLocalesVentas() {
+  const sel = document.getElementById('v-local');
+  if (!sel) return;
+  const canal = (document.getElementById('v-canal')||{}).value || '';
+  const prev = sel.value;
+  const nombres = canal ? localesDeCanal(canal) : localesDeCanal(['Umepay','Afuera','Personas','Regalo']);
+  let opts = '<option value="">— elegí el local —</option>' + nombres.map(n => `<option value="${escAttr(n)}">${n}</option>`).join('');
+  if (prev && prev !== '__gestionar__' && !nombres.includes(prev)) opts += `<option value="${escAttr(prev)}">${prev}</option>`;
+  sel.innerHTML = opts + OPC_GESTION;
+  sel.value = (prev && prev !== '__gestionar__') ? prev : '';
+}
+
+function poblarSelectLocalesPedidos() {
+  const sel = document.getElementById('ped-cliente');
+  if (!sel) return;
+  const canal = getListaForm() === 'personas' ? 'Personas' : 'Afuera';
+  const prev = sel.value;
+  const nombres = localesDeCanal(canal);
+  let opts = '<option value="">— elegí el cliente —</option>' + nombres.map(n => `<option value="${escAttr(n)}">${n}</option>`).join('');
+  if (prev && prev !== '__gestionar__' && !nombres.includes(prev)) opts += `<option value="${escAttr(prev)}">${prev}</option>`;
+  sel.innerHTML = opts + OPC_GESTION;
+  sel.value = (prev && prev !== '__gestionar__') ? prev : '';
+}
+
+function refrescarSelectsLocales() { poblarSelectLocalesVentas(); poblarSelectLocalesPedidos(); }
+
+function onLocalVentaChange() {
+  const sel = document.getElementById('v-local');
+  if (sel.value === '__gestionar__') { sel.value = ''; abrirGestionLocales((document.getElementById('v-canal')||{}).value); }
+}
+function onClientePedidoChange() {
+  const sel = document.getElementById('ped-cliente');
+  if (sel.value === '__gestionar__') { sel.value = ''; abrirGestionLocales(getListaForm()==='personas'?'Personas':'Afuera'); }
+}
+
+// ---- Modal de gestión de locales ----
+async function abrirGestionLocales(canalDefault) {
+  document.getElementById('loc-nuevo-canal').value = ['Umepay','Afuera','Personas'].includes(canalDefault) ? canalDefault : 'Afuera';
+  document.getElementById('loc-nuevo-nombre').value = '';
+  document.getElementById('loc-modal-error').style.display = 'none';
+  document.getElementById('locales-modal').style.display = 'flex';
+  document.getElementById('loc-lista').innerHTML = '<div class="loading"><div class="spinner"></div> Cargando...</div>';
+  try { await cargarLocales(true); renderLocalesModal(); }
+  catch(e) { document.getElementById('loc-lista').innerHTML = '<span style="color:var(--rojo)">'+e.message+'</span>'; }
+}
+function cerrarGestionLocales() {
+  document.getElementById('locales-modal').style.display = 'none';
+  refrescarSelectsLocales();
+}
+function renderLocalesModal() {
+  const cont = document.getElementById('loc-lista');
+  if (!LOCALES.length) { cont.innerHTML = '<div style="font-size:13px;color:var(--texto-muted)">Todavía no hay locales en la lista.</div>'; return; }
+  const canales = ['Umepay','Afuera','Personas','Regalo'];
+  let html = '';
+  const bloque = (titulo, items, mostrarCanal) => {
+    if (!items.length) return '';
+    let h = `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--texto-muted);margin:0.9rem 0 0.3rem">${titulo}</div>`;
+    items.sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(l => {
+      const extra = mostrarCanal ? ` <span style="font-size:11px;color:var(--texto-muted)">(${l.canal||'sin canal'})</span>` : '';
+      h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--gris-claro)">
+        <span style="font-size:14.5px">${l.nombre}${extra}</span>
+        <button onclick="borrarLocalModal(${l._row})" title="Borrar de la lista" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--rojo)">🗑️</button></div>`;
+    });
+    return h;
+  };
+  canales.forEach(canal => { html += bloque(canal, LOCALES.filter(l => l.canal === canal), false); });
+  html += bloque('Otros', LOCALES.filter(l => !canales.includes(l.canal)), true);
+  cont.innerHTML = html;
+}
+async function agregarLocalDesdeModal() {
+  const nombre = document.getElementById('loc-nuevo-nombre').value.trim();
+  const canal = document.getElementById('loc-nuevo-canal').value;
+  const err = document.getElementById('loc-modal-error');
+  if (!nombre) { err.textContent = 'Poné el nombre.'; err.style.display = 'block'; return; }
+  if (LOCALES.some(l => l.canal === canal && l.nombre.toLowerCase() === nombre.toLowerCase())) {
+    err.textContent = `"${nombre}" ya está en ${canal}.`; err.style.display = 'block'; return;
+  }
+  err.style.display = 'none';
+  const btn = document.querySelector('#locales-modal button[onclick="agregarLocalDesdeModal()"]');
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    await ensureLocalesTab();
+    await sheetsAppend(`${LOC_TAB}!A:B`, [[nombre, canal]]);
+    document.getElementById('loc-nuevo-nombre').value = '';
+    await cargarLocales(true); renderLocalesModal(); refrescarSelectsLocales();
+  } catch(e) { err.textContent = 'Error: ' + e.message; err.style.display = 'block'; }
+  finally { btn.disabled = false; btn.textContent = 'Agregar'; }
+}
+async function borrarLocalModal(row) {
+  const l = LOCALES.find(x => x._row === row);
+  if (!l) return;
+  if (!confirm(`¿Borrar "${l.nombre}" de la lista? (No borra las ventas viejas)`)) return;
+  try {
+    await borrarFilaSheet(await ensureLocalesTab(), row);
+    await cargarLocales(true); renderLocalesModal(); refrescarSelectsLocales();
+  } catch(e) { alert('Error al borrar: ' + e.message); }
 }
 
 // Check if config exists
