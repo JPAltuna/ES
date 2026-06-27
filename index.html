@@ -201,6 +201,16 @@
 
   .nav-icon { font-size: 16px; }
 
+  .nav-group {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: #5DCAA5;
+    margin: 14px 0 4px 0.75rem;
+  }
+  .nav-group:first-of-type { margin-top: 0; }
+
   .sidebar-bottom {
     margin-top: auto;
   }
@@ -630,6 +640,61 @@
     gap: 12px;
   }
 
+  .home-group {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: #5DCAA5;
+    margin: 1.4rem 0 0.6rem;
+  }
+  .home-group:first-of-type { margin-top: 0; }
+
+  /* Solapas internas (sub-navegación dentro de una página) */
+  .subtabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 1.1rem;
+    border-bottom: 1px solid var(--borde);
+  }
+  .subtab {
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--texto-muted);
+    padding: 0.65rem 0.9rem;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  .subtab.on { color: var(--verde-oscuro); border-bottom-color: var(--verde); }
+
+  /* Selector de métrica (segmentado) */
+  .seg-metric {
+    display: flex;
+    gap: 6px;
+    background: var(--gris-claro);
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+    padding: 5px;
+    margin-bottom: 1rem;
+  }
+  .seg-metric button {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--gris);
+    font-size: 13.5px;
+    font-weight: 600;
+    padding: 10px 4px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .seg-metric button.on { background: var(--verde); color: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+
   .home-tile {
     background: rgba(255,255,255,0.08);
     border: 1px solid rgba(255,255,255,0.12);
@@ -846,20 +911,33 @@
       </div>
       <button class="home-config" onclick="resetConfig()" title="Reconfigurar">⚙️</button>
     </div>
+    <div class="home-group">🧾 Día a día</div>
     <div class="home-grid">
       <button class="home-tile" onclick="goToPage('ventas')"><span class="home-tile-icon">📝</span><span class="home-tile-label">Cargar ventas</span></button>
       <button class="home-tile" onclick="goToPage('pedidos')"><span class="home-tile-icon">🛒</span><span class="home-tile-label">PedidES</span></button>
-      <button class="home-tile" onclick="goToPage('cobros')"><span class="home-tile-icon">🧾</span><span class="home-tile-label">Cobros</span></button>
-      <button class="home-tile" onclick="goToPage('caja')"><span class="home-tile-icon">💰</span><span class="home-tile-label">Caja</span></button>
-      <button class="home-tile" onclick="goToPage('dashboard')"><span class="home-tile-icon">📊</span><span class="home-tile-label">Dashboard</span></button>
-      <button class="home-tile" onclick="goToPage('reporte-mensual')"><span class="home-tile-icon">📅</span><span class="home-tile-label">Mensual</span></button>
-      <button class="home-tile" onclick="goToPage('analisis')"><span class="home-tile-icon">📈</span><span class="home-tile-label">Análisis</span></button>
-      <button class="home-tile" onclick="goToPage('egresos')"><span class="home-tile-icon">💸</span><span class="home-tile-label">Egresos</span></button>
       <button class="home-tile" onclick="goToPage('envases')"><span class="home-tile-icon">♻️</span><span class="home-tile-label">Envases</span></button>
+      <button class="home-tile" onclick="goToPage('egresos')"><span class="home-tile-icon">💸</span><span class="home-tile-label">Egresos</span></button>
+    </div>
+
+    <div class="home-group">💰 Caja y cierres</div>
+    <div class="home-grid">
+      <button class="home-tile" onclick="goToPage('dashboard')"><span class="home-tile-icon">📊</span><span class="home-tile-label">Dashboard</span></button>
+      <button class="home-tile" onclick="goToPage('caja')"><span class="home-tile-icon">💰</span><span class="home-tile-label">Caja</span></button>
+      <button class="home-tile" onclick="goToPage('cobros')"><span class="home-tile-icon">🧾</span><span class="home-tile-label">Cobros</span></button>
+      <button class="home-tile" onclick="goToPage('cierre')"><span class="home-tile-icon">🔒</span><span class="home-tile-label">Cierre</span></button>
+      <button class="home-tile" onclick="goToPage('reporte-mensual')"><span class="home-tile-icon">📅</span><span class="home-tile-label">Mensual</span></button>
+    </div>
+
+    <div class="home-group">💲 Costos</div>
+    <div class="home-grid">
       <button class="home-tile" onclick="goToPage('precios')"><span class="home-tile-icon">🏷️</span><span class="home-tile-label">Precios</span></button>
       <button class="home-tile" onclick="goToPage('insumos')"><span class="home-tile-icon">🧪</span><span class="home-tile-label">Insumos</span></button>
-      <button class="home-tile" onclick="goToPage('costos')"><span class="home-tile-icon">🧮</span><span class="home-tile-label">Costos</span></button>
-      <button class="home-tile" onclick="goToPage('cierre')"><span class="home-tile-icon">🔒</span><span class="home-tile-label">Cierre</span></button>
+    </div>
+
+    <div class="home-group">📊 Análisis</div>
+    <div class="home-grid">
+      <button class="home-tile" onclick="goToPage('analisis')"><span class="home-tile-icon">📈</span><span class="home-tile-label">Análisis</span></button>
+      <button class="home-tile" onclick="goToPage('costos')"><span class="home-tile-icon">🧮</span><span class="home-tile-label">Rentabilidad</span></button>
     </div>
   </div>
 
@@ -870,9 +948,7 @@
       <div class="sidebar-logo">🌿 ES</div>
       <div class="sidebar-version">Emprendimiento ES</div>
 
-      <button class="nav-item active" onclick="showPage('dashboard', this)">
-        <span class="nav-icon">📊</span> <span class="nav-label">Dashboard</span>
-      </button>
+      <div class="nav-group">🧾 Día a día</div>
       <button class="nav-item" onclick="showPage('ventas', this)">
         <span class="nav-icon">📝</span> <span class="nav-label">Ventas</span>
       </button>
@@ -885,29 +961,38 @@
       <button class="nav-item" onclick="showPage('egresos', this)">
         <span class="nav-icon">💸</span> <span class="nav-label">Egresos</span>
       </button>
+
+      <div class="nav-group">💰 Caja y cierres</div>
+      <button class="nav-item active" onclick="showPage('dashboard', this)">
+        <span class="nav-icon">📊</span> <span class="nav-label">Dashboard</span>
+      </button>
       <button class="nav-item" onclick="showPage('caja', this)">
         <span class="nav-icon">💰</span> <span class="nav-label">Caja</span>
-      </button>
-      <button class="nav-item" onclick="showPage('reporte-mensual', this)">
-        <span class="nav-icon">📅</span> <span class="nav-label">Mensual</span>
-      </button>
-      <button class="nav-item" onclick="showPage('analisis', this)">
-        <span class="nav-icon">📈</span> <span class="nav-label">Análisis</span>
-      </button>
-      <button class="nav-item" onclick="showPage('costos', this)">
-        <span class="nav-icon">🧮</span> <span class="nav-label">Costos</span>
       </button>
       <button class="nav-item" onclick="showPage('cobros', this)">
         <span class="nav-icon">🧾</span> <span class="nav-label">Cobros</span>
       </button>
+      <button class="nav-item" onclick="showPage('cierre', this)">
+        <span class="nav-icon">🔒</span> <span class="nav-label">Cierre</span>
+      </button>
+      <button class="nav-item" onclick="showPage('reporte-mensual', this)">
+        <span class="nav-icon">📅</span> <span class="nav-label">Mensual</span>
+      </button>
+
+      <div class="nav-group">💲 Costos</div>
       <button class="nav-item" onclick="showPage('precios', this)">
         <span class="nav-icon">🏷️</span> <span class="nav-label">Precios</span>
       </button>
       <button class="nav-item" onclick="showPage('insumos', this)">
         <span class="nav-icon">🧪</span> <span class="nav-label">Insumos</span>
       </button>
-      <button class="nav-item" onclick="showPage('cierre', this)">
-        <span class="nav-icon">🔒</span> <span class="nav-label">Cierre</span>
+
+      <div class="nav-group">📊 Análisis</div>
+      <button class="nav-item" onclick="showPage('analisis', this)">
+        <span class="nav-icon">📈</span> <span class="nav-label">Análisis</span>
+      </button>
+      <button class="nav-item" onclick="showPage('costos', this)">
+        <span class="nav-icon">🧮</span> <span class="nav-label">Rentabilidad</span>
       </button>
 
       <div class="sidebar-bottom">
@@ -1657,7 +1742,7 @@
       <!-- COSTOS -->
       <div class="page" id="page-costos">
         <div class="page-header">
-          <div class="page-title">Análisis de costos</div>
+          <div class="page-title">Rentabilidad</div>
           <div class="page-desc">Punto de equilibrio y rentabilidad por producto</div>
         </div>
 
@@ -2044,8 +2129,57 @@
       <div class="page" id="page-analisis">
         <div class="page-header">
           <div class="page-title">Análisis</div>
-          <div class="page-desc">Clientes, canales, gastos y ganancias del período</div>
+          <div class="page-desc">Compará ventas, o mirá el detalle del mes</div>
         </div>
+
+        <div class="subtabs" id="an-subtabs">
+          <button class="subtab on" onclick="anTab('comparar', this)">📊 Comparar</button>
+          <button class="subtab" onclick="anTab('detalle', this)">📋 Detalle</button>
+        </div>
+
+        <!-- ===== SOLAPA: COMPARAR ===== -->
+        <div id="an-tab-comparar">
+          <div class="seg-metric" id="cmp-metric">
+            <button data-m="unidades" onclick="cmpSetMetric('unidades', this)">Unidades</button>
+            <button data-m="plata" onclick="cmpSetMetric('plata', this)">Plata</button>
+            <button data-m="ganancia" class="on" onclick="cmpSetMetric('ganancia', this)">Ganancia</button>
+          </div>
+
+          <div id="cmp-loading" class="loading" style="display:none"><div class="spinner"></div> Cargando...</div>
+
+          <div id="cmp-content" style="display:none">
+            <div class="card">
+              <div class="card-title">📈 Mes a mes <span id="cmp-mes-prov" style="display:none;font-size:10px;color:var(--amarillo);font-weight:600">· mes en curso provisional</span></div>
+              <div id="cmp-mes"></div>
+              <div id="cmp-mes-note" style="font-size:11px;color:var(--texto-muted);margin-top:8px"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-title">Comparar en un período</div>
+              <div class="semana-selector" style="margin-bottom:0.25rem">
+                <label>Desde</label>
+                <input type="date" id="cmp-desde" />
+                <label>Hasta</label>
+                <input type="date" id="cmp-hasta" />
+                <button class="btn-verde" onclick="renderCortesPeriodo()">Ver</button>
+              </div>
+
+              <div class="card-title" style="margin-top:1.3rem">🧴 Por producto</div>
+              <div id="cmp-prod"></div>
+
+              <hr class="divider">
+              <div class="card-title">🛒 Por canal</div>
+              <div id="cmp-canal"></div>
+
+              <hr class="divider">
+              <div class="card-title">📍 Por local <span style="font-size:11px;color:var(--texto-muted);font-weight:400">(top 8)</span></div>
+              <div id="cmp-local"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== SOLAPA: DETALLE (lo que ya existía) ===== -->
+        <div id="an-tab-detalle" style="display:none">
 
         <div class="semana-selector" style="margin-bottom:0">
           <label>Mes</label>
@@ -2132,6 +2266,7 @@
             </div>
           </div>
         </div>
+        </div><!-- end an-tab-detalle -->
       </div>
 
     </div><!-- end content -->
@@ -2476,7 +2611,11 @@ function showPage(name, btn) {
   if (name === 'insumos') cargarInsumos();
   if (name === 'cierre') { document.getElementById('cierre-mes').value = getMes(); cargarHistorialCierres(); }
   if (name === 'reporte-mensual') { document.getElementById('repmes-mes').value = getMes(); }
-  if (name === 'analisis') { if(!document.getElementById('an-mes').value) document.getElementById('an-mes').value = getMes(); }
+  if (name === 'analisis') {
+    if(!document.getElementById('an-mes').value) document.getElementById('an-mes').value = getMes();
+    cmpVentas = null; // recarga datos frescos al entrar
+    anTab('comparar', document.querySelector('#an-subtabs .subtab'));
+  }
 }
 
 // =====================
@@ -5493,6 +5632,161 @@ async function confirmarEntrega() {
     err.textContent = 'Error al guardar: ' + e.message;
     err.style.display = 'block';
   }
+}
+
+// =====================
+// COMPARAR (solapa dentro de Análisis)
+// =====================
+let cmpMetric = 'ganancia';   // unidades | plata | ganancia
+let cmpVentas = null;         // filas de Ventas ya parseadas (cant, total, ganancia)
+let cmpCierres = null;        // filas de Cierres_mes (valores congelados por mes)
+const MESES_CORTO = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+// Alterna entre las solapas Comparar / Detalle
+function anTab(name, btn) {
+  document.getElementById('an-tab-comparar').style.display = (name === 'comparar') ? 'block' : 'none';
+  document.getElementById('an-tab-detalle').style.display  = (name === 'detalle')  ? 'block' : 'none';
+  document.querySelectorAll('#an-subtabs .subtab').forEach(b => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  else document.querySelector('#an-subtabs .subtab').classList.add('on');
+  if (name === 'comparar' && !cmpVentas) cargarComparar();
+}
+
+// Trae ventas + cierres y arma la base de datos en memoria
+async function cargarComparar() {
+  const load = document.getElementById('cmp-loading');
+  const cont = document.getElementById('cmp-content');
+  load.style.display = 'flex'; cont.style.display = 'none';
+  try {
+    const [ventasData, cierresData] = await Promise.all([
+      sheetsGet('Ventas!A:K'),
+      sheetsGet('Cierres_mes!A:J').catch(() => [])
+    ]);
+    await cargarFijosPorMes();
+    cmpVentas = ventasData.slice(1)
+      .filter(r => r[0] && PRODUCTOS_VALIDOS.includes((r[4]||'').trim()))
+      .map(r => {
+        const fecha = normFecha(r[0]);
+        const prod = (r[4]||'').trim();
+        const cant = parseFloat(r[5]) || 0;
+        let total = parseFloat(r[7]); if (isNaN(total)) total = (parseFloat(r[6])||0) * cant;
+        const costo = getCostoParaFecha(prod, fecha) * cant;
+        return {
+          fecha, mes: (fecha||'').slice(0,7),
+          canal: (r[2]||'').trim() || '(s/ canal)',
+          local: (r[3]||'').trim() || '(s/ local)',
+          prod, cant, total, ganancia: total - costo
+        };
+      });
+    cmpCierres = (cierresData||[]).slice(1);
+    // Período por defecto = mes actual
+    if (!document.getElementById('cmp-desde').value) {
+      document.getElementById('cmp-desde').value = getMes() + '-01';
+      document.getElementById('cmp-hasta').value = hoy();
+    }
+    renderComparar();
+    load.style.display = 'none'; cont.style.display = 'block';
+  } catch(e) {
+    load.innerHTML = '<span style="color:var(--rojo)">No se pudo cargar: ' + e.message + '</span>';
+  }
+}
+
+function cmpSetMetric(m, btn) {
+  cmpMetric = m;
+  document.querySelectorAll('#cmp-metric button').forEach(b => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  renderComparar();
+}
+function cmpValor(o) { return cmpMetric === 'unidades' ? o.cant : cmpMetric === 'plata' ? o.total : o.ganancia; }
+function cmpFmt(v)   { return cmpMetric === 'unidades' ? (Math.round(v).toLocaleString('es-AR') + ' u') : pesos(v); }
+
+// Dibuja un grupo de barras horizontales. items = [{label, value, prov?}]
+function cmpBars(containerId, items) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!items.length) { el.innerHTML = '<div style="font-size:13px;color:var(--texto-muted)">Sin datos en este período.</div>'; return; }
+  const max = Math.max(1, ...items.map(i => Math.abs(i.value)));
+  el.innerHTML = items.map(it => {
+    const w = Math.round(Math.abs(it.value) / max * 100);
+    const lead = Math.abs(it.value) === max && it.value > 0;
+    const neg = it.value < 0;
+    const color = neg ? 'var(--rojo)' : (lead ? 'var(--verde-oscuro)' : 'var(--verde)');
+    return `<div style="margin-bottom:11px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:4px">
+        <span style="font-size:13.5px">${it.label}${it.prov ? ' <span style=\"font-size:10px;color:var(--amarillo);font-weight:700\">prov.</span>' : ''}</span>
+        <span style="font-size:13px;font-weight:700;color:${neg ? 'var(--rojo)' : 'var(--verde-oscuro)'};white-space:nowrap">${cmpFmt(it.value)}</span>
+      </div>
+      <div style="background:var(--gris-claro);border-radius:20px;height:14px;overflow:hidden">
+        <div style="height:100%;border-radius:20px;transition:width .6s;background:${color};width:${w}%"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Devuelve los últimos n meses como 'YYYY-MM' (incluye el actual)
+function ultimosMeses(n) {
+  const [y, m] = getMes().split('-').map(Number);
+  let yy = y, mm = m; const arr = [];
+  for (let i = 0; i < n; i++) { arr.unshift(`${yy}-${String(mm).padStart(2,'0')}`); mm--; if (mm === 0) { mm = 12; yy--; } }
+  return arr;
+}
+
+function renderComparar() {
+  // --- Mes a mes (últimos 6) ---
+  const meses = ultimosMeses(6);
+  const mesActual = getMes();
+  let hayProv = false;
+  const mesItems = meses.map(mes => {
+    const cierre = cmpCierres.find(r => (r[0]||'').trim() === mes);
+    let value, prov = false;
+    if (cierre && mes !== mesActual) {
+      value = cmpMetric === 'unidades' ? (parseFloat(cierre[1])||0)
+            : cmpMetric === 'plata'    ? (parseFloat(cierre[2])||0)
+            : (parseFloat(cierre[5])||0);   // ganancia neta congelada
+    } else {
+      const rows = cmpVentas.filter(v => v.mes === mes);
+      if (!rows.length)                  value = 0;            // mes sin ventas → 0 (no restamos fijos)
+      else if (cmpMetric === 'unidades') value = rows.reduce((s,v)=>s+v.cant,0);
+      else if (cmpMetric === 'plata')    value = rows.reduce((s,v)=>s+v.total,0);
+      else value = rows.reduce((s,v)=>s+v.ganancia,0) - (getFijosTotalMes(mes)||0);
+      prov = (mes === mesActual && rows.length > 0);
+      if (prov) hayProv = true;
+    }
+    const [yy, mm] = mes.split('-');
+    return { label: `${MESES_CORTO[+mm]} ${yy.slice(2)}`, value, prov };
+  });
+  cmpBars('cmp-mes', mesItems);
+  document.getElementById('cmp-mes-prov').style.display = hayProv ? 'inline' : 'none';
+  document.getElementById('cmp-mes-note').textContent =
+    cmpMetric === 'ganancia' ? 'Ganancia neta (con fijos). Los meses cerrados usan los valores que congelaste en el cierre.'
+    : cmpMetric === 'plata'   ? 'Total facturado por mes.'
+    : 'Unidades vendidas por mes.';
+
+  renderCortesPeriodo();
+}
+
+// Por producto / canal / local en el período elegido
+function renderCortesPeriodo() {
+  if (!cmpVentas) return;
+  const desde = document.getElementById('cmp-desde').value;
+  const hasta = document.getElementById('cmp-hasta').value;
+  const rows = cmpVentas.filter(v => (!desde || v.fecha >= desde) && (!hasta || v.fecha <= hasta));
+  cmpBars('cmp-prod',  agruparCmp(rows, v => v.prod));
+  cmpBars('cmp-canal', agruparCmp(rows, v => v.canal));
+  cmpBars('cmp-local', agruparCmp(rows, v => v.local, 8));
+}
+
+function agruparCmp(rows, keyFn, top) {
+  const acc = {};
+  rows.forEach(v => {
+    const k = keyFn(v) || '(otro)';
+    if (!acc[k]) acc[k] = { cant:0, total:0, ganancia:0 };
+    acc[k].cant += v.cant; acc[k].total += v.total; acc[k].ganancia += v.ganancia;
+  });
+  let items = Object.keys(acc).map(k => ({ label: k, value: cmpValor(acc[k]) }));
+  items.sort((a,b) => Math.abs(b.value) - Math.abs(a.value));
+  if (top) items = items.slice(0, top);
+  return items;
 }
 
 // Check if config exists
