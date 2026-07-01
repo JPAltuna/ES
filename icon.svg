@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" fill="#F5F2EA"/>
+  <g fill="none" stroke="#151515" stroke-linecap="round" stroke-linejoin="round">
+    <!-- forma fina -->
+    <path stroke-width="6" d="M212 116
+      C252 96 305 104 344 132
+      C388 162 432 202 421 257
+      C413 302 372 322 341 351
+      C306 385 251 389 211 367
+      C176 348 141 330 133 286
+      C124 236 141 191 176 161
+      C196 143 186 128 212 116 Z"/>
+    <!-- forma gruesa -->
+    <path stroke-width="12" d="M256 100
+      C300 100 320 152 360 178
+      C405 208 431 252 406 302
+      C386 342 331 331 301 356
+      C271 379 236 376 206 361
+      C166 341 121 347 109 297
+      C97 252 121 206 151 181
+      C186 151 213 100 256 100 Z"/>
+  </g>
+</svg>
