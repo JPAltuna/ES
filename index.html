@@ -2282,6 +2282,7 @@
     <div id="ped-ent-cliente" style="font-size:15px;font-weight:600;margin-bottom:0.25rem"></div>
     <div id="ped-ent-resumen" style="font-size:13px;color:var(--texto-muted);margin-bottom:1rem"></div>
 
+    <div id="ped-ent-form">
     <div class="form-grid">
       <div class="form-group">
         <label>Fecha de entrega</label>
@@ -2316,6 +2317,18 @@
       <div class="spinner" id="ped-ent-spinner" style="display:none"></div>
     </div>
     <div class="msg-error" id="ped-ent-error"></div>
+    </div><!-- fin ped-ent-form -->
+
+    <!-- Resultado: resumen para el local -->
+    <div id="ped-ent-resultado" style="display:none">
+      <div style="font-size:14px;color:var(--verde-oscuro);font-weight:700;margin-bottom:0.5rem">✓ Entrega registrada</div>
+      <div style="font-size:12px;color:var(--texto-muted);margin-bottom:0.5rem">Copiá este resumen y mandáselo al local por WhatsApp:</div>
+      <div id="ped-ent-resumen-texto" style="background:var(--gris-claro);border:1px solid var(--borde);border-radius:10px;padding:0.85rem 1rem;font-size:14px;line-height:1.5;white-space:pre-wrap"></div>
+      <div class="btn-row" style="margin-top:1rem">
+        <button class="btn-verde" onclick="copiarResumenEntrega()">📋 Copiar para el local</button>
+        <button class="btn-outline" onclick="cerrarEntrega()">Cerrar</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -5542,6 +5555,8 @@ function abrirEntrega(row) {
   const p = PEDIDOS.find(x => x._row === row);
   if (!p) return;
   pedEntrega = p;
+  document.getElementById('ped-ent-form').style.display = '';
+  document.getElementById('ped-ent-resultado').style.display = 'none';
   document.getElementById('ped-ent-cliente').textContent = p.cliente + '  ·  ' + listaCanalNombre(p.lista);
   document.getElementById('ped-ent-resumen').textContent = resumenItems(p.items);
   document.getElementById('ped-ent-fecha').value = hoy();
@@ -5603,7 +5618,37 @@ function actualizarTotalEntrega() {
 }
 function cerrarEntrega() {
   document.getElementById('ped-entrega-modal').style.display = 'none';
+  document.getElementById('ped-ent-form').style.display = '';
+  document.getElementById('ped-ent-resultado').style.display = 'none';
   pedEntrega = null;
+}
+
+// Arma el texto de resumen para mandarle al local por WhatsApp
+let resumenEntregaTexto = '';
+function armarResumenEntrega(p, fecha, env, totalProd, descEnv, final, estado, pago) {
+  const fechaTxt = (fecha||'').split('-').reverse().join('/');
+  let t = `🧾 *Entrega ES — ${p.cliente}*\n${fechaTxt}\n\n*Entregado:*\n`;
+  PRODUCTOS_LISTA.forEach(prod => {
+    const c = p.items[prod] || 0;
+    if (c > 0) t += `${emojiProducto(prod)} ${prod} ×${c}\n`;
+  });
+  const envKeys = Object.keys(env);
+  t += `\n♻️ *Envases recibidos:*\n`;
+  if (envKeys.length) envKeys.forEach(tipo => { t += `${env[tipo]} ${tipo}\n`; });
+  else t += `—\n`;
+  t += `\nProductos: ${pesos(totalProd)}\n`;
+  if (descEnv > 0) t += `Descuento envases: −${pesos(descEnv)}\n`;
+  t += `💰 *Total a pagar: ${pesos(final)}*\n`;
+  t += `\n${estado === 'Cobrado' ? '✅ Pagado' + (pago ? ' (' + pago + ')' : '') : '⏳ Queda pendiente de pago'}`;
+  t += `\n¡Gracias! 🌿`;
+  return t;
+}
+function copiarResumenEntrega() {
+  navigator.clipboard.writeText(resumenEntregaTexto).then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ Copiado';
+    setTimeout(() => btn.textContent = '📋 Copiar para el local', 2000);
+  });
 }
 async function confirmarEntrega() {
   if (!pedEntrega) return;
@@ -5652,9 +5697,18 @@ async function confirmarEntrega() {
     // Saca el pedido de la lista de pendientes (borra la fila del Sheet)
     await borrarFilaPedido(p._row);
     document.getElementById('ped-ent-spinner').style.display = 'none';
-    cerrarEntrega();
-    await abrirPedidos();
-    showMsg('ped-success', true, `Entrega de ${local} registrada como venta.`);
+
+    // Arma el resumen para el local y lo muestra (queda listo para copiar)
+    const totalProd = rows.reduce((s, r) => s + r[7], 0);
+    const descEnv = envRows.reduce((s, r) => s + r[6], 0);
+    resumenEntregaTexto = armarResumenEntrega(p, fecha, env, totalProd, descEnv, totalProd - descEnv, estado, pago);
+    document.getElementById('ped-ent-resumen-texto').textContent = resumenEntregaTexto;
+    document.getElementById('ped-ent-form').style.display = 'none';
+    document.getElementById('ped-ent-resultado').style.display = 'block';
+
+    // Refresca la lista de pendientes por detrás (el modal queda abierto con el resumen)
+    abrirPedidos();
+    showMsg('ped-success', true, `Entrega de ${local} registrada.`);
   } catch(e) {
     document.getElementById('ped-ent-spinner').style.display = 'none';
     err.textContent = 'Error al guardar: ' + e.message;
