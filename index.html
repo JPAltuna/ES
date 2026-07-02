@@ -5658,6 +5658,12 @@ async function confirmarEntrega() {
   const pago = document.getElementById('ped-ent-pago').value;
   const estado = document.getElementById('ped-ent-estado').value;
   if (!fecha) { err.textContent = 'Poné la fecha de entrega.'; err.style.display = 'block'; return; }
+  // Obliga a definir el pago: si está Cobrado, hay que elegir Cash o Transfe;
+  // si no, hay que marcarlo Pendiente. No se puede confirmar "en el aire".
+  if (estado === 'Cobrado' && !pago) {
+    err.textContent = 'Elegí cómo pagó (Cash o Transfe), o marcá el estado como Pendiente.';
+    err.style.display = 'block'; return;
+  }
   err.style.display = 'none';
 
   const canal = listaCanalNombre(p.lista);     // Afuera o Personas
