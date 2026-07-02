@@ -1866,9 +1866,68 @@
       <div class="page" id="page-insumos">
         <div class="page-header">
           <div class="page-title">Insumos</div>
-          <div class="page-desc">Precios actuales, actualización y cálculo de costos por producto</div>
+          <div class="page-desc">Seguimiento de stock y precios de insumos</div>
         </div>
 
+        <div class="subtabs" id="ins-subtabs">
+          <button class="subtab on" onclick="insTab('stock', this)">📦 Stock</button>
+          <button class="subtab" onclick="insTab('precios', this)">🏷️ Precios</button>
+        </div>
+
+        <!-- ===== SOLAPA: STOCK ===== -->
+        <div id="ins-tab-stock">
+          <div class="card">
+            <div class="card-title">Registrar stock</div>
+            <div style="font-size:12px;color:var(--texto-muted);margin-bottom:1rem">Anotá cuánto tenés de cada insumo, con la fecha. Cada tanto lo volvés a contar y queda el seguimiento. No hace falta ser exacta con las fechas.</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Fecha</label>
+                <input type="date" id="stk-fecha" />
+              </div>
+              <div class="form-group">
+                <label>Insumo</label>
+                <select id="stk-insumo" onchange="onInsumoStockChange()">
+                  <option value="">— elegí —</option>
+                </select>
+              </div>
+              <div class="form-group" id="stk-otro-wrap" style="display:none">
+                <label>Nuevo insumo</label>
+                <input type="text" id="stk-otro-nombre" placeholder="Nombre del insumo" />
+              </div>
+              <div class="form-group" id="stk-otro-unidad-wrap" style="display:none">
+                <label>Unidad</label>
+                <input type="text" id="stk-otro-unidad" placeholder="kg, litro, unidad..." />
+              </div>
+              <div class="form-group">
+                <label>Cantidad <span id="stk-unidad-lbl" style="color:var(--texto-muted);font-weight:400"></span></label>
+                <input type="number" id="stk-cantidad" min="0" step="any" inputmode="decimal" placeholder="0" />
+              </div>
+              <div class="form-group">
+                <label>Nota (opcional)</label>
+                <input type="text" id="stk-nota" placeholder="Ej: compré 10, queda poco..." />
+              </div>
+            </div>
+            <div class="btn-row">
+              <button class="btn-verde" onclick="guardarConteoStock()">💾 Registrar</button>
+            </div>
+            <div class="msg-error" id="stk-error"></div>
+            <div class="msg-success" id="stk-success"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">📦 Stock actual</div>
+            <div id="stk-loading" class="loading" style="display:none"><div class="spinner"></div> Cargando...</div>
+            <div id="stk-actual"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">🗓️ Historial de registros</div>
+            <div id="stk-historial"></div>
+          </div>
+        </div>
+
+        <!-- ===== SOLAPA: PRECIOS (lo que ya existía) ===== -->
+        <div id="ins-tab-precios" style="display:none">
         <div id="ins-loading" class="loading"><div class="spinner"></div> Cargando insumos...</div>
 
         <div id="ins-content" style="display:none">
@@ -1904,6 +1963,7 @@
           </div>
 
         </div>
+        </div><!-- fin ins-tab-precios -->
       </div>
 
 
@@ -2648,7 +2708,7 @@ function showPage(name, btn) {
   if (name === 'costos') abrirCostosFijos();
   if (name === 'cobros') { setFechas('cob-desde','cob-hasta'); }
   if (name === 'precios') cargarPrecios();
-  if (name === 'insumos') cargarInsumos();
+  if (name === 'insumos') { cargarInsumos(); insTab('stock', document.querySelector('#ins-subtabs .subtab')); }
   if (name === 'cierre') { document.getElementById('cierre-mes').value = getMes(); cargarHistorialCierres(); }
   if (name === 'reporte-mensual') { document.getElementById('repmes-mes').value = getMes(); }
   if (name === 'analisis') {
@@ -3725,6 +3785,7 @@ async function cargarInsumos() {
     insumosNuevosPrecios = {};
     renderInsumosTabla();
     calcularCostosDesdeRecetas();
+    poblarSelectInsumosStock();   // refresca el desplegable de la solapa Stock
 
     document.getElementById('ins-loading').style.display = 'none';
     document.getElementById('ins-content').style.display = 'block';
@@ -6050,6 +6111,198 @@ async function borrarLocalModal(row) {
     await borrarFilaSheet(await ensureLocalesTab(), row);
     await cargarLocales(true); renderLocalesModal(); refrescarSelectsLocales();
   } catch(e) { alert('Error al borrar: ' + e.message); }
+}
+
+// =====================
+// STOCK DE INSUMOS (solapa dentro de Insumos)
+// =====================
+const STK_TAB = 'Stock';
+let STOCK = [];             // [{_row, id, fecha, insumo, cantidad, unidad, nota}]
+let stockSheetId = null;
+let stockCargado = false;
+
+function insTab(name, btn) {
+  document.getElementById('ins-tab-stock').style.display   = (name === 'stock')   ? 'block' : 'none';
+  document.getElementById('ins-tab-precios').style.display = (name === 'precios') ? 'block' : 'none';
+  document.querySelectorAll('#ins-subtabs .subtab').forEach(b => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  else document.querySelector('#ins-subtabs .subtab').classList.add('on');
+  if (name === 'stock' && !stockCargado) cargarStock();
+}
+
+function formatNum(n) { return (Math.round(n * 100) / 100).toLocaleString('es-AR'); }
+function fechaCorta(f) { return (f || '').split('-').reverse().join('/'); }
+
+async function ensureStockTab() {
+  if (stockSheetId) return stockSheetId;
+  const token = await getAccessToken();
+  const meta = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.sheetId}?fields=sheets.properties`,
+    { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+  if (meta.error) throw new Error(meta.error.message);
+  const ex = (meta.sheets||[]).find(s => s.properties.title === STK_TAB);
+  if (ex) { stockSheetId = ex.properties.sheetId; return stockSheetId; }
+  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.sheetId}:batchUpdate`, {
+    method:'POST', headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+    body: JSON.stringify({ requests:[{ addSheet:{ properties:{ title: STK_TAB } } }] })
+  }).then(r => r.json());
+  if (res.error) throw new Error(res.error.message);
+  stockSheetId = res.replies[0].addSheet.properties.sheetId;
+  await sheetsUpdate(`${STK_TAB}!A1:F1`, [['id','fecha','insumo','cantidad','unidad','nota']]);
+  return stockSheetId;
+}
+
+async function cargarStock() {
+  const load = document.getElementById('stk-loading');
+  const f = document.getElementById('stk-fecha'); if (f && !f.value) f.value = hoy();
+  if (load) load.style.display = 'flex';
+  try {
+    await ensureStockTab();
+    const data = await sheetsGet(`${STK_TAB}!A:F`);
+    STOCK = [];
+    (data||[]).forEach((r,i) => {
+      if (i === 0) return;
+      if (!r[2]) return;
+      STOCK.push({ _row:i+1, id:r[0], fecha:r[1]||'', insumo:(r[2]||'').trim(), cantidad:parseFloat(r[3])||0, unidad:r[4]||'', nota:r[5]||'' });
+    });
+    stockCargado = true;
+    poblarSelectInsumosStock();
+    renderStock();
+  } catch(e) {
+    const cont = document.getElementById('stk-actual');
+    if (cont) cont.innerHTML = `<div style="color:var(--rojo);font-size:14px">No se pudo cargar: ${e.message}</div>`;
+  } finally {
+    if (load) load.style.display = 'none';
+  }
+}
+
+function unidadDeInsumo(nombre) {
+  if (insumosData && insumosData[nombre] && insumosData[nombre].unidad) return insumosData[nombre].unidad;
+  const s = STOCK.find(x => x.insumo === nombre && x.unidad);
+  return s ? s.unidad : '';
+}
+
+function poblarSelectInsumosStock() {
+  const sel = document.getElementById('stk-insumo');
+  if (!sel) return;
+  const prev = sel.value;
+  const nombres = new Set(Object.keys(insumosData || {}));
+  STOCK.forEach(s => { if (s.insumo) nombres.add(s.insumo); });
+  const lista = [...nombres].sort((a,b) => a.localeCompare(b));
+  sel.innerHTML = '<option value="">— elegí —</option>'
+    + lista.map(n => `<option value="${escAttr(n)}">${n}</option>`).join('')
+    + '<option value="__otro__">➕ Otro insumo…</option>';
+  if (prev && prev !== '__otro__') sel.value = prev;
+  onInsumoStockChange();
+}
+
+function onInsumoStockChange() {
+  const val = (document.getElementById('stk-insumo')||{}).value || '';
+  const otroN = document.getElementById('stk-otro-wrap');
+  const otroU = document.getElementById('stk-otro-unidad-wrap');
+  const lbl = document.getElementById('stk-unidad-lbl');
+  if (val === '__otro__') {
+    otroN.style.display = ''; otroU.style.display = ''; if (lbl) lbl.textContent = '';
+  } else {
+    otroN.style.display = 'none'; otroU.style.display = 'none';
+    const u = val ? unidadDeInsumo(val) : '';
+    if (lbl) lbl.textContent = u ? `(${u})` : '';
+  }
+}
+
+async function guardarConteoStock() {
+  const fecha = document.getElementById('stk-fecha').value;
+  const sel = document.getElementById('stk-insumo').value;
+  const cantidad = parseFloat(document.getElementById('stk-cantidad').value);
+  const nota = document.getElementById('stk-nota').value.trim();
+  const err = document.getElementById('stk-error');
+
+  if (!fecha) { err.textContent = 'Poné la fecha.'; err.style.display = 'block'; return; }
+  let insumo, unidad;
+  if (sel === '__otro__') {
+    insumo = document.getElementById('stk-otro-nombre').value.trim();
+    unidad = document.getElementById('stk-otro-unidad').value.trim();
+    if (!insumo) { err.textContent = 'Escribí el nombre del insumo.'; err.style.display = 'block'; return; }
+  } else {
+    insumo = sel; unidad = unidadDeInsumo(sel);
+  }
+  if (!insumo) { err.textContent = 'Elegí un insumo.'; err.style.display = 'block'; return; }
+  if (isNaN(cantidad) || cantidad < 0) { err.textContent = 'Poné una cantidad válida.'; err.style.display = 'block'; return; }
+  err.style.display = 'none';
+
+  const btn = document.querySelector('button[onclick="guardarConteoStock()"]');
+  btn.disabled = true; btn.textContent = '⏳ Guardando...';
+  try {
+    // Si es un insumo nuevo, lo agrega al maestro de Insumos para recordarlo
+    if (sel === '__otro__' && !(insumosData && insumosData[insumo])) {
+      try {
+        await sheetsAppend('Insumos!A:F', [[insumo, unidad, '', hoy(), '', '']]);
+        insumosData[insumo] = { unidad, precio:0, fecha:hoy(), proveedor:'', obs:'' };
+      } catch(e) { /* si falla, igual guardamos el stock */ }
+    }
+    await ensureStockTab();
+    await sheetsAppend(`${STK_TAB}!A:F`, [[nuevoIdPedido(), fecha, insumo, cantidad, unidad, nota]]);
+    document.getElementById('stk-cantidad').value = '';
+    document.getElementById('stk-nota').value = '';
+    if (sel === '__otro__') {
+      document.getElementById('stk-otro-nombre').value = '';
+      document.getElementById('stk-otro-unidad').value = '';
+      document.getElementById('stk-insumo').value = '';
+      onInsumoStockChange();
+    }
+    await cargarStock();
+    showMsg('stk-success', true, `Stock de ${insumo} registrado.`);
+  } catch(e) {
+    err.textContent = 'Error al guardar: ' + e.message; err.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = '💾 Registrar';
+  }
+}
+
+async function borrarConteoStock(row) {
+  const s = STOCK.find(x => x._row === row);
+  if (!s) return;
+  if (!confirm(`¿Borrar el registro de ${s.insumo} del ${fechaCorta(s.fecha)}?`)) return;
+  try {
+    await borrarFilaSheet(await ensureStockTab(), row);
+    await cargarStock();
+  } catch(e) { alert('Error al borrar: ' + e.message); }
+}
+
+function renderStock() {
+  // Stock actual = último registro por insumo (por fecha; desempate por orden de carga)
+  const cronologico = [...STOCK].sort((a,b) => a.fecha === b.fecha ? a._row - b._row : (a.fecha < b.fecha ? -1 : 1));
+  const ultimo = {};
+  cronologico.forEach(s => { ultimo[s.insumo] = s; });
+  const insumos = Object.keys(ultimo).sort((a,b) => a.localeCompare(b));
+  const cont = document.getElementById('stk-actual');
+  if (!insumos.length) {
+    cont.innerHTML = '<div style="font-size:13px;color:var(--texto-muted)">Todavía no cargaste stock.</div>';
+  } else {
+    cont.innerHTML = insumos.map(n => {
+      const s = ultimo[n];
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--gris-claro)">
+        <div style="min-width:0">
+          <div style="font-size:15px;font-weight:600">${n}</div>
+          <div style="font-size:11px;color:var(--texto-muted)">último conteo: ${fechaCorta(s.fecha)}</div>
+        </div>
+        <div style="font-size:18px;font-weight:700;color:var(--verde-oscuro);white-space:nowrap">${formatNum(s.cantidad)} ${s.unidad}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Historial (más nuevo primero)
+  const hist = [...STOCK].sort((a,b) => a.fecha === b.fecha ? b._row - a._row : (a.fecha < b.fecha ? 1 : -1));
+  const h = document.getElementById('stk-historial');
+  if (!hist.length) { h.innerHTML = '<div style="font-size:13px;color:var(--texto-muted)">Sin registros.</div>'; return; }
+  h.innerHTML = hist.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--gris-claro)">
+      <div style="min-width:0">
+        <span style="font-size:12px;color:var(--texto-muted)">${fechaCorta(s.fecha)}</span>
+        <span style="font-size:14px;font-weight:600;margin-left:6px">${s.insumo}</span>
+        <span style="font-size:14px">: ${formatNum(s.cantidad)} ${s.unidad}</span>
+        ${s.nota ? `<span style="font-size:12px;color:var(--texto-muted)"> · ${s.nota}</span>` : ''}
+      </div>
+      <button onclick="borrarConteoStock(${s._row})" style="background:none;border:none;font-size:16px;cursor:pointer;color:var(--rojo);flex-shrink:0">🗑️</button>
+    </div>`).join('');
 }
 
 // Check if config exists
