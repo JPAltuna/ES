@@ -2342,8 +2342,12 @@
     <div id="ped-ent-cliente" style="font-size:15px;font-weight:600;margin-bottom:0.75rem"></div>
 
     <div id="ped-ent-form">
-    <div class="card-title" style="margin-bottom:0.4rem">Productos <span style="font-size:11px;color:var(--texto-muted);font-weight:400">(podés ajustar cantidades en la entrega)</span></div>
-    <div id="ped-ent-productos" style="display:flex;flex-direction:column;gap:8px;margin-bottom:1rem"></div>
+    <div class="card-title" style="margin-bottom:0.5rem;display:flex;justify-content:space-between;align-items:center">
+      <span>Productos</span>
+      <button type="button" id="ped-ent-editar-btn" onclick="entregaEditarProductos()" style="border:1px solid var(--borde);background:var(--bg);border-radius:8px;font-size:12px;font-weight:600;color:var(--verde-oscuro);padding:6px 11px;cursor:pointer">✏️ Editar</button>
+    </div>
+    <div id="ped-ent-resumen-view" style="margin-bottom:1rem"></div>
+    <div id="ped-ent-productos" style="display:none;flex-direction:column;gap:8px;margin-bottom:1rem"></div>
 
     <hr class="divider">
     <div class="form-grid">
@@ -2499,7 +2503,7 @@ const PRECIOS = {
   'Kesir petit':   { costo: 2664, umepay: 4700,  afuera: 5170,  personas: 5640,  costo_envase: 0 },
   '1/2l Hibiscus': { costo: 1714, umepay: 4400,  afuera: 4800,  personas: 5100,  costo_envase: 1050 },
   '1l Hibiscus':   { costo: 2323, umepay: 5200,  afuera: 5600,  personas: 6000,  costo_envase: 1231 },
-  'Chucrut':       { costo: 3250, umepay: 6500,  afuera: 7150,  personas: 7800,  costo_envase: 0 },
+  'Chucrut':       { costo: 3250, umepay: 6000,  afuera: 7000,  personas: 7800,  costo_envase: 0 },
 };
 
 const COSTO_ENVASE = {
@@ -5106,6 +5110,12 @@ async function cargarPrecios() {
       });
     }
 
+    // Incluye productos que están en el código (PRECIOS) pero todavía no en la
+    // planilla (ej: Chucrut recién agregado), para gestionarlos también desde acá.
+    Object.entries(PRECIOS).forEach(([k,v]) => {
+      if (!preciosActuales[k]) preciosActuales[k] = {...v, vigente: ''};
+    });
+
     renderTablaPrecios(preciosActuales);
 
     // Historial
@@ -5290,6 +5300,14 @@ async function aplicarPrecios() {
         PRECIOS[prod].afuera = p.afuera;
         PRECIOS[prod].personas = p.personas;
       }
+    }
+
+    // Productos que todavía no estaban en la planilla (ej: Chucrut) → los agrega
+    const enSheet = new Set(prodData.slice(1).map(r => (r[0]||'').trim()).filter(Boolean));
+    for (const [prod, p] of Object.entries(preciosSimulados)) {
+      if (enSheet.has(prod)) continue;
+      await sheetsAppend('Productos!A:G', [[prod, p.costo, p.umepay, p.afuera, p.personas, p.costo_envase, fechaHoy]]);
+      if (PRECIOS[prod]) { PRECIOS[prod].umepay = p.umepay; PRECIOS[prod].afuera = p.afuera; PRECIOS[prod].personas = p.personas; }
     }
 
     preciosActuales = JSON.parse(JSON.stringify(preciosSimulados));
@@ -5629,7 +5647,13 @@ function abrirEntrega(row) {
   document.getElementById('ped-ent-pago').value = '';
   document.getElementById('ped-ent-estado').value = 'Cobrado';
   document.getElementById('ped-ent-error').style.display = 'none';
-  renderEntregaProductos();   // grilla de productos editable (se puede ajustar en la entrega)
+  // Productos: arranca en modo lectura; se editan solo si toca "✏️ Editar"
+  entregaEditando = false;
+  document.getElementById('ped-ent-productos').style.display = 'none';
+  document.getElementById('ped-ent-resumen-view').style.display = 'block';
+  const editBtn = document.getElementById('ped-ent-editar-btn');
+  if (editBtn) editBtn.style.display = '';
+  renderEntregaResumenView();
 
   // Grilla de envases devueltos
   const grid = document.getElementById('ped-ent-envases');
@@ -5710,10 +5734,34 @@ function leerItemsEntrega() {
   });
   return items;
 }
+let entregaEditando = false;
+// Cantidades vigentes: las editadas si está en modo edición, si no las del pedido
+function itemsEntrega() {
+  return entregaEditando ? leerItemsEntrega() : { ...(pedEntrega ? pedEntrega.items : {}) };
+}
+// Vista de solo lectura de los productos del pedido
+function renderEntregaResumenView() {
+  if (!pedEntrega) return;
+  const p = pedEntrega;
+  const cont = document.getElementById('ped-ent-resumen-view');
+  const lines = PRODUCTOS_LISTA.filter(prod => (p.items[prod]||0) > 0)
+    .map(prod => `<div style="display:flex;justify-content:space-between;font-size:14px;padding:4px 0;border-bottom:1px solid var(--gris-claro)"><span>${emojiProducto(prod)} ${prod}</span><strong>×${p.items[prod]}</strong></div>`).join('');
+  cont.innerHTML = lines || '<div style="font-size:13px;color:var(--texto-muted)">Sin productos.</div>';
+}
+// Pasa a modo edición (muestra la grilla con +/−)
+function entregaEditarProductos() {
+  entregaEditando = true;
+  renderEntregaProductos();
+  document.getElementById('ped-ent-resumen-view').style.display = 'none';
+  document.getElementById('ped-ent-productos').style.display = 'flex';
+  const editBtn = document.getElementById('ped-ent-editar-btn');
+  if (editBtn) editBtn.style.display = 'none';
+  actualizarTotalEntrega();
+}
 function actualizarTotalEntrega() {
   if (!pedEntrega) return;
   const fecha = document.getElementById('ped-ent-fecha').value || hoy();
-  const totalProd = montoPedido(leerItemsEntrega(), fecha, pedEntrega.lista);
+  const totalProd = montoPedido(itemsEntrega(), fecha, pedEntrega.lista);
   const env = leerEnvasesEntrega();
   let descEnv = 0;
   Object.keys(env).forEach(tipo => { descEnv += (ENV_DESC[tipo]||0) * env[tipo]; });
@@ -5782,8 +5830,8 @@ async function confirmarEntrega() {
 
   await cargarHistPreciosVenta();
 
-  // Cantidades finales (pueden haberse ajustado en la entrega)
-  const items = leerItemsEntrega();
+  // Cantidades finales (las del pedido, o las editadas si se tocó "Editar")
+  const items = itemsEntrega();
 
   // Filas de Ventas (mismo formato que "Cargar ventas")
   const rows = [];
