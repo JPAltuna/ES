@@ -2339,10 +2339,13 @@
       <div class="card-title" style="margin:0">Entregar pedido</div>
       <button onclick="cerrarEntrega()" style="border:none;background:none;font-size:22px;line-height:1;cursor:pointer;color:var(--texto-muted)">✕</button>
     </div>
-    <div id="ped-ent-cliente" style="font-size:15px;font-weight:600;margin-bottom:0.25rem"></div>
-    <div id="ped-ent-resumen" style="font-size:13px;color:var(--texto-muted);margin-bottom:1rem"></div>
+    <div id="ped-ent-cliente" style="font-size:15px;font-weight:600;margin-bottom:0.75rem"></div>
 
     <div id="ped-ent-form">
+    <div class="card-title" style="margin-bottom:0.4rem">Productos <span style="font-size:11px;color:var(--texto-muted);font-weight:400">(podés ajustar cantidades en la entrega)</span></div>
+    <div id="ped-ent-productos" style="display:flex;flex-direction:column;gap:8px;margin-bottom:1rem"></div>
+
+    <hr class="divider">
     <div class="form-grid">
       <div class="form-group">
         <label>Fecha de entrega</label>
@@ -5622,11 +5625,11 @@ function abrirEntrega(row) {
   document.getElementById('ped-ent-form').style.display = '';
   document.getElementById('ped-ent-resultado').style.display = 'none';
   document.getElementById('ped-ent-cliente').textContent = p.cliente + '  ·  ' + listaCanalNombre(p.lista);
-  document.getElementById('ped-ent-resumen').textContent = resumenItems(p.items);
   document.getElementById('ped-ent-fecha').value = hoy();
   document.getElementById('ped-ent-pago').value = '';
   document.getElementById('ped-ent-estado').value = 'Cobrado';
   document.getElementById('ped-ent-error').style.display = 'none';
+  renderEntregaProductos();   // grilla de productos editable (se puede ajustar en la entrega)
 
   // Grilla de envases devueltos
   const grid = document.getElementById('ped-ent-envases');
@@ -5666,10 +5669,51 @@ function leerEnvasesEntrega() {
   });
   return env;
 }
+// --- Productos editables en la entrega ---
+function pentId(prod) { return 'pent-' + prod.replace(/[^a-z0-9]/gi,'_'); }
+function renderEntregaProductos() {
+  if (!pedEntrega) return;
+  const p = pedEntrega;
+  const fecha = document.getElementById('ped-ent-fecha').value || hoy();
+  const ck = listaCanalKey(p.lista);
+  const grid = document.getElementById('ped-ent-productos');
+  grid.innerHTML = '';
+  PRODUCTOS_LISTA.forEach(prod => {
+    const precio = getPrecioVentaFecha(prod, ck, fecha);
+    const id = pentId(prod);
+    const cant = p.items[prod] || 0;
+    grid.innerHTML += `<div style="display:flex;align-items:center;gap:8px;background:var(--gris-claro);border-radius:10px;padding:0.5rem 0.6rem;border:1px solid var(--borde)">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500;line-height:1.2">${emojiProducto(prod)} ${prod}</div>
+        ${precio ? `<div style="font-size:11px;color:var(--texto-muted)">${pesos(precio)} c/u</div>` : ''}
+      </div>
+      <button type="button" onclick="stepEntProd('${id}',-1)" style="width:40px;height:40px;border:1px solid var(--borde);background:var(--bg);border-radius:10px;font-size:20px;line-height:1;cursor:pointer;flex-shrink:0">−</button>
+      <input type="number" id="${id}" min="0" placeholder="0" value="${cant || ''}" inputmode="numeric"
+        style="width:54px;border:1px solid var(--borde);border-radius:8px;padding:7px 4px;font-size:17px;font-weight:600;text-align:center;flex-shrink:0"
+        oninput="actualizarTotalEntrega()" />
+      <button type="button" onclick="stepEntProd('${id}',1)" style="width:40px;height:40px;border:1px solid var(--borde);background:var(--bg);border-radius:10px;font-size:20px;line-height:1;cursor:pointer;flex-shrink:0">+</button>
+    </div>`;
+  });
+}
+function stepEntProd(id, delta) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.value = Math.max(0, (parseFloat(el.value)||0) + delta) || '';
+  actualizarTotalEntrega();
+}
+function leerItemsEntrega() {
+  const items = {};
+  PRODUCTOS_LISTA.forEach(prod => {
+    const el = document.getElementById(pentId(prod));
+    const c = parseFloat(el?.value) || 0;
+    if (c > 0) items[prod] = c;
+  });
+  return items;
+}
 function actualizarTotalEntrega() {
   if (!pedEntrega) return;
   const fecha = document.getElementById('ped-ent-fecha').value || hoy();
-  const totalProd = montoPedido(pedEntrega.items, fecha, pedEntrega.lista);
+  const totalProd = montoPedido(leerItemsEntrega(), fecha, pedEntrega.lista);
   const env = leerEnvasesEntrega();
   let descEnv = 0;
   Object.keys(env).forEach(tipo => { descEnv += (ENV_DESC[tipo]||0) * env[tipo]; });
@@ -5689,11 +5733,11 @@ function cerrarEntrega() {
 
 // Arma el texto de resumen para mandarle al local por WhatsApp
 let resumenEntregaTexto = '';
-function armarResumenEntrega(p, fecha, env, totalProd, descEnv, final, estado, pago) {
+function armarResumenEntrega(p, items, fecha, env, totalProd, descEnv, final, estado, pago) {
   const fechaTxt = (fecha||'').split('-').reverse().join('/');
   let t = `🧾 *Entrega ES — ${p.cliente}*\n${fechaTxt}\n\n*Entregado:*\n`;
   PRODUCTOS_LISTA.forEach(prod => {
-    const c = p.items[prod] || 0;
+    const c = items[prod] || 0;
     if (c > 0) t += `${emojiProducto(prod)} ${prod} ×${c}\n`;
   });
   const envKeys = Object.keys(env);
@@ -5738,10 +5782,13 @@ async function confirmarEntrega() {
 
   await cargarHistPreciosVenta();
 
+  // Cantidades finales (pueden haberse ajustado en la entrega)
+  const items = leerItemsEntrega();
+
   // Filas de Ventas (mismo formato que "Cargar ventas")
   const rows = [];
   PRODUCTOS_LISTA.forEach(prod => {
-    const cant = p.items[prod] || 0;
+    const cant = items[prod] || 0;
     if (cant <= 0) return;
     const precio = getPrecioVentaFecha(prod, canalKey, fecha);
     rows.push([fecha, mes, canal, local, prod, cant, precio, cant*precio, pago, fechaPago, estado]);
@@ -5771,7 +5818,7 @@ async function confirmarEntrega() {
     // Arma el resumen para el local y lo muestra (queda listo para copiar)
     const totalProd = rows.reduce((s, r) => s + r[7], 0);
     const descEnv = envRows.reduce((s, r) => s + r[6], 0);
-    resumenEntregaTexto = armarResumenEntrega(p, fecha, env, totalProd, descEnv, totalProd - descEnv, estado, pago);
+    resumenEntregaTexto = armarResumenEntrega(p, items, fecha, env, totalProd, descEnv, totalProd - descEnv, estado, pago);
     document.getElementById('ped-ent-resumen-texto').textContent = resumenEntregaTexto;
     document.getElementById('ped-ent-form').style.display = 'none';
     document.getElementById('ped-ent-resultado').style.display = 'block';
