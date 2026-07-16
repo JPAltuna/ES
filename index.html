@@ -5783,20 +5783,20 @@ function cerrarEntrega() {
 let resumenEntregaTexto = '';
 function armarResumenEntrega(p, items, fecha, env, totalProd, descEnv, final, estado, pago) {
   const fechaTxt = (fecha||'').split('-').reverse().join('/');
-  let t = `🧾 *Entrega ES — ${p.cliente}*\n${fechaTxt}\n\n*Entregado:*\n`;
+  let t = `🧾 *Entrega ES — ${p.cliente}*\n📅 ${fechaTxt}\n\n*Productos:*\n`;
   PRODUCTOS_LISTA.forEach(prod => {
     const c = items[prod] || 0;
     if (c > 0) t += `${emojiProducto(prod)} ${prod} ×${c}\n`;
   });
+  t += `\nImporte: ${pesos(totalProd)}\n`;
   const envKeys = Object.keys(env);
   t += `\n♻️ *Envases recibidos:*\n`;
   if (envKeys.length) envKeys.forEach(tipo => { t += `${env[tipo]} ${tipo}\n`; });
   else t += `—\n`;
-  t += `\nProductos: ${pesos(totalProd)}\n`;
   if (descEnv > 0) t += `Descuento envases: −${pesos(descEnv)}\n`;
-  t += `💰 *Total a pagar: ${pesos(final)}*\n`;
+  t += `\n💰 *Total a pagar: ${pesos(final)}*\n`;
   t += `\n${estado === 'Cobrado' ? '✅ Pagado' + (pago ? ' (' + pago + ')' : '') : '⏳ Queda pendiente de pago'}`;
-  t += `\n¡Gracias! 🌿`;
+  t += `\n\n¡Gracias! 🌿`;
   return t;
 }
 function copiarResumenEntrega() {
