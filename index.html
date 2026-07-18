@@ -1696,15 +1696,6 @@
             </div>
           </div>
 
-          <!-- Fijos no registrados -->
-          <div class="card" id="rm-fijos-card">
-            <div class="card-title">Costos fijos considerados no registrados</div>
-            <div style="font-size:12px;color:var(--texto-muted);margin-bottom:0.75rem">
-              Estos fijos están tildados pero no aparecen como egreso registrado este mes. Solo informativo — no afectan el cálculo de ganancia neta.
-            </div>
-            <div id="rm-fijos-noregistrados"></div>
-          </div>
-
           <!-- Pendientes por local -->
           <div class="card">
             <div class="card-title">Pendiente de cobro por local</div>
@@ -4083,25 +4074,7 @@ async function generarReporteMensual() {
       totalEgresos += tot;
     });
 
-    // Fijos no registrados: tildados en la lista pero no aparecen en egresos del mes
-    // Buscamos keywords en los egresos para matchear con los fijos
-    const keywords = {
-      alquiler: ['alquiler'],
-      julia:    ['julia'],
-      negri:    ['negri','mila','camila','sueldo 2','sueldo2'],
-      gasoil:   ['gasoil','nafta','combustible'],
-      monotributo: ['monotributo'],
-    };
-    const egresosTexto = egresos.map(r => (r[1]||'').toLowerCase()).join(' ');
     await cargarFijosPorMes();
-    const fijosMesArr = (FIJOS_POR_MES[mes] || []).filter(f => f.monto > 0);
-    const fijosNoReg = [];
-    fijosMesArr.forEach(f => {
-      const palabras = f.concepto.toLowerCase().split(/\s+/).filter(w => w.length > 3);
-      const registrado = palabras.some(w => egresosTexto.includes(w));
-      if (!registrado) fijosNoReg.push({ nombre: f.concepto, monto: f.monto });
-    });
-    const totalFijosNoReg = fijosNoReg.reduce((s,f) => s+f.monto, 0);
     const totalFijosConsiderados = getFijosTotalMes(mes);
     // Ganancia neta = bruta - costos fijos tildados (sin importar egresos registrados)
     const ganNeta = totalGanancia - totalFijosConsiderados;
@@ -4136,21 +4109,6 @@ async function generarReporteMensual() {
       </tr>`;
     });
     egBody.innerHTML += `<tr class="total-row"><td colspan="2">Total egresos registrados</td><td>${pesos(totalMostrado)}</td></tr>`;
-
-    // Fijos no registrados
-    const fnrDiv = document.getElementById('rm-fijos-noregistrados');
-    if (fijosNoReg.length) {
-      fnrDiv.innerHTML = fijosNoReg.map(f =>
-        `<div style="display:flex;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid var(--borde);font-size:13px">
-          <span>${f.nombre}</span><span style="color:var(--naranja);font-weight:500">${pesos(f.monto)}</span>
-        </div>`
-      ).join('') + `<div style="display:flex;justify-content:space-between;padding:0.5rem 0;font-weight:600;font-size:13px">
-        <span>Total no registrado</span><span style="color:var(--naranja)">${pesos(totalFijosNoReg)}</span>
-      </div>`;
-      document.getElementById('rm-fijos-card').style.display = 'block';
-    } else {
-      document.getElementById('rm-fijos-card').style.display = 'none';
-    }
 
     // Ventas por canal y producto
     const porCanalProd = {};
@@ -4272,12 +4230,6 @@ async function generarReporteMensual() {
       txt += `${icon} ${cat}: ${pesos(subtotal)}\n`;
     });
     txt += `Total egresos: ${pesos(totalEgresos)}\n`;
-
-    if(fijosNoReg.length) {
-      txt += `\n*FIJOS NO REGISTRADOS*\n`;
-      fijosNoReg.forEach(f => { txt += `• ${f.nombre}: ${pesos(f.monto)}\n`; });
-      txt += `Total: ${pesos(totalFijosNoReg)}\n`;
-    }
 
     txt += `\n*RESULTADO*\n`;
     txt += `Ganancia bruta:         ${pesos(totalGanancia)}\n`;
