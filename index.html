@@ -2664,6 +2664,22 @@ function emojiProducto(prod) {
   if (p.includes('chucrut')) return '🥦';
   return '•';
 }
+// Orden fijo para listados en mensajes: suico (1/2 y luego litro), hibiscus, leche, kesir, chucrut
+function ordenProducto(prod) {
+  const p = (prod || '').toLowerCase();
+  let base;
+  if (p.includes('suico')) base = 0;
+  else if (p.includes('hibiscus')) base = 100;
+  else if (p.includes('leche')) base = 200;
+  else if (p.includes('kesir')) base = 300;
+  else if (p.includes('chucrut')) base = 400;
+  else base = 500;
+  let sub;
+  if (p.includes('1/2')) sub = 0;        // medio litro primero
+  else if (p.includes('petit')) sub = 2; // petit al final
+  else sub = 1;                          // litro / normal
+  return base + sub;
+}
 function hoy() {
   return new Date().toISOString().split('T')[0];
 }
@@ -3384,7 +3400,7 @@ async function cargarDashboard() {
     const fechaStr = (f) => { const d=new Date(f+'T12:00:00'); return `${d.getDate()}/${d.getMonth()+1}`; };
     let txt = `📊 *RESUMEN SEMANAL ES*\n📅 ${fechaStr(desde)} al ${fechaStr(hasta)}\n\n*VENTAS POR PRODUCTO*\n`;
     const maxLen = Math.max(8, ...Object.keys(porProducto).map(k=>k.length));
-    Object.entries(porProducto).sort((a,b)=>b[1].unidades-a[1].unidades).forEach(([prod,d]) => {
+    Object.entries(porProducto).sort((a,b)=>ordenProducto(a[0])-ordenProducto(b[0])).forEach(([prod,d]) => {
       txt += `${emojiProducto(prod)} ${prod.padEnd(maxLen)} ${String(d.unidades).padStart(3)} u.  ${pesos(d.venta - d.costo)}\n`;
     });
     txt += `\n*TOTALES*\nUnidades: ${totalUnidades}\nTotal vendido: ${pesos(totalVenta)}\nGanancia bruta: ${pesos(totalGanancia)}\n`;
@@ -4214,7 +4230,7 @@ async function generarReporteMensual() {
     txt += `📅 ${nomMes.toUpperCase()} ${anio}\n\n`;
     txt += `*VENTAS POR PRODUCTO*\n`;
     const maxLen = Math.max(8, ...Object.keys(porProducto).map(k=>k.length));
-    Object.entries(porProducto).sort((a,b)=>b[1].unidades-a[1].unidades).forEach(([prod,d]) => {
+    Object.entries(porProducto).sort((a,b)=>ordenProducto(a[0])-ordenProducto(b[0])).forEach(([prod,d]) => {
       txt += `${emojiProducto(prod)} ${prod.padEnd(maxLen)} ${String(d.unidades).padStart(3)} u.  ${pesos(d.ganancia)}\n`;
     });
     txt += `\n*TOTALES*\n`;
@@ -4889,7 +4905,7 @@ async function consultarCobros() {
       const localNombre = local.charAt(0).toUpperCase()+local.slice(1);
       wpp += `🌿 *Hola ${localNombre}!*\n`;
       wpp += `Te paso el resumen pendiente (${periodoLabel}):\n\n`;
-      Object.entries(porProducto).sort((a,b)=>b[1].total-a[1].total).forEach(([prod,d]) => {
+      Object.entries(porProducto).sort((a,b)=>ordenProducto(a[0])-ordenProducto(b[0])).forEach(([prod,d]) => {
         wpp += `${emojiProducto(prod)} ${prod} — ${d.cant} u.  ${pesos(d.total)}\n`;
       });
       if (totalDescEnvCob > 0) {
