@@ -1794,6 +1794,30 @@
         <div id="costos-loading" class="loading" style="display:none"><div class="spinner"></div> Calculando...</div>
 
         <div id="costos-content" style="display:none">
+          <!-- Simulador de precios -->
+          <div class="card" id="rent-sim-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap">
+              <div class="card-title" style="margin:0">🧪 Simular cambio de precios</div>
+              <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+                <button class="btn-outline" id="rent-sim-btn" onclick="startSimRent()">Simular precios nuevos</button>
+                <button class="btn-outline" id="rent-sim-reset" onclick="resetSimRent()" style="display:none">↩️ Volver a reales</button>
+              </div>
+            </div>
+            <div style="font-size:12px;color:var(--texto-muted);margin-top:0.4rem">
+              Cambiá el precio <strong>Umepay</strong> y mirá al instante cómo cambian la ganancia y el punto de equilibrio del mes. Afuera y Personas se calculan solos (×1.20 y ×1.25). No se guarda nada.
+            </div>
+            <div class="table-wrapper" id="rent-sim-tabla-wrap" style="display:none;margin-top:1rem">
+              <table>
+                <thead><tr><th>Producto</th><th>Costo</th><th>Umepay</th><th>Afuera</th><th>Personas</th></tr></thead>
+                <tbody id="rent-sim-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="rent-sim-banner" style="display:none;background:var(--amarillo-claro);color:var(--amarillo);padding:0.6rem 1rem;border-radius:8px;font-size:13px;margin-bottom:1rem;font-weight:500">
+            🧪 Estás viendo números <strong>SIMULADOS</strong> con precios nuevos. Nada de esto se guarda.
+          </div>
+
           <div class="metrics-grid">
             <div class="metric-card">
               <div class="metric-label">Unidades vendidas</div>
@@ -1813,6 +1837,20 @@
               <div class="metric-label">Ganancia neta</div>
               <div class="metric-value" id="c-gan-neta">—</div>
               <div class="metric-sub" id="c-gan-neta-sub">Descontando costos fijos del mes</div>
+            </div>
+          </div>
+
+          <div class="card" id="rent-sim-cmp" style="display:none">
+            <div class="card-title">Real vs. simulado</div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Concepto</th><th>Real</th><th>Simulado</th><th>Diferencia</th></tr></thead>
+                <tbody>
+                  <tr><td>Ganancia bruta del mes</td><td id="cmp-bruta-real">—</td><td id="cmp-bruta-sim">—</td><td id="cmp-bruta-dif">—</td></tr>
+                  <tr><td>Ganancia neta del mes</td><td id="cmp-neta-real">—</td><td id="cmp-neta-sim">—</td><td id="cmp-neta-dif">—</td></tr>
+                  <tr><td>Unidades para equilibrio</td><td id="cmp-eq-real">—</td><td id="cmp-eq-sim">—</td><td id="cmp-eq-dif">—</td></tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -2110,7 +2148,7 @@
       <div class="page" id="page-precios">
         <div class="page-header">
           <div class="page-title">Precios y productos</div>
-          <div class="page-desc">Tabla de referencia, simulación y actualización de precios</div>
+          <div class="page-desc">Precios reales vigentes. Editá y aplicá cuando decidas cambiarlos.</div>
         </div>
 
         <div id="prec-loading" class="loading"><div class="spinner"></div> Cargando precios...</div>
@@ -2120,7 +2158,7 @@
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
               <div class="card-title" style="margin:0">Precios actuales</div>
               <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
-                <button class="btn-outline" onclick="activarSimulacion()">🧪 Simular cambio</button>
+                <button class="btn-outline" onclick="activarSimulacion()">✏️ Editar precios</button>
                 <button class="btn-outline" onclick="toggleEditCostos()" id="btn-edit-costos">✏️ Editar costos</button>
                 <button class="btn-verde" id="btn-aplicar" onclick="aplicarPrecios()" style="display:none">✓ Aplicar precios</button>
                 <button class="btn-outline" id="btn-cancelar" onclick="cancelarSimulacion()" style="display:none">Cancelar</button>
@@ -2128,7 +2166,7 @@
             </div>
 
             <div id="prec-simulando-badge" style="display:none;background:var(--amarillo-claro);color:var(--amarillo);padding:0.5rem 1rem;border-radius:8px;font-size:13px;margin-bottom:1rem">
-              🧪 Modo simulación — editá el precio Umepay y Afuera/Personas se calculan solos (×1.20 y ×1.25, redondeado a cientos para arriba). Los cambios no se guardan hasta "Aplicar precios".
+              ✏️ Editando precios — cambiá el precio Umepay y Afuera/Personas se calculan solos (×1.20 y ×1.25, redondeado a cientos para arriba). Los cambios no se guardan hasta apretar "Aplicar precios".
             </div>
 
             <div class="table-wrapper">
@@ -3660,6 +3698,19 @@ async function guardarCierreCaja() {
 // =====================
 // COSTOS
 // =====================
+// Estado del simulador de precios (solo pantalla, no se guarda)
+let simRentActiva = false;
+let preciosSimRent = {};   // { prod: {umepay, afuera, personas, costo} }
+let rentData = null;       // { mes, ventas, fijosDelMes } — cache para no re-descargar en cada cambio
+
+function canalKeyRent(c) {
+  c = (c||'').toString().trim().toLowerCase();
+  if (c === 'umepay')   return 'umepay';
+  if (c === 'afuera')   return 'afuera';
+  if (c === 'personas') return 'personas';
+  return null;
+}
+
 async function analizarCostos() {
   const mes = document.getElementById('costos-mes').value;
   if (!mes) return;
@@ -3675,71 +3726,175 @@ async function analizarCostos() {
       return f && f.startsWith(mes) && PRODUCTOS_VALIDOS.includes(prod);
     });
 
+    await cargarFijosPorMes();
+    const fijosDelMes = getFijosTotalMes(mes);
+
+    rentData = { mes, ventas, fijosDelMes };
+    if (simRentActiva) renderSimRentTabla();
+    pintarRent();
+  } catch(e) {
+    document.getElementById('costos-loading').innerHTML = '<span style="color:var(--rojo)">Error: ' + e.message + '</span>';
+  }
+}
+
+// Calcula y pinta los resultados usando rentData (sin re-descargar). Si el
+// simulador está activo, muestra los números simulados y la comparación.
+function pintarRent() {
+  if (!rentData) return;
+  const { mes, ventas, fijosDelMes } = rentData;
+  const mesStr2 = mes + '-01';
+
+  // Calcula todos los números del mes. sim=true → re-precifica cada venta con
+  // los precios simulados según el canal (columna C de Ventas).
+  function computar(sim) {
     let totalUnidades=0, totalVenta=0, totalCosto=0;
     ventas.forEach(r => {
       const prod=(r[4]||'').trim(), cant=parseFloat(r[5])||0, precio=parseFloat(r[6])||0;
-      let total=parseFloat(r[7]); if(isNaN(total)) total=precio*cant;
+      let recTotal=parseFloat(r[7]); if(isNaN(recTotal)) recTotal=precio*cant;
       const costo=getCostoParaFecha(prod, normFecha(r[0]))*cant;
-      totalUnidades+=cant; totalVenta+=total; totalCosto+=costo;
+      let venta = recTotal;
+      if (sim) {
+        const ck = canalKeyRent(r[2]);
+        const sp = (ck && preciosSimRent[prod]) ? preciosSimRent[prod][ck] : null;
+        if (sp != null && !isNaN(sp)) venta = sp * cant;
+      }
+      totalUnidades+=cant; totalVenta+=venta; totalCosto+=costo;
     });
-
     const ganBruta = totalVenta - totalCosto;
-    await cargarFijosPorMes();
-    const fijosDelMes = getFijosTotalMes(mes);
-    const ganNeta = ganBruta - fijosDelMes;
-
-
-    document.getElementById('c-unidades').textContent = totalUnidades;
-
-    document.getElementById('c-gan-bruta').textContent = pesos(ganBruta);
-    const netaEl = document.getElementById('c-gan-neta');
-    netaEl.textContent = pesos(ganNeta);
-    netaEl.className = 'metric-value ' + (ganNeta >= 0 ? 'verde' : 'naranja');
+    const ganNeta  = ganBruta - fijosDelMes;
 
     // Punto de equilibrio con 1/2l Suico como base
-    const mesStr2 = mes + '-01';
     const costoBase = getCostoParaFecha('1/2l Suico', mesStr2);
-    const precBase = PRECIOS['1/2l Suico'];
+    const precBase = (sim && preciosSimRent['1/2l Suico']) ? preciosSimRent['1/2l Suico'] : PRECIOS['1/2l Suico'];
     const margenUmeBase = precBase.umepay - costoBase;
     const margenAfuBase = precBase.afuera - costoBase;
-
-    // Mix real del mes: margen promedio ponderado
-    let totalUnidadesEq = 0, totalMargenEq = 0;
-    ventas.forEach(r => {
-      const p2 = (r[4]||'').trim();
-      const c2 = parseFloat(r[5])||0;
-      const precio2 = parseFloat(r[6])||0;
-      let tot2 = parseFloat(r[7]); if(isNaN(tot2)) tot2=precio2*c2;
-      const costo2 = getCostoParaFecha(p2, normFecha(r[0])) * c2;
-      totalUnidadesEq += c2;
-      totalMargenEq += tot2 - costo2;
-    });
-    const margenPromedioReal = totalUnidadesEq > 0 ? totalMargenEq / totalUnidadesEq : 0;
+    const margenPromedioReal = totalUnidades > 0 ? ganBruta / totalUnidades : 0;
 
     const eqUme = margenUmeBase > 0 ? Math.ceil(fijosDelMes / margenUmeBase) : '∞';
     const eqAfu = margenAfuBase > 0 ? Math.ceil(fijosDelMes / margenAfuBase) : '∞';
     const eqReal = margenPromedioReal > 0 ? Math.ceil(fijosDelMes / margenPromedioReal) : '∞';
-    const pctReal = eqReal !== '∞' ? Math.min(Math.round((totalUnidadesEq / eqReal) * 100), 100) : 0;
-    const colorBarra = pctReal >= 100 ? 'var(--verde)' : pctReal >= 60 ? 'var(--amarillo)' : 'var(--naranja)';
-
-    document.getElementById('c-eq-unidades').textContent = typeof eqReal === 'number' ? eqReal : '∞';
-    document.getElementById('eq-ume-u').textContent = typeof eqUme === 'number' ? eqUme : '∞';
-    document.getElementById('eq-ume-m').textContent = pesos(margenUmeBase);
-    document.getElementById('eq-afu-u').textContent = typeof eqAfu === 'number' ? eqAfu : '∞';
-    document.getElementById('eq-afu-m').textContent = pesos(margenAfuBase);
-    document.getElementById('eq-real-u').textContent = typeof eqReal === 'number' ? eqReal : '∞';
-    document.getElementById('eq-real-m').textContent = pesos(Math.round(margenPromedioReal));
-    document.getElementById('eq-pct-label').textContent = pctReal + '%';
-    document.getElementById('eq-barra').style.width = pctReal + '%';
-    document.getElementById('eq-barra').style.background = colorBarra;
-    document.getElementById('eq-barra-label').textContent = totalUnidadesEq + ' u. vendidas';
-    document.getElementById('eq-meta-label').textContent = `Meta: ${typeof eqReal === 'number' ? eqReal : '∞'} u.`;
-
-    document.getElementById('costos-loading').style.display = 'none';
-    document.getElementById('costos-content').style.display = 'block';
-  } catch(e) {
-    document.getElementById('costos-loading').innerHTML = '<span style="color:var(--rojo)">Error: ' + e.message + '</span>';
+    return { totalUnidades, totalVenta, totalCosto, ganBruta, ganNeta,
+             margenUmeBase, margenAfuBase, margenPromedioReal, eqUme, eqAfu, eqReal };
   }
+
+  const real = computar(false);
+  const R = simRentActiva ? computar(true) : real;
+
+  const pctReal = R.eqReal !== '∞' && R.eqReal ? Math.min(Math.round((R.totalUnidades / R.eqReal) * 100), 100) : 0;
+  const colorBarra = pctReal >= 100 ? 'var(--verde)' : pctReal >= 60 ? 'var(--amarillo)' : 'var(--naranja)';
+
+  document.getElementById('c-unidades').textContent = R.totalUnidades;
+  document.getElementById('c-gan-bruta').textContent = pesos(R.ganBruta);
+  const netaEl = document.getElementById('c-gan-neta');
+  netaEl.textContent = pesos(R.ganNeta);
+  netaEl.className = 'metric-value ' + (R.ganNeta >= 0 ? 'verde' : 'naranja');
+
+  document.getElementById('c-eq-unidades').textContent = typeof R.eqReal === 'number' ? R.eqReal : '∞';
+  document.getElementById('eq-ume-u').textContent = typeof R.eqUme === 'number' ? R.eqUme : '∞';
+  document.getElementById('eq-ume-m').textContent = pesos(R.margenUmeBase);
+  document.getElementById('eq-afu-u').textContent = typeof R.eqAfu === 'number' ? R.eqAfu : '∞';
+  document.getElementById('eq-afu-m').textContent = pesos(R.margenAfuBase);
+  document.getElementById('eq-real-u').textContent = typeof R.eqReal === 'number' ? R.eqReal : '∞';
+  document.getElementById('eq-real-m').textContent = pesos(Math.round(R.margenPromedioReal));
+  document.getElementById('eq-pct-label').textContent = pctReal + '%';
+  document.getElementById('eq-barra').style.width = pctReal + '%';
+  document.getElementById('eq-barra').style.background = colorBarra;
+  document.getElementById('eq-barra-label').textContent = R.totalUnidades + ' u. vendidas';
+  document.getElementById('eq-meta-label').textContent = `Meta: ${typeof R.eqReal === 'number' ? R.eqReal : '∞'} u.`;
+
+  // Banner + tabla comparativa Real vs. Simulado
+  const banner = document.getElementById('rent-sim-banner');
+  const cmp = document.getElementById('rent-sim-cmp');
+  if (simRentActiva) {
+    banner.style.display = 'block';
+    cmp.style.display = 'block';
+    const difTxt = (a, b) => { const d = a - b; return (d >= 0 ? '+' : '') + pesos(d); };
+    const difColor = (a, b) => (a - b) >= 0 ? 'var(--verde)' : 'var(--rojo)';
+    const setDif = (id, sim, rl) => { const el=document.getElementById(id); el.textContent=difTxt(sim,rl); el.style.color=difColor(sim,rl); el.style.fontWeight='600'; };
+
+    document.getElementById('cmp-bruta-real').textContent = pesos(real.ganBruta);
+    document.getElementById('cmp-bruta-sim').textContent  = pesos(R.ganBruta);
+    setDif('cmp-bruta-dif', R.ganBruta, real.ganBruta);
+    document.getElementById('cmp-neta-real').textContent = pesos(real.ganNeta);
+    document.getElementById('cmp-neta-sim').textContent  = pesos(R.ganNeta);
+    setDif('cmp-neta-dif', R.ganNeta, real.ganNeta);
+
+    const eqRealTxt = typeof real.eqReal === 'number' ? real.eqReal + ' u.' : '∞';
+    const eqSimTxt  = typeof R.eqReal === 'number' ? R.eqReal + ' u.' : '∞';
+    document.getElementById('cmp-eq-real').textContent = eqRealTxt;
+    document.getElementById('cmp-eq-sim').textContent  = eqSimTxt;
+    const eqDifEl = document.getElementById('cmp-eq-dif');
+    if (typeof real.eqReal === 'number' && typeof R.eqReal === 'number') {
+      const d = R.eqReal - real.eqReal; // menos unidades = mejor
+      eqDifEl.textContent = (d > 0 ? '+' : '') + d + ' u.';
+      eqDifEl.style.color = d <= 0 ? 'var(--verde)' : 'var(--rojo)';
+      eqDifEl.style.fontWeight = '600';
+    } else {
+      eqDifEl.textContent = '—'; eqDifEl.style.color = 'var(--texto-muted)';
+    }
+  } else {
+    banner.style.display = 'none';
+    cmp.style.display = 'none';
+  }
+
+  document.getElementById('costos-loading').style.display = 'none';
+  document.getElementById('costos-content').style.display = 'block';
+}
+
+// --- Simulador de precios en Rentabilidad ---
+function startSimRent() {
+  simRentActiva = true;
+  preciosSimRent = {};
+  Object.entries(PRECIOS).forEach(([k,v]) => {
+    preciosSimRent[k] = { umepay:v.umepay, afuera:v.afuera, personas:v.personas, costo:v.costo };
+  });
+  renderSimRentTabla();
+  document.getElementById('rent-sim-tabla-wrap').style.display = 'block';
+  document.getElementById('rent-sim-btn').style.display = 'none';
+  document.getElementById('rent-sim-reset').style.display = 'inline-block';
+  pintarRent();
+}
+
+function resetSimRent() {
+  simRentActiva = false;
+  preciosSimRent = {};
+  document.getElementById('rent-sim-tabla-wrap').style.display = 'none';
+  document.getElementById('rent-sim-btn').style.display = 'inline-block';
+  document.getElementById('rent-sim-reset').style.display = 'none';
+  pintarRent();
+}
+
+function renderSimRentTabla() {
+  const mes = document.getElementById('costos-mes').value || hoy().slice(0,7);
+  const fechaCosto = mes + '-01';
+  const tbody = document.getElementById('rent-sim-body');
+  tbody.innerHTML = '';
+  Object.keys(PRECIOS).forEach(prod => {
+    const key = prod.replace(/[^a-z0-9]/gi,'_');
+    const costo = getCostoParaFecha(prod, fechaCosto);
+    const p = preciosSimRent[prod] || {};
+    tbody.innerHTML += `<tr>
+      <td style="font-weight:500">${prod}</td>
+      <td style="color:var(--texto-muted)">${pesos(costo)}</td>
+      <td><input type="number" value="${p.umepay||0}"
+        style="width:90px;border:1px solid var(--verde);border-radius:6px;padding:4px 8px;font-size:13px"
+        onchange="onSimRentPrecio('${prod}',this.value)" /></td>
+      <td id="srp-afu-${key}">${pesos(p.afuera||0)}</td>
+      <td id="srp-per-${key}">${pesos(p.personas||0)}</td>
+    </tr>`;
+  });
+}
+
+function onSimRentPrecio(prod, val) {
+  const nuevo = Math.round(parseFloat(val)||0);
+  if (!preciosSimRent[prod]) preciosSimRent[prod] = {};
+  preciosSimRent[prod].umepay   = nuevo;
+  preciosSimRent[prod].afuera   = Math.ceil(nuevo * 1.20 / 100) * 100;
+  preciosSimRent[prod].personas = Math.ceil(nuevo * 1.25 / 100) * 100;
+  const key = prod.replace(/[^a-z0-9]/gi,'_');
+  const af = document.getElementById('srp-afu-'+key); if (af) af.textContent = pesos(preciosSimRent[prod].afuera);
+  const pe = document.getElementById('srp-per-'+key); if (pe) pe.textContent = pesos(preciosSimRent[prod].personas);
+  pintarRent();
 }
 
 
