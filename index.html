@@ -4078,6 +4078,7 @@ async function cargarInsumos() {
     renderInsumosTabla();
     calcularCostosDesdeRecetas();
     poblarSelectInsumosStock();   // refresca el desplegable de la solapa Stock
+    sembrarHistInsumosSiVacio();  // arranca el historial de insumos si está vacío
 
     document.getElementById('ins-loading').style.display = 'none';
     document.getElementById('ins-content').style.display = 'block';
@@ -4199,6 +4200,7 @@ async function guardarInsumos() {
     document.getElementById('btn-guardar-ins').textContent = 'Guardando...';
     document.getElementById('btn-guardar-ins').disabled = true;
 
+    const filasHist = [];  // filas para el historial de insumos
     for (const [nombre, nuevoPrecio] of Object.entries(insumosNuevosPrecios)) {
       if (!insumosData[nombre]) continue;
       const row = insumosData[nombre];
@@ -4207,9 +4209,17 @@ async function guardarInsumos() {
         `Insumos!C${row.rowIdx}:D${row.rowIdx}`,
         [[nuevoPrecio, fechaHoy]]
       );
+      // Registra el cambio en el historial de insumos (append-only) para poder
+      // analizar después cómo varió el precio de cada insumo en el tiempo.
+      filasHist.push([fechaHoy, nombre, row.unidad || '', nuevoPrecio, row.proveedor || '', '']);
       // Update local data
       insumosData[nombre].precio = nuevoPrecio;
       insumosData[nombre].fecha = fechaHoy;
+    }
+
+    if (filasHist.length) {
+      try { await ensureHistInsumosTab(); await sheetsAppend(`${HIST_INS_TAB}!A:F`, filasHist); }
+      catch(e) { console.warn('No se pudo registrar el historial de insumos:', e.message); }
     }
 
     insumosNuevosPrecios = {};
@@ -4223,6 +4233,94 @@ async function guardarInsumos() {
     document.getElementById('btn-guardar-ins').textContent = '💾 Guardar cambios';
     document.getElementById('btn-guardar-ins').disabled = false;
     alert('Error al guardar: ' + e.message);
+  }
+}
+
+// =====================
+// HISTORIAL DE PRECIOS DE INSUMOS (pestaña "Historial_insumos")
+// =====================
+// Antes, editar el precio de un insumo PISABA el valor anterior (sheetsUpdate en
+// la pestaña Insumos) y no quedaba registro. Ahora, además de actualizar el
+// precio vigente, cada cambio se agrega como una fila acá. Con eso se puede
+// analizar cómo varió cada insumo en el año y proyectar el aumento a aplicar.
+// Columnas: Fecha | Insumo | Unidad | Precio | Proveedor | Nota
+const HIST_INS_TAB = 'Historial_insumos';
+let histInsSheetId = null;
+
+async function ensureHistInsumosTab() {
+  if (histInsSheetId) return histInsSheetId;
+  const token = await getAccessToken();
+  const meta = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.sheetId}?fields=sheets.properties`,
+    { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+  if (meta.error) throw new Error(meta.error.message);
+  const ex = (meta.sheets||[]).find(s => s.properties.title === HIST_INS_TAB);
+  if (ex) { histInsSheetId = ex.properties.sheetId; return histInsSheetId; }
+  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.sheetId}:batchUpdate`, {
+    method:'POST', headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+    body: JSON.stringify({ requests:[{ addSheet:{ properties:{ title: HIST_INS_TAB } } }] })
+  }).then(r => r.json());
+  if (res.error) throw new Error(res.error.message);
+  histInsSheetId = res.replies[0].addSheet.properties.sheetId;
+  await sheetsUpdate(`${HIST_INS_TAB}!A1:F1`, [['Fecha','Insumo','Unidad','Precio','Proveedor','Nota']]);
+  return histInsSheetId;
+}
+
+// Siembra el historial con el precio ACTUAL de cada insumo (su punto de partida),
+// pero solo si la pestaña está vacía. Usa la fecha de última actualización que
+// ya tiene cada insumo. Así el historial no arranca en blanco.
+async function sembrarHistInsumosSiVacio() {
+  try {
+    await ensureHistInsumosTab();
+    const data = await sheetsGet(`${HIST_INS_TAB}!A:F`);
+    const filasExistentes = (data||[]).slice(1).filter(r => r[1]);
+    if (filasExistentes.length > 0) return;   // ya hay historial, no sembrar
+    const filas = Object.entries(insumosData)
+      .filter(([_, d]) => d && d.precio > 0)
+      .map(([nombre, d]) => [ d.fecha || hoy(), nombre, d.unidad || '', d.precio, d.proveedor || '', 'inicial' ]);
+    if (filas.length) await sheetsAppend(`${HIST_INS_TAB}!A:F`, filas);
+  } catch(e) {
+    console.warn('No se pudo sembrar el historial de insumos:', e.message);
+  }
+}
+
+// =====================
+// ENCABEZADOS DE PESTAÑAS (prolijidad)
+// =====================
+// Algunas pestañas históricas (ej: Historial_precios) se llenaron con append y
+// nunca tuvieron fila de títulos → "no se entiende". Esta función se asegura de
+// que la primera fila sea el encabezado, SIN pisar datos: si la fila 1 ya son
+// datos, inserta una fila nueva arriba y escribe ahí los títulos.
+async function getSheetIdByTitle(title) {
+  const token = await getAccessToken();
+  const meta = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.sheetId}?fields=sheets.properties`,
+    { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+  if (meta.error) throw new Error(meta.error.message);
+  const ex = (meta.sheets||[]).find(s => s.properties.title === title);
+  return ex ? ex.properties.sheetId : null;
+}
+
+async function asegurarEncabezado(title, header) {
+  try {
+    const sheetId = await getSheetIdByTitle(title);
+    if (sheetId === null) return;   // la pestaña no existe todavía
+    const fila1 = (await sheetsGet(`${title}!1:1`))[0] || [];
+    const primera = (fila1[0] || '').toString().trim().toLowerCase();
+    const esperado = (header[0] || '').toString().trim().toLowerCase();
+    if (primera === esperado) return;                       // ya tiene el encabezado
+    const hayDatos = fila1.some(c => (c||'').toString().trim() !== '');
+    if (hayDatos) {
+      // La fila 1 son datos → insertar una fila arriba para no pisarlos.
+      const token = await getAccessToken();
+      const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.sheetId}:batchUpdate`, {
+        method:'POST', headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+        body: JSON.stringify({ requests:[{ insertDimension:{ range:{ sheetId, dimension:'ROWS', startIndex:0, endIndex:1 }, inheritFromBefore:false } }] })
+      }).then(r => r.json());
+      if (res.error) throw new Error(res.error.message);
+    }
+    const colFin = String.fromCharCode(64 + header.length);   // A..Z para <=26 cols
+    await sheetsUpdate(`${title}!A1:${colFin}1`, [header]);
+  } catch(e) {
+    console.warn(`No se pudo asegurar el encabezado de ${title}:`, e.message);
   }
 }
 
@@ -5597,6 +5695,10 @@ function iniciarApp() {
   // Carga los costos desde la planilla (pestaña "Costos"); la crea y siembra la
   // primera vez. Así lo que Julia edite manda en todos los reportes.
   cargarCostosDesdeSheet();
+  // Prolijidad: se asegura de que el historial de precios de venta tenga la fila
+  // de títulos (antes no la tenía y "no se entendía").
+  asegurarEncabezado('Historial_precios',
+    ['Fecha','Producto','Umepay_ant','Afuera_ant','Personas_ant','Umepay_nuevo','Afuera_nuevo','Personas_nuevo','Costo']);
 
   // En celular arranca en la pantalla de inicio (grilla de cuadrados)
   if (window.matchMedia('(max-width: 768px)').matches) {
