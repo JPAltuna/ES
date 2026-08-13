@@ -2556,6 +2556,114 @@ const COSTO_ENVASE = {
 
 const PRODUCTOS_VALIDOS = Object.keys(PRECIOS);
 
+// =====================
+// COSTOS EN LA PLANILLA (pestaña "Costos")
+// =====================
+// Antes los costos por producto vivían SOLO en el código (HISTORIAL_COSTOS de
+// arriba) y lo que Julia editaba se perdía al recargar. Ahora viven en la pestaña
+// "Costos" del Sheet, con historial por fecha (columna Desde). Así lo que corrige
+// impacta en TODOS los reportes (Rentabilidad, Mensual, punto de equilibrio) y
+// queda registro para medir la inflación. HISTORIAL_COSTOS (arriba) pasa a ser
+// solo la SEMILLA inicial: la primera vez que se abre la app se vuelca a la
+// planilla y, de ahí en más, manda el Sheet.
+const COSTOS_TAB = 'Costos';
+let costosSheetId = null;
+let costosCargados = false;
+
+// HISTORIAL_COSTOS -> filas de la planilla: Desde | Producto | Costo | Costos_fijos
+function filasDesdeHistorialCostos() {
+  const filas = [];
+  HISTORIAL_COSTOS.forEach(v => {
+    Object.entries(v.productos).forEach(([prod, costo]) => {
+      filas.push([v.desde, prod, costo, v.costos_fijos]);
+    });
+  });
+  return filas;
+}
+
+// Crea la pestaña "Costos" si no existe (con su encabezado). Devuelve su sheetId.
+async function ensureCostosTab() {
+  if (costosSheetId) return costosSheetId;
+  const token = await getAccessToken();
+  const meta = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.sheetId}?fields=sheets.properties`,
+    { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+  if (meta.error) throw new Error(meta.error.message);
+  const ex = (meta.sheets||[]).find(s => s.properties.title === COSTOS_TAB);
+  if (ex) { costosSheetId = ex.properties.sheetId; return costosSheetId; }
+  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.sheetId}:batchUpdate`, {
+    method:'POST', headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+    body: JSON.stringify({ requests:[{ addSheet:{ properties:{ title: COSTOS_TAB } } }] })
+  }).then(r => r.json());
+  if (res.error) throw new Error(res.error.message);
+  costosSheetId = res.replies[0].addSheet.properties.sheetId;
+  await sheetsUpdate(`${COSTOS_TAB}!A1:D1`, [['Desde','Producto','Costo','Costos_fijos']]);
+  return costosSheetId;
+}
+
+// Borra el contenido de un rango (para reescribir la pestaña entera).
+async function sheetsClear(range) {
+  const token = await getAccessToken();
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.sheetId}/values/${encodeURIComponent(range)}:clear`;
+  const r = await fetch(url, { method:'POST', headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' }, body:'{}' });
+  const data = await r.json();
+  if (data.error) throw new Error(data.error.message);
+  return data;
+}
+
+// Reconstruye HISTORIAL_COSTOS desde la planilla. Si la pestaña está vacía,
+// la siembra con lo que hay en el código (migración automática, una sola vez).
+async function cargarCostosDesdeSheet() {
+  try {
+    await ensureCostosTab();
+    const data = await sheetsGet(`${COSTOS_TAB}!A:D`);
+    const filas = (data||[]).slice(1).filter(r => r[0] && r[1]);
+    if (filas.length === 0) {
+      await guardarHistorialCostos();   // vuelca la semilla del código
+      costosCargados = true;
+      return;
+    }
+    const porFecha = {};
+    filas.forEach(r => {
+      const desde = String(r[0]).trim();
+      const prod  = String(r[1]).trim();
+      const costo = parseFloat(r[2]) || 0;
+      const fijos = parseFloat(r[3]) || 0;
+      if (!porFecha[desde]) porFecha[desde] = { desde, costos_fijos: fijos, productos: {} };
+      porFecha[desde].productos[prod] = costo;
+      if (fijos) porFecha[desde].costos_fijos = fijos;
+    });
+    const versiones = Object.values(porFecha).sort((a,b)=>a.desde.localeCompare(b.desde));
+    HISTORIAL_COSTOS.length = 0;
+    versiones.forEach(v => HISTORIAL_COSTOS.push(v));
+    costosCargados = true;
+  } catch(e) {
+    console.warn('No se pudieron cargar los costos desde el Sheet:', e.message);
+  }
+}
+
+// Persiste TODO el historial de costos (reescribe la pestaña). Como se edita
+// pocas veces y la tabla es chica, reescribir entero es lo más simple y seguro.
+async function guardarHistorialCostos() {
+  await ensureCostosTab();
+  await sheetsClear(`${COSTOS_TAB}!A2:D100000`);
+  const filas = filasDesdeHistorialCostos();
+  if (filas.length) await sheetsUpdate(`${COSTOS_TAB}!A2:D${filas.length+1}`, filas);
+}
+
+// Devuelve (creándola si hace falta) la versión de costos del MES en curso,
+// clonando la última versión conocida. Así al editar un costo se abre un nuevo
+// período mensual sin pisar el historial viejo (clave para medir la inflación).
+function versionCostosMesActual() {
+  const desde = getMes() + '-01';
+  let v = HISTORIAL_COSTOS.find(x => x.desde === desde);
+  if (v) return v;
+  const ultima = HISTORIAL_COSTOS[HISTORIAL_COSTOS.length-1] || { costos_fijos: COSTOS_FIJOS, productos: {} };
+  v = { desde, costos_fijos: ultima.costos_fijos, productos: { ...ultima.productos } };
+  HISTORIAL_COSTOS.push(v);
+  HISTORIAL_COSTOS.sort((a,b)=>a.desde.localeCompare(b.desde));
+  return v;
+}
+
 function guardarConfig() {
   const sheetId = document.getElementById('sheet-id-input').value.trim();
   const jsonRaw = document.getElementById('json-input').value.trim();
@@ -4118,21 +4226,26 @@ async function guardarInsumos() {
   }
 }
 
-function aplicarCostosCalculados() {
-  // Update PRECIOS and latest HISTORIAL_COSTOS entry with calculated costs
-  const fechaHoy = hoy();
-  const last = HISTORIAL_COSTOS[HISTORIAL_COSTOS.length-1];
+async function aplicarCostosCalculados() {
+  // Aplica los costos calculados desde las recetas y los persiste en la planilla,
+  // abriendo (si hace falta) la versión de costos del mes en curso.
+  const vMes = versionCostosMesActual();
   let cambios = 0;
   Object.keys(RECETAS).forEach(prod => {
     const calc = calcularCostoPorReceta(prod);
     if (!calc) return;
     const costoRedondeado = Math.round(calc.total);
     if (PRECIOS[prod]) { PRECIOS[prod].costo = costoRedondeado; cambios++; }
-    if (last?.productos[prod] !== undefined) last.productos[prod] = costoRedondeado;
+    vMes.productos[prod] = costoRedondeado;
   });
   document.getElementById('ins-aplicar-banner').style.display = 'none';
   calcularCostosDesdeRecetas();
-  alert(`✓ ${cambios} costos actualizados en la app. Los precios de venta no cambiaron.`);
+  try {
+    await guardarHistorialCostos();
+    alert(`✓ ${cambios} costos actualizados y guardados en la planilla. Los precios de venta no cambiaron.`);
+  } catch(e) {
+    alert(`Se actualizaron ${cambios} costos en la app, pero no se pudieron guardar en la planilla: ${e.message}`);
+  }
 }
 
 // =====================
@@ -4140,7 +4253,7 @@ function aplicarCostosCalculados() {
 // =====================
 let modoEditCostos = false;
 
-function toggleEditCostos() {
+async function toggleEditCostos() {
   modoEditCostos = !modoEditCostos;
   const btn = document.getElementById('btn-edit-costos');
   if (modoEditCostos) {
@@ -4149,21 +4262,25 @@ function toggleEditCostos() {
     btn.style.color = 'white';
     renderTablaCostosEdit();
   } else {
-    // Save new costs
+    // Guarda los nuevos costos en la versión del mes en curso y los persiste.
+    const vMes = versionCostosMesActual();
     document.querySelectorAll('[data-costo-prod]').forEach(inp => {
       const prod = inp.getAttribute('data-costo-prod');
       const nuevo = parseFloat(inp.value)||0;
       if (PRECIOS[prod]) {
         PRECIOS[prod].costo = nuevo;
-        // Update HISTORIAL_COSTOS latest entry
-        const last = HISTORIAL_COSTOS[HISTORIAL_COSTOS.length-1];
-        if (last && last.productos[prod] !== undefined) last.productos[prod] = nuevo;
+        vMes.productos[prod] = nuevo;
       }
     });
     btn.textContent = '✏️ Editar costos';
     btn.style.background = '';
     btn.style.color = '';
     renderTablaPrecios(modoSimulacion ? preciosSimulados : preciosActuales);
+    try {
+      await guardarHistorialCostos();
+    } catch(e) {
+      alert('Los costos se cambiaron en la app pero no se pudieron guardar en la planilla: ' + e.message);
+    }
   }
 }
 
@@ -4871,7 +4988,8 @@ async function cerrarMes() {
 
     await sheetsAppend('Cierres_mes!A:J', [row]);
 
-    // Also update HISTORIAL_COSTOS with this month's costs
+    // Deja registrado en la planilla el costo vigente de este mes cerrado
+    // (si todavía no había una versión para ese mes) → historial para inflación.
     const mesDate = mes + '-01';
     const yaExiste = HISTORIAL_COSTOS.some(v => v.desde === mesDate);
     if (!yaExiste) {
@@ -4879,6 +4997,7 @@ async function cerrarMes() {
       PRODUCTOS_VALIDOS.forEach(prod => { costosMes[prod] = getCostoParaFecha(prod, mesDate); });
       HISTORIAL_COSTOS.push({ desde: mesDate, costos_fijos: fijosConsiderados, productos: costosMes });
       HISTORIAL_COSTOS.sort((a,b) => a.desde.localeCompare(b.desde));
+      try { await guardarHistorialCostos(); } catch(e) { console.warn('No se pudo guardar el costo del mes cerrado:', e.message); }
     }
 
     document.getElementById('cierre-spinner').style.display = 'none';
@@ -5475,6 +5594,9 @@ function iniciarApp() {
   sincronizarPreciosDesdeSheet();
   // Carga el historial de precios para poder cobrar según la fecha de la venta.
   cargarHistPreciosVenta();
+  // Carga los costos desde la planilla (pestaña "Costos"); la crea y siembra la
+  // primera vez. Así lo que Julia edite manda en todos los reportes.
+  cargarCostosDesdeSheet();
 
   // En celular arranca en la pantalla de inicio (grilla de cuadrados)
   if (window.matchMedia('(max-width: 768px)').matches) {
