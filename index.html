@@ -1972,6 +1972,13 @@
 
         <div id="ins-content" style="display:none">
 
+          <!-- Rescatar historial de precios desde Egresos -->
+          <div class="card" style="background:var(--verde-claro,#eef7ee)">
+            <div class="card-title" style="margin-bottom:0.4rem">📥 Armar historial desde Egresos</div>
+            <div style="font-size:12px;color:var(--texto-muted);margin-bottom:0.8rem">Busca en tus egresos las compras viejas de <strong>leche, azúcar y pasas</strong> y arma el historial de cómo fue variando el precio de cada uno. Lo podés hacer una sola vez; no duplica lo que ya esté cargado.</div>
+            <button class="btn-outline" onclick="rescatarPreciosDesdeEgresos()">📥 Rescatar precios viejos</button>
+          </div>
+
           <!-- Tabla de insumos -->
           <div class="card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
@@ -4280,6 +4287,63 @@ async function sembrarHistInsumosSiVacio() {
     if (filas.length) await sheetsAppend(`${HIST_INS_TAB}!A:F`, filas);
   } catch(e) {
     console.warn('No se pudo sembrar el historial de insumos:', e.message);
+  }
+}
+
+// Rescata precios históricos de insumos desde la pestaña Egresos (donde quedaron
+// registrados con fecha real de compra). Por ahora solo leche, azúcar y pasas,
+// que son los que están cargados prolijos. Reglas de limpieza calibradas con los
+// datos reales: se filtran outliers (leche a $15.500 = otra presentación; azúcar
+// cargado en gramos a ~$20). No duplica puntos (insumo+fecha) ya cargados.
+const RESCATE_INSUMOS = {
+  'Leche':          { match: /leche/i,      min: 200, max: 5000 },     // solo $/litro
+  'Azucar mascabo': { match: /az[uú]car/i,  min: 100, max: 100000 },   // $/kg (descarta gramos)
+  'Pasas de uva':   { match: /pasas?/i,     min: 100, max: 100000 },   // $/kg
+};
+
+async function rescatarPreciosDesdeEgresos() {
+  if (!confirm('Voy a buscar en Egresos las compras viejas de leche, azúcar y pasas para armar el historial de precios. ¿Seguimos?')) return;
+  try {
+    await ensureHistInsumosTab();
+    const [egr, histActual] = await Promise.all([
+      sheetsGet('Egresos!A:H'),
+      sheetsGet(`${HIST_INS_TAB}!A:F`)
+    ]);
+    // Puntos ya cargados (insumo|fecha) para no duplicar.
+    const yaHay = new Set((histActual||[]).slice(1)
+      .filter(r => r[1]).map(r => `${(r[1]||'').toString().trim()}|${normFecha(r[0])}`));
+    const nuevas = [];
+    const resumen = {};
+    (egr||[]).slice(1).forEach(r => {
+      if ((r[2]||'').toString().trim().toLowerCase() !== 'insumo') return;
+      const concepto = (r[1]||'').toString().trim();
+      const fecha = normFecha(r[0]);
+      if (!concepto || !fecha) return;
+      const cant = parseFloat(r[3]) || 0;
+      let precio = parseFloat(r[4]) || 0;
+      const total = parseFloat(r[5]) || 0;
+      if (!precio && cant > 0 && total > 0) precio = Math.round(total / cant);
+      if (!precio) return;
+      for (const [nombre, cfg] of Object.entries(RESCATE_INSUMOS)) {
+        if (!cfg.match.test(concepto)) continue;
+        if (precio < cfg.min || precio > cfg.max) return;   // outlier → se descarta
+        const key = `${nombre}|${fecha}`;
+        if (yaHay.has(key)) return;                          // ya estaba cargado
+        yaHay.add(key);
+        const unidad = (insumosData[nombre] && insumosData[nombre].unidad) || '';
+        nuevas.push([fecha, nombre, unidad, precio, '', 'rescatado de egresos']);
+        resumen[nombre] = (resumen[nombre] || 0) + 1;
+        return;
+      }
+    });
+    if (!nuevas.length) { alert('No encontré compras nuevas para agregar (puede que ya estuvieran cargadas).'); return; }
+    nuevas.sort((a, b) => a[0].localeCompare(b[0]));
+    const detalle = Object.entries(resumen).map(([k, v]) => `• ${k}: ${v} precios`).join('\n');
+    if (!confirm(`Encontré estos precios viejos para agregar al historial:\n\n${detalle}\n\n¿Los guardo?`)) return;
+    await sheetsAppend(`${HIST_INS_TAB}!A:F`, nuevas);
+    alert(`✓ Listo, agregué ${nuevas.length} precios al historial de insumos. Ya podés ver cómo fue variando cada uno.`);
+  } catch(e) {
+    alert('No se pudo rescatar: ' + e.message);
   }
 }
 
