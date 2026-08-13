@@ -950,7 +950,6 @@
     <div class="home-group">📊 Análisis</div>
     <div class="home-grid">
       <button class="home-tile" onclick="goToPage('analisis')"><span class="home-tile-icon">📈</span><span class="home-tile-label">Análisis</span></button>
-      <button class="home-tile" onclick="goToPage('costos')"><span class="home-tile-icon">🧮</span><span class="home-tile-label">Rentabilidad</span></button>
     </div>
   </div>
 
@@ -1001,11 +1000,8 @@
       </button>
 
       <div class="nav-group">📊 Análisis</div>
-      <button class="nav-item" onclick="showPage('analisis', this)">
+      <button class="nav-item" id="nav-analisis" onclick="showPage('analisis', this)">
         <span class="nav-icon">📈</span> <span class="nav-label">Análisis</span>
-      </button>
-      <button class="nav-item" onclick="showPage('costos', this)">
-        <span class="nav-icon">🧮</span> <span class="nav-label">Rentabilidad</span>
       </button>
 
       <div class="sidebar-bottom">
@@ -1743,8 +1739,15 @@
       <!-- COSTOS -->
       <div class="page" id="page-costos">
         <div class="page-header">
-          <div class="page-title">Rentabilidad</div>
-          <div class="page-desc">Punto de equilibrio y rentabilidad por producto</div>
+          <div class="page-title">Análisis</div>
+          <div class="page-desc">Rentabilidad: punto de equilibrio y margen por producto</div>
+        </div>
+
+        <div class="subtabs an-sec-tabs">
+          <button class="subtab" onclick="analisisSec('ventas')">📈 Ventas</button>
+          <button class="subtab" onclick="analisisSec('insumos')">🥛 Insumos</button>
+          <button class="subtab on" onclick="analisisSec('rentabilidad')">💰 Rentabilidad</button>
+          <button class="subtab" onclick="analisisSec('stock')">📦 Stock</button>
         </div>
 
         <div class="card">
@@ -1901,6 +1904,48 @@
       </div>
 
 
+
+      <!-- ANÁLISIS: INSUMOS (inflación) -->
+      <div class="page" id="page-an-insumos">
+        <div class="page-header">
+          <div class="page-title">Análisis</div>
+          <div class="page-desc">Insumos: cómo varían los precios y la inflación</div>
+        </div>
+        <div class="subtabs an-sec-tabs">
+          <button class="subtab" onclick="analisisSec('ventas')">📈 Ventas</button>
+          <button class="subtab on" onclick="analisisSec('insumos')">🥛 Insumos</button>
+          <button class="subtab" onclick="analisisSec('rentabilidad')">💰 Rentabilidad</button>
+          <button class="subtab" onclick="analisisSec('stock')">📦 Stock</button>
+        </div>
+        <div class="card">
+          <div class="card-title">🥛 Inflación de insumos</div>
+          <div style="font-size:13px;color:var(--texto-muted);line-height:1.7">
+            Acá vas a ver cómo fue subiendo el precio de cada insumo (la leche, el azúcar, las pasas…), la inflación real del año y una proyección de cuánto seguirá variando.<br><br>
+            🚧 <strong>En construcción.</strong> El historial ya se está armando en la pestaña <strong>Historial_insumos</strong> — es lo próximo que vamos a llenar.
+          </div>
+        </div>
+      </div>
+
+      <!-- ANÁLISIS: STOCK (valorización y consumo) -->
+      <div class="page" id="page-an-stock">
+        <div class="page-header">
+          <div class="page-title">Análisis</div>
+          <div class="page-desc">Stock: cuánta plata tenés parada y qué consumís</div>
+        </div>
+        <div class="subtabs an-sec-tabs">
+          <button class="subtab" onclick="analisisSec('ventas')">📈 Ventas</button>
+          <button class="subtab" onclick="analisisSec('insumos')">🥛 Insumos</button>
+          <button class="subtab" onclick="analisisSec('rentabilidad')">💰 Rentabilidad</button>
+          <button class="subtab on" onclick="analisisSec('stock')">📦 Stock</button>
+        </div>
+        <div class="card">
+          <div class="card-title">📦 Stock valorizado</div>
+          <div style="font-size:13px;color:var(--texto-muted);line-height:1.7">
+            Acá vas a ver cuánta plata tenés parada en insumos y cuánto vas consumiendo según lo que producís y vendés.<br><br>
+            🚧 <strong>En construcción.</strong> Se apoya en los conteos que ya cargás en <strong>Insumos → Stock</strong>.
+          </div>
+        </div>
+      </div>
 
       <!-- INSUMOS -->
       <div class="page" id="page-insumos">
@@ -2228,7 +2273,14 @@
       <div class="page" id="page-analisis">
         <div class="page-header">
           <div class="page-title">Análisis</div>
-          <div class="page-desc">Compará ventas, o mirá el detalle del mes</div>
+          <div class="page-desc">Todo lo que necesitás para entender los números</div>
+        </div>
+
+        <div class="subtabs an-sec-tabs">
+          <button class="subtab on" onclick="analisisSec('ventas')">📈 Ventas</button>
+          <button class="subtab" onclick="analisisSec('insumos')">🥛 Insumos</button>
+          <button class="subtab" onclick="analisisSec('rentabilidad')">💰 Rentabilidad</button>
+          <button class="subtab" onclick="analisisSec('stock')">📦 Stock</button>
         </div>
 
         <div class="subtabs" id="an-subtabs">
@@ -2874,6 +2926,13 @@ function showPage(name, btn) {
   document.getElementById('page-' + name).classList.add('active');
   if (btn) btn.classList.add('active');
 
+  // Las 4 solapas de Análisis (Ventas/Insumos/Rentabilidad/Stock) son páginas
+  // distintas pero comparten la misma entrada de menú → la dejamos marcada.
+  const SEC_ANALISIS = ['analisis','costos','an-insumos','an-stock'];
+  if (SEC_ANALISIS.includes(name)) {
+    const na = document.getElementById('nav-analisis'); if (na) na.classList.add('active');
+  }
+
   if (name === 'ventas') { cargarVentasRecientes(); cargarLocales().then(poblarSelectLocalesVentas); if(!document.getElementById('v-productos-grid').innerHTML) renderProductosGrid(); }
   if (name === 'pedidos') { cargarLocales().then(poblarSelectLocalesPedidos); abrirPedidos(); }
   if (name === 'envases') cargarEnvasesRecientes();
@@ -2891,6 +2950,14 @@ function showPage(name, btn) {
     cmpVentas = null; // recarga datos frescos al entrar
     anTab('comparar', document.querySelector('#an-subtabs .subtab'));
   }
+}
+
+// Cambia entre las solapas de la sección Análisis (cada una es su propia página,
+// pero comparten la barra de solapas de arriba para que se sienta una sola).
+function analisisSec(tab) {
+  const map = { ventas:'analisis', insumos:'an-insumos', rentabilidad:'costos', stock:'an-stock' };
+  showPage(map[tab] || 'analisis', null);
+  window.scrollTo(0, 0);
 }
 
 // =====================
