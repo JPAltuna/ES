@@ -2307,25 +2307,25 @@
             </div>
 
             <div class="card">
-              <div class="card-title">Comparar en un período</div>
-              <div class="semana-selector" style="margin-bottom:0.25rem">
-                <label>Desde</label>
-                <input type="date" id="cmp-desde" />
-                <label>Hasta</label>
-                <input type="date" id="cmp-hasta" />
-                <button class="btn-verde" onclick="renderCortesPeriodo()">Ver</button>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:0.7rem;flex-wrap:wrap">
+                <div class="card-title" style="margin:0">🧴 Productos vendidos <span style="font-size:11px;color:var(--texto-muted);font-weight:400">(unidades)</span></div>
+                <select id="cmp-prodmes-sel" onchange="renderProdMes()" style="border:1px solid var(--borde);border-radius:8px;padding:5px 10px;font-size:13px;background:white"></select>
               </div>
+              <div id="cmp-prodmes"></div>
+            </div>
 
-              <div class="card-title" style="margin-top:1.3rem">🧴 Por producto</div>
-              <div id="cmp-prod"></div>
-
-              <hr class="divider">
-              <div class="card-title">🛒 Por canal</div>
-              <div id="cmp-canal"></div>
-
-              <hr class="divider">
-              <div class="card-title">📍 Por local <span style="font-size:11px;color:var(--texto-muted);font-weight:400">(top 8)</span></div>
-              <div id="cmp-local"></div>
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:0.7rem;flex-wrap:wrap">
+                <div class="card-title" style="margin:0">🛒 Ventas por canal</div>
+                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                  <div class="seg-metric" id="cmp-torta-modo" style="margin:0">
+                    <button class="on" onclick="cmpTortaModo('mensual',this)">Mensual</button>
+                    <button onclick="cmpTortaModo('anual',this)">Anual</button>
+                  </div>
+                  <select id="cmp-torta-sel" onchange="renderTortaCanal()" style="border:1px solid var(--borde);border-radius:8px;padding:5px 10px;font-size:13px;background:white"></select>
+                </div>
+              </div>
+              <div id="cmp-torta"></div>
             </div>
           </div>
         </div>
@@ -6409,11 +6409,6 @@ async function cargarComparar() {
         };
       });
     cmpCierres = (cierresData||[]).slice(1);
-    // Período por defecto = mes actual
-    if (!document.getElementById('cmp-desde').value) {
-      document.getElementById('cmp-desde').value = getMes() + '-01';
-      document.getElementById('cmp-hasta').value = hoy();
-    }
     renderComparar();
     load.style.display = 'none'; cont.style.display = 'block';
   } catch(e) {
@@ -6464,7 +6459,10 @@ function ultimosMeses(n) {
 function renderComparar() {
   renderMesModoChips();
   renderMesAMes();
-  renderCortesPeriodo();
+  poblarProdMesSel();
+  renderProdMes();
+  poblarTortaSel();
+  renderTortaCanal();
 }
 
 // Años presentes en las ventas cargadas, de menor a mayor
@@ -6562,7 +6560,7 @@ function renderMesAMes() {
     const label = cmpMesModo === 'reciente' ? `${MESES_CORTO[+mm]} ${yy.slice(2)}` : MESES_CORTO[+mm];
     return { label, value: r.value, prov: r.prov };
   });
-  cmpBars('cmp-mes', items);
+  cmpBarsVert('cmp-mes', items);
   provEl.style.display = hayProv ? 'inline' : 'none';
   notaEl.textContent = notaBase;
 }
@@ -6589,6 +6587,129 @@ function cmpGrouped(containerId, groups) {
         </div>`;
       }).join('')}
     </div>`).join('');
+}
+
+// Formato corto para etiquetas dentro de gráficos ($ abreviado, unidades sin $)
+function cmpFmtCorto(v) {
+  if (cmpMetric === 'unidades') return Math.round(v).toLocaleString('es-AR');
+  const a = Math.abs(v);
+  if (a >= 1000000) return '$' + (v/1000000).toFixed(1).replace('.0','') + 'M';
+  if (a >= 1000)    return '$' + Math.round(v/1000) + 'k';
+  return pesos(v);
+}
+
+// Gráfico de barras VERTICALES (mes vs valor). items = [{label, value, prov?}]
+function cmpBarsVert(containerId, items) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!items.length) { el.innerHTML = '<div style="font-size:13px;color:var(--texto-muted)">Sin datos.</div>'; return; }
+  const max = Math.max(1, ...items.map(i => Math.abs(i.value)));
+  el.innerHTML = `<div style="display:flex;align-items:flex-end;gap:5px;height:150px;padding-top:14px">` +
+    items.map(it => {
+      const h = Math.round(Math.abs(it.value) / max * 100);
+      const neg = it.value < 0;
+      const color = neg ? 'var(--rojo)' : 'var(--verde)';
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0">
+        <div style="font-size:10px;font-weight:700;color:${neg?'var(--rojo)':'var(--verde-oscuro)'};margin-bottom:3px;white-space:nowrap">${cmpFmtCorto(it.value)}</div>
+        <div style="width:100%;max-width:34px;background:${color};border-radius:6px 6px 0 0;height:${h}%;min-height:2px;transition:height .5s"></div>
+        <div style="font-size:10px;color:var(--texto-muted);margin-top:5px;text-align:center;line-height:1.15">${it.label}${it.prov?'<br><span style=\"color:var(--amarillo);font-weight:700\">prov</span>':''}</div>
+      </div>`;
+    }).join('') + `</div>`;
+}
+
+// Barras horizontales con formateador propio. items = [{label, value}]
+function barsHoriz(containerId, items, fmt) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!items.length) { el.innerHTML = '<div style="font-size:13px;color:var(--texto-muted)">Sin ventas en este mes.</div>'; return; }
+  const max = Math.max(1, ...items.map(i => Math.abs(i.value)));
+  el.innerHTML = items.map(it => {
+    const w = Math.round(Math.abs(it.value) / max * 100);
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:4px">
+        <span style="font-size:13.5px">${it.label}</span>
+        <span style="font-size:13px;font-weight:700;color:var(--verde-oscuro);white-space:nowrap">${fmt(it.value)}</span>
+      </div>
+      <div style="background:var(--gris-claro);border-radius:20px;height:13px;overflow:hidden">
+        <div style="height:100%;border-radius:20px;background:var(--verde);width:${w}%;transition:width .5s"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function mesLabel(m) { const p = (m||'').split('-'); return `${MESES_CORTO[+p[1]]} ${p[0]}`; }
+function mesesConVentas() { return [...new Set((cmpVentas||[]).map(v => v.mes))].filter(Boolean).sort().reverse(); }
+
+// --- Productos vendidos (unidades) en el mes elegido ---
+function poblarProdMesSel() {
+  const sel = document.getElementById('cmp-prodmes-sel');
+  if (!sel) return;
+  const prev = sel.value;
+  const meses = mesesConVentas();
+  sel.innerHTML = meses.map(m => `<option value="${m}">${mesLabel(m)}</option>`).join('');
+  if (prev && meses.includes(prev)) sel.value = prev;
+}
+
+function renderProdMes() {
+  const sel = document.getElementById('cmp-prodmes-sel');
+  const mes = sel ? sel.value : '';
+  const acc = {};
+  (cmpVentas||[]).filter(v => v.mes === mes).forEach(v => { acc[v.prod] = (acc[v.prod]||0) + v.cant; });
+  const items = Object.keys(acc).map(k => ({ label: k, value: acc[k] })).sort((a,b) => b.value - a.value);
+  barsHoriz('cmp-prodmes', items, v => Math.round(v).toLocaleString('es-AR') + ' u');
+}
+
+// --- Torta de ventas por canal (mensual o anual) ---
+let cmpTortaModoV = 'mensual';
+function cmpTortaModo(m, btn) {
+  cmpTortaModoV = m;
+  document.querySelectorAll('#cmp-torta-modo button').forEach(b => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  poblarTortaSel();
+  renderTortaCanal();
+}
+
+function poblarTortaSel() {
+  const sel = document.getElementById('cmp-torta-sel');
+  if (!sel) return;
+  const prev = sel.value;
+  let opts;
+  if (cmpTortaModoV === 'mensual') opts = mesesConVentas().map(m => ({ v:m, t:mesLabel(m) }));
+  else opts = cmpAnios().slice().reverse().map(a => ({ v:a, t:a }));
+  sel.innerHTML = opts.map(o => `<option value="${o.v}">${o.t}</option>`).join('');
+  if (prev && opts.some(o => o.v === prev)) sel.value = prev;
+}
+
+function renderTortaCanal() {
+  const sel = document.getElementById('cmp-torta-sel');
+  const val = sel ? sel.value : '';
+  const rows = (cmpVentas||[]).filter(v => cmpTortaModoV === 'mensual' ? v.mes === val : (v.mes||'').slice(0,4) === val);
+  const acc = {};
+  rows.forEach(v => { acc[v.canal] = (acc[v.canal]||0) + cmpValor(v); });
+  const entries = Object.entries(acc).map(([k,v]) => ({ label:k, value:v })).filter(e => e.value > 0).sort((a,b) => b.value - a.value);
+  dibujarTorta('cmp-torta', entries);
+}
+
+function dibujarTorta(containerId, entries) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const total = entries.reduce((s,e) => s + e.value, 0);
+  if (!total) { el.innerHTML = '<div style="font-size:13px;color:var(--texto-muted)">Sin datos en este período.</div>'; return; }
+  const colores = ['var(--verde)','var(--azul)','var(--naranja)','var(--amarillo)','var(--rojo)'];
+  let acc = 0; const segs = [];
+  entries.forEach((e,i) => { const from = acc/total*360; acc += e.value; const to = acc/total*360; segs.push(`${colores[i%colores.length]} ${from}deg ${to}deg`); });
+  const leyenda = entries.map((e,i) => {
+    const pct = Math.round(e.value/total*100);
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+      <span style="width:12px;height:12px;border-radius:3px;background:${colores[i%colores.length]};flex:0 0 12px"></span>
+      <span style="font-size:13.5px;flex:1">${e.label}</span>
+      <span style="font-size:13px;font-weight:700;color:var(--verde-oscuro);white-space:nowrap">${pct}% · ${cmpFmtCorto(e.value)}</span>
+    </div>`;
+  }).join('');
+  el.innerHTML = `<div style="display:flex;align-items:center;gap:1.3rem;flex-wrap:wrap;justify-content:center">
+    <div style="width:148px;height:148px;border-radius:50%;background:conic-gradient(${segs.join(',')});flex:0 0 148px"></div>
+    <div style="flex:1;min-width:170px">${leyenda}</div>
+  </div>`;
 }
 
 // Por producto / canal / local en el período elegido
