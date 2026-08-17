@@ -4483,16 +4483,19 @@ function poblarAnInsSel() {
     : '<option value="">Sin datos todavía</option>';
 }
 
-// Serie mes a mes del insumo (respetando el filtro de año). Por cada mes con
-// compras toma el ÚLTIMO precio del mes. Devuelve [{mes, precio, prov}].
-function anInsSerie(insumo, anio) {
-  const filas = (anInsFilas||[]).filter(r => r.insumo === insumo &&
-    (anio === 'todos' || r.fecha.slice(0,4) === anio));
-  const porMes = {};
-  filas.slice().sort((a,b)=>a.fecha.localeCompare(b.fecha)).forEach(r => {
-    porMes[r.fecha.slice(0,7)] = { precio: r.precio, prov: r.prov };
-  });
-  return Object.keys(porMes).sort().map(m => ({ mes: m, precio: porMes[m].precio, prov: porMes[m].prov }));
+// Series de un insumo agrupadas por AÑO, con un valor por mes (0=Ene..11=Dic).
+// Si un mes tiene varias compras, gana la última. Meses sin compra quedan null.
+// Devuelve { '2025':[v0..v11|null], '2026':[...] }
+function anInsSeriesPorAnio(insumo) {
+  const out = {};
+  (anInsFilas||[]).filter(r => r.insumo === insumo)
+    .sort((a,b) => a.fecha.localeCompare(b.fecha))
+    .forEach(r => {
+      const y = r.fecha.slice(0,4), mi = (+r.fecha.slice(5,7)) - 1;
+      if (!out[y]) out[y] = Array(12).fill(null);
+      out[y][mi] = r.precio;
+    });
+  return out;
 }
 
 function anInsAnios(insumo) {
@@ -4509,91 +4512,112 @@ function onAnInsSel() {
 
 function anInsSetAnio(a) { anInsAnioV = a; renderAnInsChips(); renderAnInsChart(); }
 
+// El año ahora se compara dentro del gráfico (una línea por año, con leyenda),
+// así que ya no hacen falta los chips de filtro de año.
 function renderAnInsChips() {
   const cont = document.getElementById('an-ins-chips');
-  if (!cont) return;
-  const anios = anInsAnios(anInsSelV);
-  if (anios.length <= 1) { cont.innerHTML = ''; return; }   // un solo año → no hace falta filtro
-  const chip = (val, txt) => {
-    const on = anInsAnioV === val;
-    return `<button onclick="anInsSetAnio('${val}')" style="border:1px solid ${on?'var(--verde)':'var(--borde)'};background:${on?'var(--verde)':'white'};color:${on?'white':'var(--texto)'};border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer">${txt}</button>`;
-  };
-  cont.innerHTML = chip('todos','Todos') + anios.map(a => chip(a, a)).join('');
+  if (cont) cont.style.display = 'none';
 }
 
-// Peso compacto para etiquetas de puntos (evita amontonar): $1,3k / $2,7k / $25k
-function fmtPesoCorto(v) {
-  const a = Math.abs(v);
-  if (a >= 1000) return '$' + (v/1000).toFixed(a >= 10000 ? 0 : 1).replace('.', ',').replace(',0','') + 'k';
-  return '$' + Math.round(v);
-}
-// Etiqueta de mes para el eje X: "Oct" o "Oct 25" si la serie cruza más de un año
-function ejeMesLabel(m, multiAnio) {
-  const [y, mm] = (m||'').split('-');
-  return MESES_CORTO[+mm] + (multiAnio ? " '" + y.slice(2) : '');
+// Número entero con separador de miles (es-AR), SIN simplificar: 1.890 / 550.000
+function fmtEntero(v) { return Math.round(v).toLocaleString('es-AR'); }
+
+// Colores por año (viejo→nuevo). El más reciente se resalta.
+const YEAR_PALETTE = ['#B99A3E', '#3E8E7E', '#D98E04', '#8B1E3F'];
+function colorAnio(idx, count) {
+  return YEAR_PALETTE[(idx + Math.max(0, YEAR_PALETTE.length - count)) % YEAR_PALETTE.length];
 }
 
-// Gráfico de LÍNEA (dos variables: valor en Y vs meses en X). points = [{label, value}]
-function dibujarLinea(containerId, points) {
+// Marcas "redondas" para el eje Y (ej: 1.000, 1.500, 2.000…)
+function niceTicks(min, max, count) {
+  count = count || 5;
+  if (min === max) { min -= 1; max += 1; }
+  const step0 = (max - min) / count;
+  const mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  const norm = step0 / mag;
+  const step = (norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10) * mag;
+  const nmin = Math.floor(min / step) * step;
+  const nmax = Math.ceil(max / step) * step;
+  const ticks = [];
+  for (let v = nmin; v <= nmax + step * 0.001; v += step) ticks.push(Math.round(v));
+  return { ticks, nmin, nmax };
+}
+
+// Gráfico de líneas COMPARANDO AÑOS: eje X con los 12 meses SIEMPRE (Ene..Dic),
+// una línea por año, escala Y fija y en números enteros. Los meses sin dato no
+// tienen punto (queda el hueco), pero el eje mantiene la misma escala.
+// seriesByYear = { '2025':[v0..v11|null], '2026':[...] }  (índice 0=Ene .. 11=Dic)
+function dibujarLineaMeses(containerId, seriesByYear) {
   const el = document.getElementById(containerId);
   if (!el) return;
-  if (!points.length) { el.innerHTML = '<div style="font-size:13px;color:var(--texto-muted)">Sin datos para mostrar.</div>'; return; }
-  const W = 340, H = 190, padL = 30, padR = 16, padT = 20, padB = 26;
-  const n = points.length;
-  const vals = points.map(p => p.value);
-  let minV = Math.min(...vals), maxV = Math.max(...vals);
-  if (minV === maxV) { minV = minV * 0.9 || 0; maxV = maxV * 1.1 || 1; }
-  const rango = maxV - minV;
-  const yMin = minV - rango * 0.12, yMax = maxV + rango * 0.18;
-  const x = i => padL + (n === 1 ? (W - padL - padR) / 2 : (i / (n - 1)) * (W - padL - padR));
+  const years = Object.keys(seriesByYear).sort();
+  const allVals = years.flatMap(y => seriesByYear[y]).filter(v => v != null && !isNaN(v));
+  if (!allVals.length) { el.innerHTML = '<div style="font-size:13px;color:var(--texto-muted)">Sin datos para mostrar.</div>'; return; }
+  const { ticks, nmin, nmax } = niceTicks(Math.min(...allVals), Math.max(...allVals), 5);
+  const yMin = nmin, yMax = nmax;
+
+  const W = 380, H = 210, padL = 52, padR = 12, padT = 12, padB = 26;
+  const x = i => padL + (i / 11) * (W - padL - padR);
   const y = v => padT + (1 - (v - yMin) / (yMax - yMin)) * (H - padT - padB);
-  // 3 líneas de guía horizontales
-  const guias = [0, 0.5, 1].map(f => {
-    const gv = yMin + (yMax - yMin) * f;
-    const gy = y(gv);
-    return `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W-padR}" y2="${gy.toFixed(1)}" stroke="var(--gris-claro)" stroke-width="1"/>`;
+
+  const grid = ticks.map(t => {
+    const gy = y(t);
+    return `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W-padR}" y2="${gy.toFixed(1)}" stroke="var(--gris-claro)" stroke-width="1"/>
+      <text x="${padL-6}" y="${(gy+3).toFixed(1)}" text-anchor="end" font-size="8.5" fill="var(--texto-muted)">${fmtEntero(t)}</text>`;
   }).join('');
-  const linePath = points.map((p, i) => `${i===0?'M':'L'}${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' ');
-  const area = `M${x(0).toFixed(1)},${y(points[0].value).toFixed(1)} ` +
-    points.map((p, i) => `L${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' ') +
-    ` L${x(n-1).toFixed(1)},${(H-padB).toFixed(1)} L${x(0).toFixed(1)},${(H-padB).toFixed(1)} Z`;
-  const puntos = points.map((p, i) => `
-    <circle cx="${x(i).toFixed(1)}" cy="${y(p.value).toFixed(1)}" r="3.4" fill="var(--verde-oscuro)"/>
-    <text x="${x(i).toFixed(1)}" y="${(y(p.value)-8).toFixed(1)}" text-anchor="middle" font-size="9.5" font-weight="700" fill="var(--verde-oscuro)">${fmtPesoCorto(p.value)}</text>
-    <text x="${x(i).toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="9.5" fill="var(--texto-muted)">${p.label}</text>`).join('');
-  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:560px;display:block;margin:0 auto">
-    ${guias}
-    ${n>1?`<path d="${area}" fill="var(--verde)" opacity="0.08"/>`:''}
-    ${n>1?`<path d="${linePath}" fill="none" stroke="var(--verde)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`:''}
-    ${puntos}
+
+  const xlabels = MESES_CORTO.slice(1).map((mm, i) =>
+    `<text x="${x(i).toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="8.5" fill="var(--texto-muted)">${mm}</text>`).join('');
+
+  const count = years.length;
+  const series = years.map((yr, idx) => {
+    const arr = seriesByYear[yr];
+    const color = colorAnio(idx, count);
+    const emph = idx === count - 1;   // el año más reciente, resaltado
+    const pts = [];
+    arr.forEach((v, i) => { if (v != null && !isNaN(v)) pts.push([i, v]); });
+    if (!pts.length) return '';
+    const d = pts.map((p, k) => `${k===0?'M':'L'}${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(' ');
+    const area = (emph && pts.length > 1)
+      ? `<path d="${d} L${x(pts[pts.length-1][0]).toFixed(1)},${(H-padB).toFixed(1)} L${x(pts[0][0]).toFixed(1)},${(H-padB).toFixed(1)} Z" fill="${color}" opacity="0.08"/>` : '';
+    const line = `<path d="${d}" fill="none" stroke="${color}" stroke-width="${emph?2.6:1.8}" ${emph?'':'stroke-dasharray="5 4"'} stroke-linejoin="round" stroke-linecap="round" opacity="${emph?1:0.85}"/>`;
+    const dots = pts.map(p => `<circle cx="${x(p[0]).toFixed(1)}" cy="${y(p[1]).toFixed(1)}" r="${emph?3.4:2.6}" fill="${emph?color:'white'}" stroke="${color}" stroke-width="${emph?0:1.6}"/>`).join('');
+    return area + line + dots;
+  }).join('');
+
+  const legend = `<div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:flex-end;margin-bottom:6px">` +
+    years.map((yr, idx) => `<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--texto-muted)">
+      <span style="width:10px;height:10px;border-radius:50%;background:${colorAnio(idx, count)};display:inline-block"></span>${yr}</span>`).join('') + `</div>`;
+
+  el.innerHTML = legend + `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:600px;display:block">
+    ${grid}${xlabels}${series}
   </svg>`;
 }
 
 function renderAnInsChart() {
   const insumo = anInsSelV;
-  const serie = insumo ? anInsSerie(insumo, anInsAnioV) : [];
-  const multiAnio = new Set(serie.map(s => s.mes.slice(0,4))).size > 1;
-  dibujarLinea('an-ins-chart', serie.map(s => ({ label: ejeMesLabel(s.mes, multiAnio), value: s.precio })));
+  dibujarLineaMeses('an-ins-chart', insumo ? anInsSeriesPorAnio(insumo) : {});
 
   const res = document.getElementById('an-ins-resumen');
   if (!res) return;
-  if (serie.length < 2) {
-    res.innerHTML = serie.length === 1
-      ? `<div style="font-size:13px;color:var(--texto-muted)">Por ahora hay un solo precio registrado (${pesos(serie[0].precio)}). Cuando cargues más compras vas a ver la variación.</div>`
+  const filas = (anInsFilas||[]).filter(r => r.insumo === insumo).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  if (filas.length < 2) {
+    res.innerHTML = filas.length === 1
+      ? `<div style="font-size:13px;color:var(--texto-muted)">Por ahora hay un solo precio registrado (${pesos(filas[0].precio)}). Cuando cargues más compras vas a ver la variación.</div>`
       : `<div style="font-size:13px;color:var(--texto-muted)">Sin datos de este insumo todavía.</div>`;
     return;
   }
-  const prim = serie[0], ult = serie[serie.length-1];
+  const prim = filas[0], ult = filas[filas.length-1];
   const varPct = (ult.precio - prim.precio) / prim.precio * 100;
-  const [ay,am] = prim.mes.split('-').map(Number);
-  const [by,bm] = ult.mes.split('-').map(Number);
+  const [ay,am] = prim.fecha.slice(0,7).split('-').map(Number);
+  const [by,bm] = ult.fecha.slice(0,7).split('-').map(Number);
   const meses = (by-ay)*12 + (bm-am);
   const porMes = meses > 0 ? varPct / meses : 0;
   const unidad = insumosData[insumo]?.unidad ? ` / ${insumosData[insumo].unidad}` : '';
   const color = varPct >= 0 ? 'var(--naranja)' : 'var(--verde)';
   res.innerHTML = `
     <div style="background:var(--gris-claro);border-radius:10px;padding:0.85rem 1rem;font-size:13.5px;line-height:1.7">
-      De <strong>${mesLabel(prim.mes+'-01')}</strong> (${pesos(prim.precio)}${unidad}) a <strong>${mesLabel(ult.mes+'-01')}</strong> (${pesos(ult.precio)}${unidad}):<br>
+      De <strong>${mesLabel(prim.fecha.slice(0,7)+'-01')}</strong> (${pesos(prim.precio)}${unidad}) a <strong>${mesLabel(ult.fecha.slice(0,7)+'-01')}</strong> (${pesos(ult.precio)}${unidad}):<br>
       Variación total: <strong style="color:${color}">${varPct>=0?'+':''}${varPct.toFixed(0)}%</strong>${meses>0?` &nbsp;·&nbsp; ~<strong style="color:${color}">${porMes>=0?'+':''}${porMes.toFixed(1)}%</strong> por mes` : ''}
     </div>`;
 }
@@ -4645,12 +4669,19 @@ function renderReceta() {
   const calc = calcularCostoPorReceta(prod);
   if (!calc) { if(chart) chart.innerHTML='<div style="font-size:13px;color:var(--texto-muted)">Sin receta.</div>'; if(det) det.innerHTML=''; return; }
 
-  // Línea: costo total del producto mes a mes (según precios de insumos de cada mes)
+  // Línea por año: costo total del producto mes a mes (precios de insumos de cada mes)
   const meses = mesesHistoria();
-  const multiAnio = new Set(meses.map(m => m.slice(0,4))).size > 1;
-  const puntos = meses.map(m => ({ label: ejeMesLabel(m, multiAnio), value: costoRecetaEnMes(prod, m) }));
-  if (puntos.length >= 2) dibujarLinea('an-receta-chart', puntos);
-  else if (chart) chart.innerHTML = `<div style="font-size:13px;color:var(--texto-muted)">Todavía no hay suficiente historial de precios para dibujar la evolución. El costo de hoy es <strong>${pesos(calc.total)}</strong>.</div>`;
+  if (meses.length) {
+    const series = {};
+    meses.forEach(m => {
+      const y = m.slice(0,4), mi = (+m.slice(5,7)) - 1;
+      if (!series[y]) series[y] = Array(12).fill(null);
+      series[y][mi] = Math.round(costoRecetaEnMes(prod, m));
+    });
+    dibujarLineaMeses('an-receta-chart', series);
+  } else if (chart) {
+    chart.innerHTML = `<div style="font-size:13px;color:var(--texto-muted)">Todavía no hay historial de precios para dibujar la evolución. El costo de hoy es <strong>${pesos(calc.total)}</strong>.</div>`;
+  }
 
   const fmtCant = d => d.unidad==='gramos'?`${d.cant} g`:d.unidad==='litro'?`${d.cant} l`:`${d.cant} u.`;
   if (det) det.innerHTML = `
