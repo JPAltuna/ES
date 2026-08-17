@@ -1018,15 +1018,98 @@
       <div class="page active" id="page-dashboard">
         <div class="page-header">
           <div class="page-title">Dashboard</div>
-          <div class="page-desc">Resumen de actividad del emprendimiento</div>
+          <div class="page-desc">Cómo viene el mes</div>
         </div>
 
-        <div class="semana-selector">
-          <label>Semana del</label>
-          <input type="date" id="dash-desde" />
-          <label>al</label>
-          <input type="date" id="dash-hasta" />
-          <button class="btn-verde" onclick="cargarDashboard()">Ver</button>
+        <!-- ===== RESUMEN DEL MES EN CURSO (se carga solo al entrar) ===== -->
+        <div id="dmes-loading" class="loading" style="display:flex">
+          <div class="spinner"></div> Cargando el mes...
+        </div>
+
+        <div id="dmes-content" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:0.85rem">
+            <div style="font-size:19px;font-weight:700" id="dmes-titulo">—</div>
+            <div style="font-size:12px;color:var(--texto-muted)" id="dmes-rango">—</div>
+          </div>
+
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-label">Unidades vendidas</div>
+              <div class="metric-value verde" id="dmes-unidades">—</div>
+              <div class="metric-sub" id="dmes-unidades-sub"></div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Total vendido</div>
+              <div class="metric-value" id="dmes-total">—</div>
+              <div class="metric-sub" id="dmes-total-sub"></div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Ganancia bruta</div>
+              <div class="metric-value verde" id="dmes-ganancia">—</div>
+              <div class="metric-sub">Sin descontar fijos</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Ganancia neta</div>
+              <div class="metric-value" id="dmes-neta">—</div>
+              <div class="metric-sub">Después de los fijos</div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;" class="section-gap">
+            <!-- Fijos del mes -->
+            <div class="card" style="margin:0">
+              <div class="card-title">📌 Costos fijos del mes</div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:0.4rem">
+                <span style="color:var(--texto-muted)">A cubrir en el mes</span>
+                <strong id="dmes-fijos-total">—</strong>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:0.5rem">
+                <span style="color:var(--texto-muted)">Cubierto con la ganancia</span>
+                <strong id="dmes-fijos-cubierto">—</strong>
+              </div>
+              <div style="background:var(--gris-claro);border-radius:20px;height:18px;overflow:hidden;margin-bottom:0.6rem">
+                <div id="dmes-fijos-barra" style="height:100%;border-radius:20px;transition:width 0.6s;background:var(--verde);width:0%"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding-top:0.5rem;border-top:1px solid var(--borde)">
+                <span style="font-size:13px;color:var(--texto-muted)" id="dmes-falta-label">Falta cubrir</span>
+                <span id="dmes-falta" style="font-size:18px;font-weight:600">—</span>
+              </div>
+            </div>
+
+            <!-- Pendiente por local -->
+            <div class="card" style="margin:0">
+              <div class="card-title">⏳ Pendiente por local</div>
+              <div id="dmes-pend-body"></div>
+            </div>
+          </div>
+
+          <!-- Unidades por producto en el mes -->
+          <div class="card section-gap">
+            <div class="card-title">🧴 Unidades vendidas por producto</div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Producto</th><th>Unid.</th><th>Total</th><th>Ganancia</th></tr></thead>
+                <tbody id="dmes-tabla-productos"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="dmes-empty" class="empty-state" style="display:none">
+          Todavía no hay ventas cargadas este mes.
+        </div>
+
+        <!-- ===== RESUMEN DE LA SEMANA (a pedido, con las fechas que elijas) ===== -->
+        <div class="card section-gap" style="background:var(--gris-claro)">
+          <div class="card-title">📅 Resumen de un período (para WhatsApp)</div>
+          <div style="font-size:12px;color:var(--texto-muted);margin-bottom:0.75rem">Elegí las fechas y apretá Ver para armar el resumen y copiarlo.</div>
+          <div class="semana-selector" style="margin:0">
+            <label>Del</label>
+            <input type="date" id="dash-desde" />
+            <label>al</label>
+            <input type="date" id="dash-hasta" />
+            <button class="btn-verde" onclick="cargarDashboard()">Ver</button>
+          </div>
         </div>
 
         <div id="dash-loading" class="loading" style="display:none">
@@ -3007,7 +3090,7 @@ function showPage(name, btn) {
   if (name === 'pedidos') { cargarLocales().then(poblarSelectLocalesPedidos); abrirPedidos(); }
   if (name === 'envases') cargarEnvasesRecientes();
   if (name === 'egresos') cargarEgresosRecientes();
-  if (name === 'dashboard') { setFechas('dash-desde','dash-hasta'); }
+  if (name === 'dashboard') { setFechas('dash-desde','dash-hasta'); cargarResumenMes(); }
   if (name === 'caja') { setFechas('caja-desde','caja-hasta'); }
   if (name === 'costos') abrirCostosFijos();
   if (name === 'cobros') { setFechas('cob-desde','cob-hasta'); }
@@ -3516,6 +3599,134 @@ async function cargarEgresosRecientes() {
 // =====================
 // DASHBOARD
 // =====================
+// =====================
+// RESUMEN DEL MES EN CURSO (arriba del Dashboard, se carga solo)
+// =====================
+// Muestra de un vistazo cómo viene el mes: unidades, ganancia, cuánto falta para
+// cubrir los fijos del mes y qué queda pendiente de cobro por local.
+async function cargarResumenMes() {
+  const load = document.getElementById('dmes-loading');
+  const cont = document.getElementById('dmes-content');
+  const empty = document.getElementById('dmes-empty');
+  if (load) load.style.display = 'flex';
+  if (cont) cont.style.display = 'none';
+  if (empty) empty.style.display = 'none';
+
+  try {
+    const mes = getMes();
+    const desde = mes + '-01';
+    const hasta = hoy();
+    const ventasData = await sheetsGet('Ventas!A:K');
+
+    const ventas = ventasData.slice(1).filter(r => {
+      const f = normFecha(r[0]);
+      return f && f.slice(0,7) === mes && PRODUCTOS_VALIDOS.includes((r[4]||'').trim());
+    });
+
+    await cargarFijosPorMes();
+    const fijosMes = getFijosTotalMes(mes);
+
+    if (!ventas.length) {
+      if (load) load.style.display = 'none';
+      if (empty) empty.style.display = 'block';
+      return;
+    }
+
+    let totalUnidades = 0, totalVenta = 0, totalGanancia = 0, pendiente = 0;
+    const porProducto = {}, pendPorLocal = {};
+
+    ventas.forEach(r => {
+      const prod = (r[4]||'').trim();
+      const cant = parseFloat(r[5])||0;
+      const precio = parseFloat(r[6])||0;
+      let total = parseFloat(r[7]); if (isNaN(total)) total = precio * cant;
+      const estado = (r[10]||'').trim().toLowerCase();
+      const costo = getCostoParaFecha(prod, normFecha(r[0])) * cant;
+
+      totalUnidades += cant;
+      totalVenta += total;
+      totalGanancia += (total - costo);
+
+      if (!porProducto[prod]) porProducto[prod] = { unidades:0, venta:0, costo:0 };
+      porProducto[prod].unidades += cant;
+      porProducto[prod].venta += total;
+      porProducto[prod].costo += costo;
+
+      if (estado !== 'cobrado') {
+        pendiente += total;
+        const local = (r[3]||'—').trim() || '—';
+        pendPorLocal[local] = (pendPorLocal[local]||0) + total;
+      }
+    });
+
+    const ganNeta = totalGanancia - fijosMes;
+    const pct = fijosMes > 0 ? Math.round(totalGanancia / fijosMes * 100) : 100;
+    const falta = Math.max(0, fijosMes - totalGanancia);
+    const fStr = f => { const d = new Date(f+'T12:00:00'); return `${d.getDate()}/${d.getMonth()+1}`; };
+
+    document.getElementById('dmes-titulo').textContent =
+      mesStr(desde).charAt(0).toUpperCase() + mesStr(desde).slice(1) + ' ' + mes.slice(0,4);
+    document.getElementById('dmes-rango').textContent = `Del ${fStr(desde)} al ${fStr(hasta)} (mes en curso)`;
+
+    document.getElementById('dmes-unidades').textContent = totalUnidades;
+    document.getElementById('dmes-unidades-sub').textContent = `${ventas.length} venta(s) cargadas`;
+    document.getElementById('dmes-total').textContent = pesos(totalVenta);
+    document.getElementById('dmes-total-sub').textContent = pendiente > 0 ? `Pendiente de cobro: ${pesos(pendiente)}` : 'Todo cobrado ✓';
+    document.getElementById('dmes-ganancia').textContent = pesos(totalGanancia);
+    const netaEl = document.getElementById('dmes-neta');
+    netaEl.textContent = pesos(ganNeta);
+    netaEl.className = 'metric-value ' + (ganNeta >= 0 ? 'verde' : '');
+    if (ganNeta < 0) netaEl.style.color = 'var(--naranja)'; else netaEl.style.color = '';
+
+    // Fijos del mes
+    document.getElementById('dmes-fijos-total').textContent = pesos(fijosMes);
+    document.getElementById('dmes-fijos-cubierto').textContent = `${pesos(totalGanancia)} (${pct}%)`;
+    const barra = document.getElementById('dmes-fijos-barra');
+    barra.style.width = Math.min(pct,100) + '%';
+    barra.style.background = pct>=100?'var(--verde)':pct>=60?'var(--amarillo)':'var(--naranja)';
+    const faltaEl = document.getElementById('dmes-falta');
+    if (falta > 0) {
+      document.getElementById('dmes-falta-label').textContent = 'Falta cubrir';
+      faltaEl.textContent = pesos(falta);
+      faltaEl.style.color = 'var(--naranja)';
+    } else {
+      document.getElementById('dmes-falta-label').textContent = '✓ Fijos cubiertos, ganancia limpia';
+      faltaEl.textContent = pesos(ganNeta);
+      faltaEl.style.color = 'var(--verde)';
+    }
+
+    // Pendiente por local
+    const pendBody = document.getElementById('dmes-pend-body');
+    const pendArr = Object.entries(pendPorLocal).sort((a,b)=>b[1]-a[1]);
+    pendBody.innerHTML = pendArr.length
+      ? pendArr.map(([loc,tot]) =>
+          `<div style="display:flex;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid var(--gris-claro);font-size:13.5px"><span>${loc}</span><strong style="color:var(--amarillo)">${pesos(tot)}</strong></div>`
+        ).join('') + `<div style="display:flex;justify-content:space-between;padding:0.6rem 0 0;font-weight:700;font-size:14px"><span>Total a cobrar</span><span style="color:var(--amarillo)">${pesos(pendiente)}</span></div>`
+      : `<div style="font-size:13px;color:var(--texto-muted)">✓ No queda nada pendiente de cobro este mes.</div>`;
+
+    // Unidades por producto
+    const tbody = document.getElementById('dmes-tabla-productos');
+    tbody.innerHTML = '';
+    Object.entries(porProducto).sort((a,b)=>b[1].unidades-a[1].unidades).forEach(([prod,d]) => {
+      tbody.innerHTML += `<tr>
+        <td>${emojiProducto(prod)} ${prod}</td>
+        <td><strong>${d.unidades}</strong></td>
+        <td>${pesos(d.venta)}</td>
+        <td style="color:var(--verde);font-weight:500">${pesos(d.venta - d.costo)}</td>
+      </tr>`;
+    });
+    tbody.innerHTML += `<tr class="total-row">
+      <td>TOTAL</td><td>${totalUnidades}</td><td>${pesos(totalVenta)}</td>
+      <td style="color:var(--verde)">${pesos(totalGanancia)}</td>
+    </tr>`;
+
+    if (load) load.style.display = 'none';
+    if (cont) cont.style.display = 'block';
+  } catch(e) {
+    if (load) load.innerHTML = '<span style="color:var(--rojo)">Error: ' + e.message + '</span>';
+  }
+}
+
 async function cargarDashboard() {
   const desde = document.getElementById('dash-desde').value;
   const hasta = document.getElementById('dash-hasta').value;
@@ -6354,6 +6565,9 @@ function iniciarApp() {
   // En celular arranca en la pantalla de inicio (grilla de cuadrados)
   if (window.matchMedia('(max-width: 768px)').matches) {
     goHome();
+  } else {
+    // En PC el Dashboard ya está activo sin pasar por showPage → carga el mes acá
+    cargarResumenMes();
   }
 }
 
