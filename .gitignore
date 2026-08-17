@@ -1,1 +1,5 @@
 .claude/
+
+# Datos privados exportados (no subir al repo público)
+Emprendimiento ES - Egresos.csv
+*.csv
