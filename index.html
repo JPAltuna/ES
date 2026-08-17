@@ -1917,12 +1917,34 @@
           <button class="subtab" onclick="analisisSec('rentabilidad')">💰 Rentabilidad</button>
           <button class="subtab" onclick="analisisSec('stock')">📦 Stock</button>
         </div>
-        <div class="card">
-          <div class="card-title">🥛 Inflación de insumos</div>
-          <div style="font-size:13px;color:var(--texto-muted);line-height:1.7">
-            Acá vas a ver cómo fue subiendo el precio de cada insumo (la leche, el azúcar, las pasas…), la inflación real del año y una proyección de cuánto seguirá variando.<br><br>
-            🚧 <strong>En construcción.</strong> El historial ya se está armando en la pestaña <strong>Historial_insumos</strong> — es lo próximo que vamos a llenar.
+        <div id="an-ins-loading" style="display:flex;align-items:center;gap:10px;padding:1.5rem;color:var(--texto-muted)">
+          <div class="spinner"></div> Cargando historial de insumos…
+        </div>
+        <div id="an-ins-wrap" style="display:none">
+
+          <!-- Gráfico 1: variación mes a mes de cada insumo -->
+          <div class="card">
+            <div class="card-title">🥛 Precio de cada insumo, mes a mes</div>
+            <div style="font-size:12px;color:var(--texto-muted);margin-bottom:0.75rem">Elegí un insumo y mirá cómo fue variando su precio. Cada barra es un mes con compra registrada.</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:0.6rem">
+              <select id="an-ins-sel" onchange="onAnInsSel()" style="border:1px solid var(--borde);border-radius:8px;padding:6px 10px;font-size:14px;background:white"></select>
+            </div>
+            <div id="an-ins-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:0.85rem"></div>
+            <div id="an-ins-chart"></div>
+            <div id="an-ins-resumen" style="margin-top:0.85rem"></div>
           </div>
+
+          <!-- Gráfico 2: receta completa por producto -->
+          <div class="card" style="margin-top:1.25rem">
+            <div class="card-title">🧪 Receta completa de cada producto</div>
+            <div style="font-size:12px;color:var(--texto-muted);margin-bottom:0.75rem">Qué insumos lleva cada producto y cuánto pesa cada uno en el costo (con los precios de insumos de hoy).</div>
+            <div style="margin-bottom:0.85rem">
+              <select id="an-receta-sel" onchange="renderReceta()" style="border:1px solid var(--borde);border-radius:8px;padding:6px 10px;font-size:14px;background:white"></select>
+            </div>
+            <div id="an-receta-chart"></div>
+            <div id="an-receta-detalle" style="margin-top:0.85rem"></div>
+          </div>
+
         </div>
       </div>
 
@@ -2943,6 +2965,7 @@ function showPage(name, btn) {
   if (name === 'cobros') { setFechas('cob-desde','cob-hasta'); }
   if (name === 'precios') cargarPrecios();
   if (name === 'insumos') { cargarInsumos(); insTab('stock', document.querySelector('#ins-subtabs .subtab')); }
+  if (name === 'an-insumos') cargarAnalisisInsumos();
   if (name === 'cierre') { document.getElementById('cierre-mes').value = getMes(); cargarHistorialCierres(); }
   if (name === 'reporte-mensual') { document.getElementById('repmes-mes').value = getMes(); }
   if (name === 'analisis') {
@@ -4405,6 +4428,190 @@ async function rescatarPreciosDesdeEgresos() {
   } catch(e) {
     alert('No se pudo rescatar: ' + e.message);
   }
+}
+
+// =====================
+// ANÁLISIS DE INSUMOS (solapa Insumos del módulo Análisis)
+// =====================
+// Dos vistas: (1) cómo varió el precio de cada insumo mes a mes (con filtro de
+// año), leído de Historial_insumos; (2) la receta completa de cada producto y
+// cuánto pesa cada insumo en el costo (con los precios actuales).
+let anInsFilas = null;    // filas de Historial_insumos [{fecha,insumo,unidad,precio,prov}]
+let anInsSelV = '';       // insumo elegido
+let anInsAnioV = 'todos'; // filtro de año
+
+async function cargarAnalisisInsumos() {
+  const load = document.getElementById('an-ins-loading');
+  const wrap = document.getElementById('an-ins-wrap');
+  if (load) load.style.display = 'flex';
+  if (wrap) wrap.style.display = 'none';
+  try {
+    // Necesitamos insumosData (precios actuales) para la receta
+    if (!insumosData || Object.keys(insumosData).length === 0) {
+      try { await cargarInsumos(); } catch(e) { /* usa defaults */ }
+    }
+    const data = await sheetsGet(`${HIST_INS_TAB}!A:F`);
+    anInsFilas = (data||[]).slice(1)
+      .filter(r => r[1] && r[3] !== undefined && r[3] !== '')
+      .map(r => ({ fecha: normFecha(r[0]), insumo: String(r[1]).trim(), unidad: r[2]||'', precio: parseFloat(r[3])||0, prov: r[4]||'' }))
+      .filter(r => r.fecha && r.precio > 0);
+    poblarAnInsSel();
+    poblarRecetaSel();
+    renderAnInsChips();
+    renderAnInsChart();
+    renderReceta();
+  } catch(e) {
+    if (wrap) wrap.innerHTML = `<div class="card"><div style="color:var(--rojo)">No se pudo cargar: ${e.message}</div></div>`;
+  } finally {
+    if (load) load.style.display = 'none';
+    if (wrap) wrap.style.display = 'block';
+  }
+}
+
+function anInsInsumos() {
+  return [...new Set((anInsFilas||[]).map(r => r.insumo))].sort((a,b)=>a.localeCompare(b));
+}
+
+function poblarAnInsSel() {
+  const sel = document.getElementById('an-ins-sel');
+  if (!sel) return;
+  const lista = anInsInsumos();
+  const prev = (anInsSelV && lista.includes(anInsSelV)) ? anInsSelV : (lista[0]||'');
+  anInsSelV = prev;
+  sel.innerHTML = lista.length
+    ? lista.map(n => `<option value="${n}"${n===prev?' selected':''}>${n}</option>`).join('')
+    : '<option value="">Sin datos todavía</option>';
+}
+
+// Serie mes a mes del insumo (respetando el filtro de año). Por cada mes con
+// compras toma el ÚLTIMO precio del mes. Devuelve [{mes, precio, prov}].
+function anInsSerie(insumo, anio) {
+  const filas = (anInsFilas||[]).filter(r => r.insumo === insumo &&
+    (anio === 'todos' || r.fecha.slice(0,4) === anio));
+  const porMes = {};
+  filas.slice().sort((a,b)=>a.fecha.localeCompare(b.fecha)).forEach(r => {
+    porMes[r.fecha.slice(0,7)] = { precio: r.precio, prov: r.prov };
+  });
+  return Object.keys(porMes).sort().map(m => ({ mes: m, precio: porMes[m].precio, prov: porMes[m].prov }));
+}
+
+function anInsAnios(insumo) {
+  return [...new Set((anInsFilas||[]).filter(r=>r.insumo===insumo).map(r => r.fecha.slice(0,4)))].sort();
+}
+
+function onAnInsSel() {
+  const sel = document.getElementById('an-ins-sel');
+  anInsSelV = sel ? sel.value : '';
+  anInsAnioV = 'todos';   // al cambiar de insumo, vuelve a "Todos"
+  renderAnInsChips();
+  renderAnInsChart();
+}
+
+function anInsSetAnio(a) { anInsAnioV = a; renderAnInsChips(); renderAnInsChart(); }
+
+function renderAnInsChips() {
+  const cont = document.getElementById('an-ins-chips');
+  if (!cont) return;
+  const anios = anInsAnios(anInsSelV);
+  if (anios.length <= 1) { cont.innerHTML = ''; return; }   // un solo año → no hace falta filtro
+  const chip = (val, txt) => {
+    const on = anInsAnioV === val;
+    return `<button onclick="anInsSetAnio('${val}')" style="border:1px solid ${on?'var(--verde)':'var(--borde)'};background:${on?'var(--verde)':'white'};color:${on?'white':'var(--texto)'};border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer">${txt}</button>`;
+  };
+  cont.innerHTML = chip('todos','Todos') + anios.map(a => chip(a, a)).join('');
+}
+
+// Barras verticales con etiqueta en pesos (propio del análisis de insumos)
+function anInsBarsVert(containerId, items) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!items.length) { el.innerHTML = '<div style="font-size:13px;color:var(--texto-muted)">Sin datos para mostrar.</div>'; return; }
+  const max = Math.max(1, ...items.map(i => i.value));
+  el.innerHTML = `<div style="display:flex;align-items:flex-end;gap:5px;height:160px;padding-top:16px">` +
+    items.map(it => {
+      const h = Math.round(it.value / max * 100);
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0">
+        <div style="font-size:10px;font-weight:700;color:var(--verde-oscuro);margin-bottom:3px;white-space:nowrap">${pesos(it.value)}</div>
+        <div style="width:100%;max-width:38px;background:var(--verde);border-radius:6px 6px 0 0;height:${h}%;min-height:2px;transition:height .5s"></div>
+        <div style="font-size:10px;color:var(--texto-muted);margin-top:5px;text-align:center;line-height:1.15">${it.label}</div>
+      </div>`;
+    }).join('') + `</div>`;
+}
+
+function renderAnInsChart() {
+  const insumo = anInsSelV;
+  const serie = insumo ? anInsSerie(insumo, anInsAnioV) : [];
+  anInsBarsVert('an-ins-chart', serie.map(s => ({ label: mesLabel(s.mes+'-01'), value: s.precio })));
+
+  const res = document.getElementById('an-ins-resumen');
+  if (!res) return;
+  if (serie.length < 2) {
+    res.innerHTML = serie.length === 1
+      ? `<div style="font-size:13px;color:var(--texto-muted)">Por ahora hay un solo precio registrado (${pesos(serie[0].precio)}). Cuando cargues más compras vas a ver la variación.</div>`
+      : `<div style="font-size:13px;color:var(--texto-muted)">Sin datos de este insumo todavía.</div>`;
+    return;
+  }
+  const prim = serie[0], ult = serie[serie.length-1];
+  const varPct = (ult.precio - prim.precio) / prim.precio * 100;
+  const [ay,am] = prim.mes.split('-').map(Number);
+  const [by,bm] = ult.mes.split('-').map(Number);
+  const meses = (by-ay)*12 + (bm-am);
+  const porMes = meses > 0 ? varPct / meses : 0;
+  const unidad = insumosData[insumo]?.unidad ? ` / ${insumosData[insumo].unidad}` : '';
+  const color = varPct >= 0 ? 'var(--naranja)' : 'var(--verde)';
+  res.innerHTML = `
+    <div style="background:var(--gris-claro);border-radius:10px;padding:0.85rem 1rem;font-size:13.5px;line-height:1.7">
+      De <strong>${mesLabel(prim.mes+'-01')}</strong> (${pesos(prim.precio)}${unidad}) a <strong>${mesLabel(ult.mes+'-01')}</strong> (${pesos(ult.precio)}${unidad}):<br>
+      Variación total: <strong style="color:${color}">${varPct>=0?'+':''}${varPct.toFixed(0)}%</strong>${meses>0?` &nbsp;·&nbsp; ~<strong style="color:${color}">${porMes>=0?'+':''}${porMes.toFixed(1)}%</strong> por mes` : ''}
+    </div>`;
+}
+
+// --- Receta completa por producto ---
+function poblarRecetaSel() {
+  const sel = document.getElementById('an-receta-sel');
+  if (!sel) return;
+  const prods = Object.keys(RECETAS);
+  const prev = (sel.value && prods.includes(sel.value)) ? sel.value : prods[0];
+  sel.innerHTML = prods.map(p => `<option value="${p}"${p===prev?' selected':''}>${emojiProducto(p)} ${p}</option>`).join('');
+}
+
+function renderReceta() {
+  const sel = document.getElementById('an-receta-sel');
+  const prod = sel ? sel.value : '';
+  const chart = document.getElementById('an-receta-chart');
+  const det = document.getElementById('an-receta-detalle');
+  if (!prod) { if(chart) chart.innerHTML=''; if(det) det.innerHTML=''; return; }
+  const calc = calcularCostoPorReceta(prod);
+  if (!calc) { if(chart) chart.innerHTML='<div style="font-size:13px;color:var(--texto-muted)">Sin receta.</div>'; if(det) det.innerHTML=''; return; }
+  const items = calc.detalle.map(d => ({ label: d.insumo, value: d.parcial }))
+    .concat([{ label:'Varios (10%)', value: calc.varios }])
+    .sort((a,b)=>b.value-a.value);
+  barsHoriz('an-receta-chart', items, pesos);
+  const fmtCant = d => d.unidad==='gramos'?`${d.cant} g`:d.unidad==='litro'?`${d.cant} l`:`${d.cant} u.`;
+  if (det) det.innerHTML = `
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr>
+        <th style="text-align:left;padding:0.4rem;border-bottom:1px solid var(--borde);color:var(--texto-muted);font-size:11px">INSUMO</th>
+        <th style="text-align:right;padding:0.4rem;border-bottom:1px solid var(--borde);color:var(--texto-muted);font-size:11px">CANTIDAD</th>
+        <th style="text-align:right;padding:0.4rem;border-bottom:1px solid var(--borde);color:var(--texto-muted);font-size:11px">COSTO</th>
+      </tr></thead><tbody>
+      ${calc.detalle.map(d => `<tr>
+        <td style="padding:0.45rem 0.4rem;border-bottom:1px solid var(--gris-claro)">${d.insumo}</td>
+        <td style="padding:0.45rem 0.4rem;text-align:right;color:var(--texto-muted);border-bottom:1px solid var(--gris-claro)">${fmtCant(d)}</td>
+        <td style="padding:0.45rem 0.4rem;text-align:right;border-bottom:1px solid var(--gris-claro)">${pesos(d.parcial)}</td>
+      </tr>`).join('')}
+        <tr>
+          <td style="padding:0.45rem 0.4rem;color:var(--texto-muted)">Varios (10%)</td>
+          <td></td>
+          <td style="padding:0.45rem 0.4rem;text-align:right;color:var(--texto-muted)">${pesos(calc.varios)}</td>
+        </tr>
+      </tbody>
+      <tfoot><tr>
+        <td style="padding:0.55rem 0.4rem;font-weight:700;border-top:2px solid var(--borde)">Costo total</td>
+        <td style="border-top:2px solid var(--borde)"></td>
+        <td style="padding:0.55rem 0.4rem;text-align:right;font-weight:700;color:var(--verde-oscuro);border-top:2px solid var(--borde)">${pesos(calc.total)}</td>
+      </tr></tfoot>
+    </table></div>`;
 }
 
 // =====================
