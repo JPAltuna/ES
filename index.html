@@ -1941,8 +1941,11 @@
             <div style="margin-bottom:0.85rem">
               <select id="an-receta-sel" onchange="renderReceta()" style="border:1px solid var(--borde);border-radius:8px;padding:6px 10px;font-size:14px;background:white"></select>
             </div>
-            <div id="an-receta-chart"></div>
-            <div id="an-receta-detalle" style="margin-top:0.85rem"></div>
+            <!-- En pantalla ancha, gráfico y receta lado a lado; en el celu se apilan -->
+            <div style="display:flex;flex-wrap:wrap;gap:1.25rem;align-items:flex-start">
+              <div id="an-receta-chart" style="flex:1 1 320px;min-width:0"></div>
+              <div id="an-receta-detalle" style="flex:1 1 280px;min-width:0"></div>
+            </div>
           </div>
 
         </div>
@@ -4581,17 +4584,47 @@ function dibujarLineaMeses(containerId, seriesByYear) {
     const area = (emph && pts.length > 1)
       ? `<path d="${d} L${x(pts[pts.length-1][0]).toFixed(1)},${(H-padB).toFixed(1)} L${x(pts[0][0]).toFixed(1)},${(H-padB).toFixed(1)} Z" fill="${color}" opacity="0.08"/>` : '';
     const line = `<path d="${d}" fill="none" stroke="${color}" stroke-width="${emph?2.6:1.8}" ${emph?'':'stroke-dasharray="5 4"'} stroke-linejoin="round" stroke-linecap="round" opacity="${emph?1:0.85}"/>`;
-    const dots = pts.map(p => `<circle cx="${x(p[0]).toFixed(1)}" cy="${y(p[1]).toFixed(1)}" r="${emph?3.4:2.6}" fill="${emph?color:'white'}" stroke="${color}" stroke-width="${emph?0:1.6}"/>`).join('');
+    // Cada punto lleva un círculo invisible más grande para poder tocarlo/pasar
+    // el mouse y ver el valor exacto en un tooltip.
+    const dots = pts.map(p => `<circle cx="${x(p[0]).toFixed(1)}" cy="${y(p[1]).toFixed(1)}" r="${emph?3.4:2.6}" fill="${emph?color:'white'}" stroke="${color}" stroke-width="${emph?0:1.6}"/>
+      <circle cx="${x(p[0]).toFixed(1)}" cy="${y(p[1]).toFixed(1)}" r="11" fill="transparent" style="cursor:pointer"
+        data-mes="${MESES_CORTO[p[0]+1]}" data-anio="${yr}" data-valor="${p[1]}" data-color="${color}"
+        onmouseenter="tipLinea(this,'${containerId}')" onmouseleave="tipLineaOff('${containerId}')" onclick="tipLinea(this,'${containerId}')"/>`).join('');
     return area + line + dots;
   }).join('');
 
-  const legend = `<div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:flex-end;margin-bottom:6px">` +
-    years.map((yr, idx) => `<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--texto-muted)">
-      <span style="width:10px;height:10px;border-radius:50%;background:${colorAnio(idx, count)};display:inline-block"></span>${yr}</span>`).join('') + `</div>`;
+  const legend = `<div style="display:flex;flex-wrap:wrap;gap:14px;justify-content:flex-end;margin-bottom:6px">` +
+    years.map((yr, idx) => `<span style="display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--texto)">
+      <span style="width:13px;height:13px;border-radius:50%;background:${colorAnio(idx, count)};display:inline-block"></span>${yr}</span>`).join('') + `</div>`;
 
+  el.style.position = 'relative';   // para posicionar el tooltip adentro
   el.innerHTML = legend + `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:600px;display:block">
     ${grid}${xlabels}${series}
   </svg>`;
+}
+
+// Tooltip del gráfico de líneas: muestra "Mes Año: $valor" sobre el punto.
+// Funciona con mouse (hover) y con el dedo (tap) en el celu.
+function tipLinea(dot, containerId) {
+  const cont = document.getElementById(containerId);
+  if (!cont) return;
+  let tip = cont.querySelector('.linea-tip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.className = 'linea-tip';
+    tip.style.cssText = 'position:absolute;padding:5px 11px;border-radius:8px;font-size:13px;font-weight:700;color:white;pointer-events:none;white-space:nowrap;transform:translate(-50%,-135%);z-index:5;box-shadow:0 2px 8px rgba(0,0,0,.25)';
+    cont.appendChild(tip);
+  }
+  const r1 = dot.getBoundingClientRect(), r0 = cont.getBoundingClientRect();
+  tip.style.left = (r1.left + r1.width/2 - r0.left) + 'px';
+  tip.style.top = (r1.top - r0.top + 4) + 'px';
+  tip.style.background = dot.dataset.color || 'var(--verde-oscuro)';
+  tip.textContent = `${dot.dataset.mes} ${dot.dataset.anio}: $${fmtEntero(+dot.dataset.valor)}`;
+  tip.style.display = 'block';
+}
+function tipLineaOff(containerId) {
+  const tip = document.getElementById(containerId)?.querySelector('.linea-tip');
+  if (tip) tip.style.display = 'none';
 }
 
 function renderAnInsChart() {
