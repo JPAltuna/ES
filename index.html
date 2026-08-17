@@ -4596,9 +4596,11 @@ function niceTicks(min, max, count) {
 // una línea por año, escala Y fija y en números enteros. Los meses sin dato no
 // tienen punto (queda el hueco), pero el eje mantiene la misma escala.
 // seriesByYear = { '2025':[v0..v11|null], '2026':[...] }  (índice 0=Ene .. 11=Dic)
-function dibujarLineaMeses(containerId, seriesByYear) {
+// opts.pre = prefijo del valor en el tooltip y el eje ('$' por defecto, '' para unidades)
+function dibujarLineaMeses(containerId, seriesByYear, opts) {
   const el = document.getElementById(containerId);
   if (!el) return;
+  const pre = (opts && opts.pre !== undefined) ? opts.pre : '$';
   const years = Object.keys(seriesByYear).sort();
   const allVals = years.flatMap(y => seriesByYear[y]).filter(v => v != null && !isNaN(v));
   if (!allVals.length) { el.innerHTML = '<div style="font-size:13px;color:var(--texto-muted)">Sin datos para mostrar.</div>'; return; }
@@ -4634,7 +4636,7 @@ function dibujarLineaMeses(containerId, seriesByYear) {
     // el mouse y ver el valor exacto en un tooltip.
     const dots = pts.map(p => `<circle cx="${x(p[0]).toFixed(1)}" cy="${y(p[1]).toFixed(1)}" r="${emph?3.4:2.6}" fill="${emph?color:'white'}" stroke="${color}" stroke-width="${emph?0:1.6}"/>
       <circle cx="${x(p[0]).toFixed(1)}" cy="${y(p[1]).toFixed(1)}" r="11" fill="transparent" style="cursor:pointer"
-        data-mes="${MESES_CORTO[p[0]+1]}" data-anio="${yr}" data-valor="${p[1]}" data-color="${color}"
+        data-mes="${MESES_CORTO[p[0]+1]}" data-anio="${yr}" data-valor="${p[1]}" data-color="${color}" data-pre="${pre}"
         onmouseenter="tipLinea(this,'${containerId}')" onmouseleave="tipLineaOff('${containerId}')" onclick="tipLinea(this,'${containerId}')"/>`).join('');
     return area + line + dots;
   }).join('');
@@ -4665,7 +4667,8 @@ function tipLinea(dot, containerId) {
   tip.style.left = (r1.left + r1.width/2 - r0.left) + 'px';
   tip.style.top = (r1.top - r0.top + 4) + 'px';
   tip.style.background = dot.dataset.color || 'var(--verde-oscuro)';
-  tip.textContent = `${dot.dataset.mes} ${dot.dataset.anio}: $${fmtEntero(+dot.dataset.valor)}`;
+  const pre = dot.dataset.pre !== undefined ? dot.dataset.pre : '$';
+  tip.textContent = `${dot.dataset.mes} ${dot.dataset.anio}: ${pre}${fmtEntero(+dot.dataset.valor)}`;
   tip.style.display = 'block';
 }
 function tipLineaOff(containerId) {
@@ -6995,24 +6998,11 @@ function cmpAnios() {
   return [...new Set((cmpVentas||[]).map(v => (v.mes||'').slice(0,4)))].filter(Boolean).sort();
 }
 
-// Botones para elegir qué mostrar en "Mes a mes"
+// Los años ahora se comparan dentro del propio gráfico (una línea por año, con
+// leyenda), así que los botones Últimos 6 / año / Comparar años ya no hacen falta.
 function renderMesModoChips() {
   const cont = document.getElementById('cmp-mes-anios');
-  if (!cont) return;
-  const anios = cmpAnios();
-  // Si el modo guardado ya no aplica (ej: año sin datos), volvemos a 'reciente'
-  if (cmpMesModo !== 'reciente' && cmpMesModo !== 'comparar' && !anios.includes(cmpMesModo)) cmpMesModo = 'reciente';
-  let html = `<button data-mm="reciente" class="${cmpMesModo==='reciente'?'on':''}" onclick="cmpSetMesModo('reciente',this)">Últimos 6</button>`;
-  anios.forEach(a => { html += `<button data-mm="${a}" class="${cmpMesModo===a?'on':''}" onclick="cmpSetMesModo('${a}',this)">${a}</button>`; });
-  if (anios.length >= 2) html += `<button data-mm="comparar" class="${cmpMesModo==='comparar'?'on':''}" onclick="cmpSetMesModo('comparar',this)">Comparar años</button>`;
-  cont.innerHTML = html;
-}
-
-function cmpSetMesModo(m, btn) {
-  cmpMesModo = m;
-  document.querySelectorAll('#cmp-mes-anios button').forEach(b => b.classList.remove('on'));
-  if (btn) btn.classList.add('on');
-  renderMesAMes();
+  if (cont) cont.style.display = 'none';
 }
 
 // Valor de un mes ('YYYY-MM') según la métrica activa, respetando los cierres congelados
@@ -7034,6 +7024,8 @@ function valorMes(mes) {
   return { value, prov: (mes === mesActual), hasData: true };
 }
 
+// Mes a mes con el MISMO gráfico de líneas que Análisis>Insumos: eje X con los 12
+// meses fijos, una línea por año, escala en enteros y valor exacto al tocar el punto.
 function renderMesAMes() {
   const mesActual = getMes();
   const notaBase = cmpMetric === 'ganancia' ? 'Ganancia neta (con fijos). Los meses cerrados usan los valores que congelaste en el cierre.'
@@ -7042,52 +7034,23 @@ function renderMesAMes() {
   const notaEl = document.getElementById('cmp-mes-note');
   const provEl = document.getElementById('cmp-mes-prov');
 
-  // --- Modo comparar años: mismo mes, una barra por año ---
-  if (cmpMesModo === 'comparar') {
-    const anios = cmpAnios();
-    const colores = ['var(--verde)', 'var(--azul)', 'var(--naranja)', 'var(--amarillo)'];
-    const groups = [];
-    let hayProv = false;
-    for (let m = 1; m <= 12; m++) {
-      const mm = String(m).padStart(2,'0');
-      const bars = [];
-      anios.forEach((a, idx) => {
-        const mes = `${a}-${mm}`;
-        if (mes > mesActual) return;            // no mostramos meses futuros
-        const r = valorMes(mes);
-        if (!r.hasData) return;                 // sin ventas ese mes/año
-        if (r.prov) hayProv = true;
-        bars.push({ sublabel: a, value: r.value, color: colores[idx % colores.length], prov: r.prov });
-      });
-      if (bars.length) groups.push({ label: MESES_CORTO[m], bars });
-    }
-    cmpGrouped('cmp-mes', groups);
-    provEl.style.display = hayProv ? 'inline' : 'none';
-    notaEl.textContent = notaBase + ' Mismo mes comparado entre años.';
-    return;
-  }
-
-  // --- Modo últimos 6 o un año completo ---
-  let meses;
-  if (cmpMesModo === 'reciente') {
-    meses = ultimosMeses(6);
-  } else {
-    const a = cmpMesModo;
-    const hastaMes = (a === mesActual.slice(0,4)) ? +mesActual.slice(5,7) : 12; // año en curso: hasta el mes actual
-    meses = [];
-    for (let m = 1; m <= hastaMes; m++) meses.push(`${a}-${String(m).padStart(2,'0')}`);
-  }
+  const series = {};
   let hayProv = false;
-  const items = meses.map(mes => {
-    const r = valorMes(mes);
-    if (r.prov) hayProv = true;
-    const [yy, mm] = mes.split('-');
-    const label = cmpMesModo === 'reciente' ? `${MESES_CORTO[+mm]} ${yy.slice(2)}` : MESES_CORTO[+mm];
-    return { label, value: r.value, prov: r.prov };
+  cmpAnios().forEach(a => {
+    for (let m = 1; m <= 12; m++) {
+      const mes = `${a}-${String(m).padStart(2,'0')}`;
+      if (mes > mesActual) continue;            // no mostramos meses futuros
+      const r = valorMes(mes);
+      if (!r.hasData) continue;                 // mes sin ventas → sin punto
+      if (r.prov) hayProv = true;
+      if (!series[a]) series[a] = Array(12).fill(null);
+      series[a][m-1] = Math.round(r.value);
+    }
   });
-  cmpBarsVert('cmp-mes', items);
-  provEl.style.display = hayProv ? 'inline' : 'none';
-  notaEl.textContent = notaBase;
+
+  dibujarLineaMeses('cmp-mes', series, { pre: cmpMetric === 'unidades' ? '' : '$' });
+  if (provEl) provEl.style.display = hayProv ? 'inline' : 'none';
+  if (notaEl) notaEl.textContent = notaBase + ' Tocá un punto para ver el valor exacto.';
 }
 
 // Barras agrupadas: cada grupo (mes) con una barra por año
