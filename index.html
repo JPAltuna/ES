@@ -1925,7 +1925,7 @@
           <!-- Gráfico 1: variación mes a mes de cada insumo -->
           <div class="card">
             <div class="card-title">🥛 Precio de cada insumo, mes a mes</div>
-            <div style="font-size:12px;color:var(--texto-muted);margin-bottom:0.75rem">Elegí un insumo y mirá cómo fue variando su precio. Cada barra es un mes con compra registrada.</div>
+            <div style="font-size:12px;color:var(--texto-muted);margin-bottom:0.75rem">Elegí un insumo y mirá la línea de cómo fue variando su precio a lo largo de los meses.</div>
             <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:0.6rem">
               <select id="an-ins-sel" onchange="onAnInsSel()" style="border:1px solid var(--borde);border-radius:8px;padding:6px 10px;font-size:14px;background:white"></select>
             </div>
@@ -1936,8 +1936,8 @@
 
           <!-- Gráfico 2: receta completa por producto -->
           <div class="card" style="margin-top:1.25rem">
-            <div class="card-title">🧪 Receta completa de cada producto</div>
-            <div style="font-size:12px;color:var(--texto-muted);margin-bottom:0.75rem">Qué insumos lleva cada producto y cuánto pesa cada uno en el costo (con los precios de insumos de hoy).</div>
+            <div class="card-title">🧪 Costo completo de cada producto, mes a mes</div>
+            <div style="font-size:12px;color:var(--texto-muted);margin-bottom:0.75rem">Cómo fue variando el costo total de hacer cada producto (según los precios de sus insumos en cada mes). Abajo, de qué se compone hoy.</div>
             <div style="margin-bottom:0.85rem">
               <select id="an-receta-sel" onchange="renderReceta()" style="border:1px solid var(--borde);border-radius:8px;padding:6px 10px;font-size:14px;background:white"></select>
             </div>
@@ -4521,27 +4521,59 @@ function renderAnInsChips() {
   cont.innerHTML = chip('todos','Todos') + anios.map(a => chip(a, a)).join('');
 }
 
-// Barras verticales con etiqueta en pesos (propio del análisis de insumos)
-function anInsBarsVert(containerId, items) {
+// Peso compacto para etiquetas de puntos (evita amontonar): $1,3k / $2,7k / $25k
+function fmtPesoCorto(v) {
+  const a = Math.abs(v);
+  if (a >= 1000) return '$' + (v/1000).toFixed(a >= 10000 ? 0 : 1).replace('.', ',').replace(',0','') + 'k';
+  return '$' + Math.round(v);
+}
+// Etiqueta de mes para el eje X: "Oct" o "Oct 25" si la serie cruza más de un año
+function ejeMesLabel(m, multiAnio) {
+  const [y, mm] = (m||'').split('-');
+  return MESES_CORTO[+mm] + (multiAnio ? " '" + y.slice(2) : '');
+}
+
+// Gráfico de LÍNEA (dos variables: valor en Y vs meses en X). points = [{label, value}]
+function dibujarLinea(containerId, points) {
   const el = document.getElementById(containerId);
   if (!el) return;
-  if (!items.length) { el.innerHTML = '<div style="font-size:13px;color:var(--texto-muted)">Sin datos para mostrar.</div>'; return; }
-  const max = Math.max(1, ...items.map(i => i.value));
-  el.innerHTML = `<div style="display:flex;align-items:flex-end;gap:5px;height:160px;padding-top:16px">` +
-    items.map(it => {
-      const h = Math.round(it.value / max * 100);
-      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0">
-        <div style="font-size:10px;font-weight:700;color:var(--verde-oscuro);margin-bottom:3px;white-space:nowrap">${pesos(it.value)}</div>
-        <div style="width:100%;max-width:38px;background:var(--verde);border-radius:6px 6px 0 0;height:${h}%;min-height:2px;transition:height .5s"></div>
-        <div style="font-size:10px;color:var(--texto-muted);margin-top:5px;text-align:center;line-height:1.15">${it.label}</div>
-      </div>`;
-    }).join('') + `</div>`;
+  if (!points.length) { el.innerHTML = '<div style="font-size:13px;color:var(--texto-muted)">Sin datos para mostrar.</div>'; return; }
+  const W = 340, H = 190, padL = 30, padR = 16, padT = 20, padB = 26;
+  const n = points.length;
+  const vals = points.map(p => p.value);
+  let minV = Math.min(...vals), maxV = Math.max(...vals);
+  if (minV === maxV) { minV = minV * 0.9 || 0; maxV = maxV * 1.1 || 1; }
+  const rango = maxV - minV;
+  const yMin = minV - rango * 0.12, yMax = maxV + rango * 0.18;
+  const x = i => padL + (n === 1 ? (W - padL - padR) / 2 : (i / (n - 1)) * (W - padL - padR));
+  const y = v => padT + (1 - (v - yMin) / (yMax - yMin)) * (H - padT - padB);
+  // 3 líneas de guía horizontales
+  const guias = [0, 0.5, 1].map(f => {
+    const gv = yMin + (yMax - yMin) * f;
+    const gy = y(gv);
+    return `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W-padR}" y2="${gy.toFixed(1)}" stroke="var(--gris-claro)" stroke-width="1"/>`;
+  }).join('');
+  const linePath = points.map((p, i) => `${i===0?'M':'L'}${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' ');
+  const area = `M${x(0).toFixed(1)},${y(points[0].value).toFixed(1)} ` +
+    points.map((p, i) => `L${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' ') +
+    ` L${x(n-1).toFixed(1)},${(H-padB).toFixed(1)} L${x(0).toFixed(1)},${(H-padB).toFixed(1)} Z`;
+  const puntos = points.map((p, i) => `
+    <circle cx="${x(i).toFixed(1)}" cy="${y(p.value).toFixed(1)}" r="3.4" fill="var(--verde-oscuro)"/>
+    <text x="${x(i).toFixed(1)}" y="${(y(p.value)-8).toFixed(1)}" text-anchor="middle" font-size="9.5" font-weight="700" fill="var(--verde-oscuro)">${fmtPesoCorto(p.value)}</text>
+    <text x="${x(i).toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="9.5" fill="var(--texto-muted)">${p.label}</text>`).join('');
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:560px;display:block;margin:0 auto">
+    ${guias}
+    ${n>1?`<path d="${area}" fill="var(--verde)" opacity="0.08"/>`:''}
+    ${n>1?`<path d="${linePath}" fill="none" stroke="var(--verde)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`:''}
+    ${puntos}
+  </svg>`;
 }
 
 function renderAnInsChart() {
   const insumo = anInsSelV;
   const serie = insumo ? anInsSerie(insumo, anInsAnioV) : [];
-  anInsBarsVert('an-ins-chart', serie.map(s => ({ label: mesLabel(s.mes+'-01'), value: s.precio })));
+  const multiAnio = new Set(serie.map(s => s.mes.slice(0,4))).size > 1;
+  dibujarLinea('an-ins-chart', serie.map(s => ({ label: ejeMesLabel(s.mes, multiAnio), value: s.precio })));
 
   const res = document.getElementById('an-ins-resumen');
   if (!res) return;
@@ -4575,6 +4607,35 @@ function poblarRecetaSel() {
   sel.innerHTML = prods.map(p => `<option value="${p}"${p===prev?' selected':''}>${emojiProducto(p)} ${p}</option>`).join('');
 }
 
+// Meses con historial de precios (union de todos los insumos)
+function mesesHistoria() {
+  return [...new Set((anInsFilas||[]).map(r => r.fecha.slice(0,7)))].sort();
+}
+// Precio de un insumo tal como estaba a fin del mes dado (último punto <= ese mes;
+// si el mes es anterior al primer dato, usa el primero; si no hay historial, el actual).
+function precioInsumoEnMes(insumo, mes) {
+  const pts = (anInsFilas||[]).filter(r => r.insumo === insumo).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  if (!pts.length) return getPrecioInsumo(insumo);
+  const lim = mes + '-31';
+  let val = pts[0].precio;                 // relleno hacia atrás
+  for (const p of pts) { if (p.fecha <= lim) val = p.precio; else break; }
+  return val;
+}
+// Costo total de la receta de un producto con los precios de ese mes
+function costoRecetaEnMes(prod, mes) {
+  const receta = RECETAS[prod];
+  if (!receta) return 0;
+  let subtotal = 0;
+  receta.forEach(([insumo, cant, unidad]) => {
+    const precioBase = precioInsumoEnMes(insumo, mes);
+    const unidadInsumo = (insumosData[insumo]?.unidad || '').toLowerCase();
+    let precioUnitario = precioBase;
+    if (unidad === 'gramos' && (unidadInsumo === 'kg' || unidadInsumo === 'kilogramos')) precioUnitario = precioBase / 1000;
+    subtotal += precioUnitario * cant;
+  });
+  return subtotal * 1.10;   // + 10% varios, igual que calcularCostoPorReceta
+}
+
 function renderReceta() {
   const sel = document.getElementById('an-receta-sel');
   const prod = sel ? sel.value : '';
@@ -4583,12 +4644,17 @@ function renderReceta() {
   if (!prod) { if(chart) chart.innerHTML=''; if(det) det.innerHTML=''; return; }
   const calc = calcularCostoPorReceta(prod);
   if (!calc) { if(chart) chart.innerHTML='<div style="font-size:13px;color:var(--texto-muted)">Sin receta.</div>'; if(det) det.innerHTML=''; return; }
-  const items = calc.detalle.map(d => ({ label: d.insumo, value: d.parcial }))
-    .concat([{ label:'Varios (10%)', value: calc.varios }])
-    .sort((a,b)=>b.value-a.value);
-  barsHoriz('an-receta-chart', items, pesos);
+
+  // Línea: costo total del producto mes a mes (según precios de insumos de cada mes)
+  const meses = mesesHistoria();
+  const multiAnio = new Set(meses.map(m => m.slice(0,4))).size > 1;
+  const puntos = meses.map(m => ({ label: ejeMesLabel(m, multiAnio), value: costoRecetaEnMes(prod, m) }));
+  if (puntos.length >= 2) dibujarLinea('an-receta-chart', puntos);
+  else if (chart) chart.innerHTML = `<div style="font-size:13px;color:var(--texto-muted)">Todavía no hay suficiente historial de precios para dibujar la evolución. El costo de hoy es <strong>${pesos(calc.total)}</strong>.</div>`;
+
   const fmtCant = d => d.unidad==='gramos'?`${d.cant} g`:d.unidad==='litro'?`${d.cant} l`:`${d.cant} u.`;
   if (det) det.innerHTML = `
+    <div style="font-size:12px;font-weight:600;color:var(--texto-muted);margin-bottom:0.4rem">De qué se compone hoy</div>
     <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">
       <thead><tr>
         <th style="text-align:left;padding:0.4rem;border-bottom:1px solid var(--borde);color:var(--texto-muted);font-size:11px">INSUMO</th>
