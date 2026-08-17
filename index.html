@@ -1746,6 +1746,7 @@
         <div class="subtabs an-sec-tabs">
           <button class="subtab" onclick="analisisSec('ventas')">📈 Ventas</button>
           <button class="subtab" onclick="analisisSec('insumos')">🥛 Insumos</button>
+          <button class="subtab" onclick="analisisSec('egresos')">💸 Egresos</button>
           <button class="subtab on" onclick="analisisSec('rentabilidad')">💰 Rentabilidad</button>
           <button class="subtab" onclick="analisisSec('stock')">📦 Stock</button>
         </div>
@@ -1914,6 +1915,7 @@
         <div class="subtabs an-sec-tabs">
           <button class="subtab" onclick="analisisSec('ventas')">📈 Ventas</button>
           <button class="subtab on" onclick="analisisSec('insumos')">🥛 Insumos</button>
+          <button class="subtab" onclick="analisisSec('egresos')">💸 Egresos</button>
           <button class="subtab" onclick="analisisSec('rentabilidad')">💰 Rentabilidad</button>
           <button class="subtab" onclick="analisisSec('stock')">📦 Stock</button>
         </div>
@@ -1960,6 +1962,7 @@
         <div class="subtabs an-sec-tabs">
           <button class="subtab" onclick="analisisSec('ventas')">📈 Ventas</button>
           <button class="subtab" onclick="analisisSec('insumos')">🥛 Insumos</button>
+          <button class="subtab" onclick="analisisSec('egresos')">💸 Egresos</button>
           <button class="subtab" onclick="analisisSec('rentabilidad')">💰 Rentabilidad</button>
           <button class="subtab on" onclick="analisisSec('stock')">📦 Stock</button>
         </div>
@@ -1969,6 +1972,47 @@
             Acá vas a ver cuánta plata tenés parada en insumos y cuánto vas consumiendo según lo que producís y vendés.<br><br>
             🚧 <strong>En construcción.</strong> Se apoya en los conteos que ya cargás en <strong>Insumos → Stock</strong>.
           </div>
+        </div>
+      </div>
+
+      <!-- ANÁLISIS: EGRESOS (gastos por mes) -->
+      <div class="page" id="page-an-egresos">
+        <div class="page-header">
+          <div class="page-title">Análisis</div>
+          <div class="page-desc">Egresos: cuánto gastás por mes y en qué</div>
+        </div>
+        <div class="subtabs an-sec-tabs">
+          <button class="subtab" onclick="analisisSec('ventas')">📈 Ventas</button>
+          <button class="subtab" onclick="analisisSec('insumos')">🥛 Insumos</button>
+          <button class="subtab on" onclick="analisisSec('egresos')">💸 Egresos</button>
+          <button class="subtab" onclick="analisisSec('rentabilidad')">💰 Rentabilidad</button>
+          <button class="subtab" onclick="analisisSec('stock')">📦 Stock</button>
+        </div>
+        <div id="an-egr-loading" style="display:flex;align-items:center;gap:10px;padding:1.5rem;color:var(--texto-muted)">
+          <div class="spinner"></div> Cargando egresos…
+        </div>
+        <div id="an-egr-wrap" style="display:none">
+
+          <!-- Gráfico: gastos por mes, filtrable por tipo -->
+          <div class="card">
+            <div class="card-title">💸 Gastos por mes</div>
+            <div style="font-size:12px;color:var(--texto-muted);margin-bottom:0.75rem">Cuánto se gastó cada mes. Filtrá por tipo de gasto con los botones.</div>
+            <div id="an-egr-cats" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:0.85rem"></div>
+            <div id="an-egr-chart"></div>
+          </div>
+
+          <!-- Detalle de un mes -->
+          <div class="card" style="margin-top:1.25rem">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:0.75rem">
+              <div class="card-title" style="margin:0">🔍 Detalle de un mes</div>
+              <select id="an-egr-mes-sel" onchange="renderEgrMes()" style="border:1px solid var(--borde);border-radius:8px;padding:6px 10px;font-size:14px;background:white"></select>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:1.25rem;align-items:flex-start">
+              <div id="an-egr-mes-chart" style="flex:1 1 300px;min-width:0"></div>
+              <div id="an-egr-mes-lista" style="flex:1 1 300px;min-width:0"></div>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -2304,6 +2348,7 @@
         <div class="subtabs an-sec-tabs">
           <button class="subtab on" onclick="analisisSec('ventas')">📈 Ventas</button>
           <button class="subtab" onclick="analisisSec('insumos')">🥛 Insumos</button>
+          <button class="subtab" onclick="analisisSec('egresos')">💸 Egresos</button>
           <button class="subtab" onclick="analisisSec('rentabilidad')">💰 Rentabilidad</button>
           <button class="subtab" onclick="analisisSec('stock')">📦 Stock</button>
         </div>
@@ -2953,7 +2998,7 @@ function showPage(name, btn) {
 
   // Las 4 solapas de Análisis (Ventas/Insumos/Rentabilidad/Stock) son páginas
   // distintas pero comparten la misma entrada de menú → la dejamos marcada.
-  const SEC_ANALISIS = ['analisis','costos','an-insumos','an-stock'];
+  const SEC_ANALISIS = ['analisis','costos','an-insumos','an-stock','an-egresos'];
   if (SEC_ANALISIS.includes(name)) {
     const na = document.getElementById('nav-analisis'); if (na) na.classList.add('active');
   }
@@ -2969,6 +3014,7 @@ function showPage(name, btn) {
   if (name === 'precios') cargarPrecios();
   if (name === 'insumos') { cargarInsumos(); insTab('stock', document.querySelector('#ins-subtabs .subtab')); }
   if (name === 'an-insumos') cargarAnalisisInsumos();
+  if (name === 'an-egresos') cargarAnalisisEgresos();
   if (name === 'cierre') { document.getElementById('cierre-mes').value = getMes(); cargarHistorialCierres(); }
   if (name === 'reporte-mensual') { document.getElementById('repmes-mes').value = getMes(); }
   if (name === 'analisis') {
@@ -2981,7 +3027,7 @@ function showPage(name, btn) {
 // Cambia entre las solapas de la sección Análisis (cada una es su propia página,
 // pero comparten la barra de solapas de arriba para que se sienta una sola).
 function analisisSec(tab) {
-  const map = { ventas:'analisis', insumos:'an-insumos', rentabilidad:'costos', stock:'an-stock' };
+  const map = { ventas:'analisis', insumos:'an-insumos', egresos:'an-egresos', rentabilidad:'costos', stock:'an-stock' };
   showPage(map[tab] || 'analisis', null);
   window.scrollTo(0, 0);
 }
@@ -4740,6 +4786,132 @@ function renderReceta() {
         <td style="padding:0.55rem 0.4rem;font-weight:700;border-top:2px solid var(--borde)">Costo total</td>
         <td style="border-top:2px solid var(--borde)"></td>
         <td style="padding:0.55rem 0.4rem;text-align:right;font-weight:700;color:var(--verde-oscuro);border-top:2px solid var(--borde)">${pesos(calc.total)}</td>
+      </tr></tfoot>
+    </table></div>`;
+}
+
+// =====================
+// ANÁLISIS DE EGRESOS (solapa Egresos del módulo Análisis)
+// =====================
+// Gastos reales por mes leídos de la pestaña Egresos, con filtro por tipo
+// (Gasto fijo, Extraordinario, Insumo, Inversión, Publicidad) y detalle mensual.
+let anEgrFilas = null;   // [{fecha, mes, concepto, cat, total}]
+let anEgrCatV = 'todos'; // filtro de categoría activo
+
+// Unifica la categoría escrita en la planilla (tildes, mayúsculas, espacios)
+function normCategoria(c) {
+  const s = (c||'').toString().trim().toLowerCase().replace(/á/g,'a').replace(/é/g,'e').replace(/í/g,'i').replace(/ó/g,'o').replace(/ú/g,'u');
+  if (s === 'gasto fijo') return 'Gasto fijo';
+  if (s === 'extraordinario') return 'Extraordinario';
+  if (s === 'insumo') return 'Insumo';
+  if (s === 'inversion') return 'Inversión';
+  if (s === 'publicidad') return 'Publicidad';
+  return c ? c.toString().trim() : 'Sin categoría';
+}
+
+async function cargarAnalisisEgresos() {
+  const load = document.getElementById('an-egr-loading');
+  const wrap = document.getElementById('an-egr-wrap');
+  if (load) load.style.display = 'flex';
+  if (wrap) wrap.style.display = 'none';
+  try {
+    const data = await sheetsGet('Egresos!A:H');
+    anEgrFilas = (data||[]).slice(1).map(r => {
+      const fecha = normFecha(r[0]);
+      const total = parseFloat(r[5]) || 0;
+      return { fecha, mes: fecha ? fecha.slice(0,7) : '', concepto: (r[1]||'').toString().trim(), cat: normCategoria(r[2]), total };
+    }).filter(r => /^\d{4}-\d{2}$/.test(r.mes) && r.total > 0);
+    renderEgrCats();
+    renderEgrChart();
+    poblarEgrMesSel();
+    renderEgrMes();
+  } catch(e) {
+    if (wrap) wrap.innerHTML = `<div class="card"><div style="color:var(--rojo)">No se pudo cargar: ${e.message}</div></div>`;
+  } finally {
+    if (load) load.style.display = 'none';
+    if (wrap) wrap.style.display = 'block';
+  }
+}
+
+// Categorías presentes, ordenadas por cuánto se gastó en total
+function anEgrCategorias() {
+  const tot = {};
+  (anEgrFilas||[]).forEach(r => { tot[r.cat] = (tot[r.cat]||0) + r.total; });
+  return Object.entries(tot).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
+}
+
+function egrSetCat(c) { anEgrCatV = c; renderEgrCats(); renderEgrChart(); }
+
+function renderEgrCats() {
+  const cont = document.getElementById('an-egr-cats');
+  if (!cont) return;
+  const chip = (val, txt) => {
+    const on = anEgrCatV === val;
+    return `<button onclick="egrSetCat('${val.replace(/'/g,"\\'")}')" style="border:1px solid ${on?'var(--verde)':'var(--borde)'};background:${on?'var(--verde)':'white'};color:${on?'white':'var(--texto)'};border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer">${txt}</button>`;
+  };
+  cont.innerHTML = chip('todos','Todos') + anEgrCategorias().map(c => chip(c, c)).join('');
+}
+
+function renderEgrChart() {
+  const series = {};
+  (anEgrFilas||[]).forEach(r => {
+    if (anEgrCatV !== 'todos' && r.cat !== anEgrCatV) return;
+    const y = r.mes.slice(0,4), mi = (+r.mes.slice(5,7)) - 1;
+    if (!series[y]) series[y] = Array(12).fill(null);
+    series[y][mi] = (series[y][mi]||0) + r.total;
+  });
+  Object.values(series).forEach(arr => arr.forEach((v,i)=>{ if(v!=null) arr[i]=Math.round(v); }));
+  dibujarLineaMeses('an-egr-chart', series);
+}
+
+// --- Detalle de un mes ---
+function poblarEgrMesSel() {
+  const sel = document.getElementById('an-egr-mes-sel');
+  if (!sel) return;
+  const meses = [...new Set((anEgrFilas||[]).map(r => r.mes))].sort().reverse();
+  const prev = (sel.value && meses.includes(sel.value)) ? sel.value : (meses[0]||'');
+  sel.innerHTML = meses.length
+    ? meses.map(m => `<option value="${m}"${m===prev?' selected':''}>${mesLabel(m+'-01')}</option>`).join('')
+    : '<option value="">Sin datos</option>';
+}
+
+function renderEgrMes() {
+  const sel = document.getElementById('an-egr-mes-sel');
+  const mes = sel ? sel.value : '';
+  const chart = document.getElementById('an-egr-mes-chart');
+  const lista = document.getElementById('an-egr-mes-lista');
+  const filas = (anEgrFilas||[]).filter(r => r.mes === mes);
+  if (!filas.length) {
+    if (chart) chart.innerHTML = '<div style="font-size:13px;color:var(--texto-muted)">Sin egresos en este mes.</div>';
+    if (lista) lista.innerHTML = '';
+    return;
+  }
+  // Barras por tipo de gasto
+  const porCat = {};
+  filas.forEach(r => { porCat[r.cat] = (porCat[r.cat]||0) + r.total; });
+  const items = Object.entries(porCat).sort((a,b)=>b[1]-a[1]).map(([c,v]) => ({ label: c, value: v }));
+  barsHoriz('an-egr-mes-chart', items, pesos);
+  // Lista de los gastos más grandes del mes (agrupados por concepto)
+  const porConcepto = {};
+  filas.forEach(r => {
+    const k = r.concepto || '(sin concepto)';
+    if (!porConcepto[k]) porConcepto[k] = { cat: r.cat, total: 0 };
+    porConcepto[k].total += r.total;
+  });
+  const top = Object.entries(porConcepto).sort((a,b)=>b[1].total-a[1].total).slice(0,10);
+  const totalMes = filas.reduce((s,r)=>s+r.total, 0);
+  if (lista) lista.innerHTML = `
+    <div style="font-size:12px;font-weight:600;color:var(--texto-muted);margin-bottom:0.4rem">Los gastos más grandes del mes</div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">
+      <tbody>
+      ${top.map(([k,d]) => `<tr>
+        <td style="padding:0.4rem;border-bottom:1px solid var(--gris-claro)">${k}<br><span style="font-size:11px;color:var(--texto-muted)">${d.cat}</span></td>
+        <td style="padding:0.4rem;text-align:right;font-weight:600;border-bottom:1px solid var(--gris-claro);white-space:nowrap">${pesos(d.total)}</td>
+      </tr>`).join('')}
+      </tbody>
+      <tfoot><tr>
+        <td style="padding:0.55rem 0.4rem;font-weight:700;border-top:2px solid var(--borde)">Total del mes</td>
+        <td style="padding:0.55rem 0.4rem;text-align:right;font-weight:700;color:var(--rojo);border-top:2px solid var(--borde);white-space:nowrap">${pesos(totalMes)}</td>
       </tr></tfoot>
     </table></div>`;
 }
