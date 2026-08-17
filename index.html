@@ -2211,7 +2211,7 @@
             </div>
 
             <div id="prec-simulando-badge" style="display:none;background:var(--amarillo-claro);color:var(--amarillo);padding:0.5rem 1rem;border-radius:8px;font-size:13px;margin-bottom:1rem">
-              ✏️ Editando precios — cambiá el precio Umepay y Afuera/Personas se calculan solos (×1.20 y ×1.25, redondeado a cientos para arriba). Los cambios no se guardan hasta apretar "Aplicar precios".
+              ✏️ Editando precios — al cambiar Umepay, Afuera y Personas se autocompletan como sugerencia (×1.20 y ×1.25), pero podés escribirles el valor que quieras a mano. Los cambios no se guardan hasta apretar "Aplicar precios".
             </div>
 
             <div class="table-wrapper">
@@ -5412,6 +5412,7 @@ async function consultarCobros() {
       } else {
         wpp += `\n💰 *Total: ${pesos(totalGeneral)}*\n`;
       }
+      wpp += `\n💳 *Para transferir:*\nAlias: Kefires\nNombre: Maria Andrea Fourcade\n`;
     } else {
       // Resumen interno por local
       wpp += `📋 *ES — Pendientes por local (${periodoLabel})*\n\n`;
@@ -5674,9 +5675,19 @@ function renderTablaPrecios(precios) {
             onchange="actualizarSimulado('${prod}','umepay',this.value)" />
         </td>
         <td style="color:${mUme>=0?'var(--verde)':'var(--rojo)'};font-weight:500" id="sim-mume-${prod.replace(/[^a-z0-9]/gi,'_')}">${pesos(mUme)}</td>
-        <td id="sim-afu-${prod.replace(/[^a-z0-9]/gi,'_')}">${pesos(p.afuera)}</td>
+        <td>
+          <input type="number" id="sim-afu-${prod.replace(/[^a-z0-9]/gi,'_')}"
+            style="width:90px;border:1px solid var(--verde);border-radius:6px;padding:4px 8px;font-size:13px"
+            value="${p.afuera}"
+            onchange="actualizarSimulado('${prod}','afuera',this.value)" />
+        </td>
         <td style="color:${mAfu>=0?'var(--verde)':'var(--rojo)'};font-weight:500" id="sim-mafu-${prod.replace(/[^a-z0-9]/gi,'_')}">${pesos(mAfu)}</td>
-        <td id="sim-per-${prod.replace(/[^a-z0-9]/gi,'_')}">${pesos(p.personas)}</td>
+        <td>
+          <input type="number" id="sim-per-${prod.replace(/[^a-z0-9]/gi,'_')}"
+            style="width:90px;border:1px solid var(--verde);border-radius:6px;padding:4px 8px;font-size:13px"
+            value="${p.personas}"
+            onchange="actualizarSimulado('${prod}','personas',this.value)" />
+        </td>
         <td style="color:${mPer>=0?'var(--verde)':'var(--rojo)'};font-weight:500" id="sim-mper-${prod.replace(/[^a-z0-9]/gi,'_')}">${pesos(mPer)}</td>
         <td style="color:var(--texto-muted);font-size:12px">${p.vigente||'—'}</td>
       </tr>`;
@@ -5720,7 +5731,8 @@ function actualizarSimulado(prod, campo, val) {
   if (!preciosSimulados[prod]) return;
   const nuevo = Math.round(parseFloat(val)||0);
   preciosSimulados[prod][campo] = nuevo;
-  // Auto-calc Afuera and Personas from Umepay
+  // Al cambiar Umepay, Afuera y Personas se AUTOCOMPLETAN como sugerencia (×1.20 y ×1.25),
+  // pero quedan editables: si Julia escribe un valor propio de Afuera/Personas, no se pisa.
   if (campo === 'umepay') {
     preciosSimulados[prod].afuera   = Math.ceil(nuevo * 1.20 / 100) * 100;
     preciosSimulados[prod].personas = Math.ceil(nuevo * 1.25 / 100) * 100;
@@ -5729,14 +5741,17 @@ function actualizarSimulado(prod, campo, val) {
   const key = prod.replace(/[^a-z0-9]/gi,'_');
   const costoReal = getCostoParaFecha(prod, hoy());
   const p = preciosSimulados[prod];
-  const setCell = (id, val) => { const el=document.getElementById(id); if(el) el.textContent=pesos(val); };
   const setColor = (id, val) => { const el=document.getElementById(id); if(el) { el.textContent=pesos(val); el.style.color=val>=0?'var(--verde)':'var(--rojo)'; }};
   if (campo === 'umepay') {
     const inpAfu = document.getElementById(`sim-afu-${key}`);
     const inpPer = document.getElementById(`sim-per-${key}`);
-    if(inpAfu) inpAfu.textContent = pesos(p.afuera);
-    if(inpPer) inpPer.textContent = pesos(p.personas);
+    if(inpAfu) inpAfu.value = p.afuera;
+    if(inpPer) inpPer.value = p.personas;
     setColor(`sim-mafu-${key}`, p.afuera - costoReal);
+    setColor(`sim-mper-${key}`, p.personas - costoReal);
+  } else if (campo === 'afuera') {
+    setColor(`sim-mafu-${key}`, p.afuera - costoReal);
+  } else if (campo === 'personas') {
     setColor(`sim-mper-${key}`, p.personas - costoReal);
   }
   setColor(`sim-mume-${key}`, p.umepay - costoReal);
@@ -6278,6 +6293,7 @@ function armarResumenEntrega(p, items, fecha, env, totalProd, descEnv, final, es
   if (descEnv > 0) t += `Descuento envases: −${pesos(descEnv)}\n`;
   t += `\n💰 *Total a pagar: ${pesos(final)}*\n`;
   t += `\n${estado === 'Cobrado' ? '✅ Pagado' + (pago ? ' (' + pago + ')' : '') : '⏳ Queda pendiente de pago'}`;
+  if (estado !== 'Cobrado') t += `\n\n💳 *Para transferir:*\nAlias: Kefires\nNombre: Maria Andrea Fourcade`;
   t += `\n\n¡Gracias! 🌿`;
   return t;
 }

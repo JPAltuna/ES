@@ -1,0 +1,126 @@
+Fecha,Concepto,Categoria,Cantidad,Precio_unitario,Total,Medio_pago,Observaciones
+,Botellas,Insumo,2000,,656000,,1000 de c/botella y sus tapas
+,Etiquetas kefir,Insumo,,,269580,,
+18/7/2025,Leche,Insumo,25,15500,387500,,Primera compra en CBA
+13/9/2025,Leche,Insumo,17,15500,263500,,En lo de la doc
+15/9/2025,Leche,Insumo,10,15500,155000,,En lo de la doc
+20/9/2025,Suico,Insumo,1,49400,49400,,
+23/9/2025,Heladera,Inversion,1,,0,,Fue una inversion
+,Pasas uvas,Insumo,10,3540,35400,,Mundo Sano
+,Ciruelas,Insumo,2,6100,12200,,Mundo Sano
+22/9/2025,Art limpieza,Insumo,1,26543,26543,,
+24/9/2025,Suico,Insumo,3,49400,148200,,Sacha David
+26/9/2025,Pasas uvas,Insumo,10,3540,35400,,Mundo sano
+26/9/2025,Ciruelas,Insumo,2,6900,13800,,Mundo sano
+6/10/2025,Tapas yogur,Insumo,1000,127,127000,,
+8/10/2025,Julia,Gasto fijo,1,81909,81909,,Pago dias en BA
+10/10/2025,Limpieza,Insumo,1,45200,45200,,
+8/10/2025,Azucar mascabo,Insumo,2600,20,52000,,Despen
+14/10/2025,Repuesto Chata,Extraordinario,1,200000,200000,,
+15/10/2025,Leche,Insumo,204,1290,263160,,Jose Escalante
+18/10/2025,Limon,Insumo,0.95,2600,2470,,Despen
+23/10/2025,Limon,Insumo,0.9,2600,2340,,Despen
+27/10/2025,Leche,Insumo,240,1290,309600,,
+29/10/2025,Etiquetas kesir,Insumo,1,,17000,,Imprenta Rojo
+10/11/2025,Filtros tela,Inversion,2,35000,70000,,
+18/11/2025,Limpieza,Insumo,1,14800,14800,,
+18/11/2025,Limon,Insumo,9.5,1370,13015,,La verdu
+23/11/2025,Azucar mascabo,Insumo,20,2690,53800,,Despen
+23/11/2025,Suico,Insumo,5,56000,280000,,Sacha David
+25/11/2025,Gasoil,Gasto fijo,1,,70000,,
+4/12/2025,Leche,Insumo,108,1290,139320,,Jose escalante
+4/12/2025,Julia,Gasto fijo,1,,80000,,Pago segunda quincena nov
+9/12/2025,PublicidadUME,Publicidad,1,,40000,,Pueblovivo
+17/12/2025,Flyers,Publicidad,1,,9000,,
+22/12/2025,Azucar,Insumo,20,2899,57980,,
+9/1/2026,Etiqueta,Insumo,1500,,169000,,etiq Yogur + suico + hibiscus
+9/1/2026,Tapas/bot,Insumo,1,,476700,,Tapas x2000 + 300 envases 500cc
+18/1/2026,Fermentador,Inversion,1,,338000,,mas baldes y embudo
+22/1/2026,Pasas uvas,Insumo,10,,32000,,AND NUTS
+27/1/2026,Suico,Insumo,5,,100000,,Cooperativa Raiz Serrana
+27/1/2026,Botella,Insumo,100,951,95100,,
+27/1/2026,Julia,Gasto fijo,1,,80000,,semana 2 y 3 enero
+25/1/2026,Pueblo vivo alquiler,Gasto fijo,1,,70000,,
+9/2/2026,Etiquetas,Insumo,500,,75000,,
+10/2/2026,Julia,Gasto fijo,1,,80000,Transfe,semana 4 enero 1 feb
+25/2/2026,Julia,Gasto fijo,1,,94000,Transfe,febrero 3 semanas
+25/2/2026,Julia,Gasto fijo,1,,60000,Transfe,saldo alaska
+3/3/2026,Alquiler Marzo,Gasto fijo,1,,120000,Cash,
+3/3/2026,Leche,Insumo,204,1275,260100,Transfe,
+4/3/2026,Azucar,Insumo,50,2300,115000,Transfe,
+5/3/2026,Limpieza,Insumo,1,,6408,Cash,
+5/3/2026,Varios,Extraordinario,1,,78000,Cash,
+5/3/2026,Negra,Gasto fijo,1,,10000,Cash,
+6/3/2026,Hibiscus,Insumo,8,16000,128000,Transfe,Villares
+6/3/2026,Julia,Gasto fijo,1,,40000,Transfe,Sem 1 marzo
+7/3/2026,Negra,Gasto fijo,1,,15700,Transfe,
+9/3/2026,Negra,Gasto fijo,1,,28000,Transfe,
+10/3/2026,Alquiler Marzo 2,Gasto fijo,1,,200000,Cash,
+10/3/2026,Varios,Extraordinario,1,,10000,Cash,
+10/3/2026,Negra,Gasto fijo,1,,5000,Cash,
+13/3/2026,Limp bot,Extraordinario,1,,6500,Cash,limpiabotellas
+13/3/2026,Envio hibiscus,Extraordinario,1,,17000,Transfe,
+14/3/2026,Etiquetas dorso,Inversion,302.4,500,151200,Transfe,Fargres SRL
+15/3/2026,Negra,Gasto fijo,1,,32000,Transfe,
+16/3/2026,Negra,Gasto fijo,1,,15000,Transfe,
+16/3/2026,Julia,Gasto fijo,1,,40000,Cash,semana 2 marzo
+16/3/2026,Sueldo Negra,Gasto fijo,1,,150000,Transfe,
+18/3/2026,Nafta,Gasto fijo,1,,25000,Cash,
+19/3/2026,Casa,Gasto fijo,1,,226000,Cash,
+20/3/2026,Botellas 500,Inversion,200,562,112400,Transfe,
+20/3/2026,Julia,Gasto fijo,1,,40000,Transfe,Sem 3 Marzo
+24/3/2026,Heladera cesar,Extraordinario,1,,100000,Cash,
+25/3/2026,Envio etiquetas,Extraordinario,1,,8500,Transfe,
+27/3/2026,Julia,Gasto fijo,1,,40000,Transfe,Sem 4 Marzo
+29/3/2026,Negra,Extraordinario,1,,375000,Transfe,
+29/3/2026,Negra,Extraordinario,1,,300000,Cash,
+30/3/2026,Negra,Gasto fijo,1,,35000,Cash,
+30/3/2026,Tijera podar,Insumo,1,,14000,Cash,
+1/4/2026,Julia,Gasto fijo,1,,40000,Transfe,sem 1 abril
+2/4/2026,Compras,Insumo,1,,15000,Cash,
+2/4/2026,Combustible,Gasto fijo,1,,20000,Cash,
+4/4/2026,Camila,Gasto fijo,1,,150000,Cash,Sem 1 abril
+11/4/2026,Julia,Gasto fijo,1,,40000,Transfe,
+11/4/2026,Camila,Gasto fijo,1,,150000,Cash,Sem 2 abril
+17/4/2026,Camila,Gasto fijo,1,,150000,Transfe,Sem 3 abril
+17/4/2026,Julia,Gasto fijo,1,,40000,Transfe,Sem 3 abril
+24/4/2026,Leche,Insumo,120,1590,190800,Transfe,
+24/4/2026,Mila,Gasto fijo,1,,150000,Cash,Sem 4 abril
+24/4/2026,Gasoil reparto,Gasto fijo,1,,25000,Cash,
+26/4/2026,Julia,Gasto fijo,1,,40000,Transfe,Sem 4 abril
+6/5/2026,Mila,Gasto fijo,1,,150000,Transfe,Sem 1 Mayo
+6/5/2026,Julia,Gasto fijo,1,,40000,Transfe,Sem 1 Mayo
+11/5/2026,Matafuegos y cartel,Extraordinario,1,,108500,Transfe,
+14/5/2026,Julia,Gasto fijo,1,,40000,Transfe,Julia sem 2 Mayo
+14/5/2026,Mila,Gasto fijo,1,,150000,Transfe,Mila sem 2 Mayo
+16/5/2026,Manguera Ionizador,Extraordinario,1,,9665,Transfe,
+17/5/2026,Starlink Mayo,Gasto fijo,1,,45000,Transfe,
+2026-05-19,Pasas de uva,Insumo,10,3390,33900,Cash,
+2026-05-23,Negra,Extraordinario,1,30000,30000,Transfe,Gasto personal negra
+2026-05-23,Julia,Gasto fijo,1,40000,40000,Transfe,Mayo semana 3
+2026-05-23,Mila,Gasto fijo,1,150000,150000,Cash,Mayo semana 3
+2026-05-22,Liquido Refrigerante,Extraordinario,1,30000,30000,Cash,
+2026-05-26,Gasoil,Gasto fijo,1,25000,25000,Cash,
+2026-05-26,Comisionista,Extraordinario,1,10000,10000,Cash,
+2026-05-26,negra,Extraordinario,1,18900,18900,Transfe,negra trasla
+2026-05-28,Julia,Gasto fijo,1,40000,40000,Transfe,mayo 4
+2026-05-28,Camila,Gasto fijo,1,110000,110000,Transfe,Mila Mayo 4
+2026-05-28,Camila,Gasto fijo,1,40000,40000,Cash,mayo 4
+2026-06-01,Leche,Insumo,48,1890,90720,Transfe,Leche precio mejorado. Precio real 2050
+2026-06-05,Julia,Gasto fijo,1,40000,40000,Transfe,junio 1
+2026-06-08,Laboratorio ,Extraordinario,1,97350,97350,Transfe,
+2026-06-19,Julia,Gasto fijo,2,40000,80000,Transfe,Julia semana 2 y 3 Junio
+2026-06-25,Azucar,Insumo,20,3500,70000,Transfe,
+2026-06-27,Pasas,Insumo,10,3390,33900,Transfe,
+2026-06-26,Julia,Gasto fijo,1,40000,40000,Transfe,Semana 4 Junio
+2026-07-02,Comisionista Laboratorio,Extraordinario,1,9000,9000,Transfe,
+2026-07-02,Leche,Insumo,48,1890,90000,Transfe,descuento de 720
+2026-07-02,Julia,Gasto fijo,1,60000,60000,Transfe,
+2026-07-13,julia,Gasto fijo,1,60000,60000,Transfe,semana 2 Julio
+2026-07-20,Negra,Gasto fijo,,,80037,Transfe,Gasto personal
+2026-07-20,Negra,Extraordinario,,8000,8000,,Negra
+2026-07-20,Julia,Gasto fijo,1,60000,60000,Transfe,Semana 3 Julio
+2026-07-25,Julia,Gasto fijo,1,60000,60000,Transfe,Semana 4 Julio
+2026-07-29,Carnet manipulador,Inversión,1,29300,29300,Transfe,
+2026-08-12,Flyer,Publicidad,,55000,55000,Transfe,
+2026-08-12,Negra,Gasto fijo,,,30000,Transfe,
