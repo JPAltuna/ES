@@ -1233,6 +1233,7 @@
                 <option value="Umepay">Umepay</option>
                 <option value="Afuera">Afuera</option>
                 <option value="Personas">Personas</option>
+                <option value="Feria">Feria</option>
                 <option value="Regalo">Regalo</option>
               </select>
             </div>
@@ -3147,6 +3148,21 @@ function setFechas(desdeId, hastaId) {
 // =====================
 const PRODUCTOS_LISTA = ['1/2l Suico','1l Suico','1/2l Leche','1l Leche','Kesir','Kesir petit','1/2l Hibiscus','1l Hibiscus','Chucrut'];
 
+// Precio a usar para un producto en el formulario de venta.
+// Si el canal es "Feria" (o el modo manual está activo) manda el precio escrito a
+// mano; si no, el precio de lista del canal según la fecha.
+function precioManualActivo() {
+  const canal = (document.getElementById('v-canal')||{}).value;
+  return canal === 'Feria';
+}
+function precioProdVenta(prod, canalKey, fechaVenta) {
+  if (precioManualActivo()) {
+    const el = document.getElementById(`vpre-${prod.replace(/[^a-z0-9]/gi,'_')}`);
+    return parseFloat(el?.value) || 0;
+  }
+  return canalKey ? getPrecioVentaFecha(prod, canalKey, fechaVenta) : 0;
+}
+
 function renderProductosGrid() {
   const canal = document.getElementById('v-canal').value;
   const fechaVenta = (document.getElementById('v-fecha')||{}).value || hoy();
@@ -3160,10 +3176,20 @@ function renderProductosGrid() {
     const canalKey = canal==='Umepay'?'umepay':canal==='Afuera'?'afuera':canal==='Personas'?'personas':null;
     const precio = canalKey ? getPrecioVentaFecha(prod, canalKey, fechaVenta) : 0;
     const inputId = `vp-${prod.replace(/[^a-z0-9]/gi,'_')}`;
+    const preId = `vpre-${prod.replace(/[^a-z0-9]/gi,'_')}`;
+    const manual = precioManualActivo();
     grid.innerHTML += `<div style="display:flex;align-items:center;gap:8px;background:var(--gris-claro);border-radius:10px;padding:0.5rem 0.6rem;border:1px solid var(--borde)">
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:500;line-height:1.2">${emojiProducto(prod)} ${prod}</div>
-        ${precio ? `<div style="font-size:11px;color:var(--texto-muted)">${pesos(precio)} c/u</div>` : ''}
+        ${manual
+          ? `<div style="display:flex;align-items:center;gap:4px;margin-top:3px">
+               <span style="font-size:11px;color:var(--texto-muted)">$</span>
+               <input type="number" id="${preId}" min="0" placeholder="precio" value="" inputmode="numeric"
+                 style="width:74px;border:1px solid var(--verde);border-radius:6px;padding:3px 6px;font-size:13px"
+                 oninput="actualizarTotalPedido()" />
+               <span style="font-size:11px;color:var(--texto-muted)">c/u</span>
+             </div>`
+          : (precio ? `<div style="font-size:11px;color:var(--texto-muted)">${pesos(precio)} c/u</div>` : '')}
       </div>
       <button type="button" onclick="stepProd('${inputId}',-1)" style="width:34px;height:34px;border:1px solid var(--borde);background:var(--bg);border-radius:8px;font-size:18px;line-height:1;cursor:pointer;flex-shrink:0">−</button>
       <input type="number" id="${inputId}" min="0" placeholder="0" value="" inputmode="numeric"
@@ -3267,7 +3293,7 @@ function actualizarTotalPedido() {
     if (!el) return;
     const cant = parseFloat(el.value) || 0;
     if (cant > 0) {
-      const precio = canalKey ? getPrecioVentaFecha(prod, canalKey, fechaVenta) : 0;
+      const precio = precioProdVenta(prod, canalKey, fechaVenta);
       totalProd += cant * precio;
       unidades += cant;
       lineas.push(`${prod} ×${cant}`);
@@ -3327,7 +3353,7 @@ async function guardarPedido() {
     const el = document.getElementById(inputId);
     const cant = parseFloat(el?.value) || 0;
     if (cant <= 0) return;
-    const precio = canalKey ? getPrecioVentaFecha(prod, canalKey, fecha) : 0;
+    const precio = precioProdVenta(prod, canalKey, fecha);
     const total = cant * precio;
     rows.push([fecha, mes, canal, local, prod, cant, precio, total, pago, fechaPago, estado]);
   });
