@@ -1866,18 +1866,17 @@
           <div class="msg-error" id="fijos-error"></div>
         </div>
 
-        <!-- ===== CALCULADORA DE PRECIOS OBJETIVO ===== -->
+        <!-- ===== CALCULADORA DE UNIDADES OBJETIVO ===== -->
         <div class="card" id="rent-obj-card">
-          <div class="card-title">🎯 Precios objetivo — ¿cuánto tiene que dejar cada producto?</div>
+          <div class="card-title">🎯 ¿Cuántas unidades tengo que vender?</div>
           <div style="font-size:12px;color:var(--texto-muted);margin-bottom:1rem;line-height:1.5">
-            El precio no sale de un porcentaje inventado, sale de una división:<br>
-            <strong style="color:var(--texto)">(Gastos fijos + lo que querés ganar) ÷ unidades que vendés por mes = lo que tiene que dejar cada unidad</strong><br>
-            Eso es lo que queda <em>después</em> de pagar el costo de producción de ese frasco. Poné los números y la app te arma la lista.
+            <strong style="color:var(--texto)">(Gastos fijos + lo que querés ganar) ÷ lo que te deja cada unidad = unidades por mes</strong><br>
+            "Lo que te deja cada unidad" es el precio menos el costo de producción de ese frasco.
           </div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:0.75rem;align-items:end">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0.75rem;align-items:end">
             <div class="form-group" style="margin:0">
-              <label>Unidades por mes</label>
-              <input type="number" id="obj-unidades" value="300" min="1" oninput="objCalcular()" />
+              <label>Deja cada unidad</label>
+              <input type="number" id="obj-margen" value="2800" min="1" oninput="objCalcular()" />
             </div>
             <div class="form-group" style="margin:0">
               <label>Gastos fijos del mes</label>
@@ -1887,14 +1886,6 @@
               <label>Ganancia deseada</label>
               <input type="number" id="obj-ganancia" value="0" min="0" oninput="objCalcular()" />
             </div>
-            <div class="form-group" style="margin:0">
-              <label>Canal de referencia</label>
-              <select id="obj-canal" onchange="objCalcular()">
-                <option value="afuera" selected>Afuera</option>
-                <option value="umepay">Umepay</option>
-                <option value="personas">Personas</option>
-              </select>
-            </div>
           </div>
           <div style="font-size:11px;color:var(--texto-muted);margin-top:0.5rem">
             💡 Ganancia deseada en <strong>0</strong> = cubrir los fijos sin pérdida, nada más.
@@ -1902,49 +1893,13 @@
           </div>
 
           <div id="obj-res" style="display:none;margin-top:1.25rem">
-
-            <div style="background:var(--gris-claro);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem">
-              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap">
-                <div>
-                  <div style="font-size:11px;color:var(--texto-muted);letter-spacing:0.03em">CADA UNIDAD TIENE QUE DEJAR</div>
-                  <div style="font-size:34px;font-weight:700;color:var(--verde-oscuro);line-height:1.1" id="obj-mc">—</div>
-                  <div style="font-size:11px;color:var(--texto-muted)" id="obj-mc-cuenta">—</div>
-                </div>
-                <div style="text-align:right">
-                  <div style="font-size:11px;color:var(--texto-muted);letter-spacing:0.03em">HOY DEJA (PROMEDIO)</div>
-                  <div style="font-size:26px;font-weight:600;line-height:1.2" id="obj-mc-hoy">—</div>
-                  <div style="font-size:13px;font-weight:600" id="obj-brecha">—</div>
-                </div>
-              </div>
+            <div style="background:var(--gris-claro);border-radius:12px;padding:1.25rem;text-align:center">
+              <div style="font-size:11px;color:var(--texto-muted);letter-spacing:0.03em">TENÉS QUE VENDER POR MES</div>
+              <div style="font-size:46px;font-weight:700;color:var(--verde-oscuro);line-height:1.1" id="obj-unidades">—</div>
+              <div style="font-size:13px;color:var(--texto-muted)">unidades</div>
+              <div style="font-size:12px;color:var(--texto-muted);margin-top:0.6rem" id="obj-cuenta">—</div>
             </div>
-
-            <div id="obj-alerta" style="padding:0.7rem 1rem;border-radius:8px;font-size:13px;line-height:1.5;margin-bottom:1rem"></div>
-
-            <div class="table-wrapper">
-              <table>
-                <thead><tr><th>Producto</th><th>Costo</th><th>Precio hoy</th><th>Deja hoy</th><th>Precio objetivo</th><th>Sube</th></tr></thead>
-                <tbody id="obj-tabla-body"></tbody>
-              </table>
-            </div>
-            <div style="font-size:11px;color:var(--texto-muted);margin-top:0.5rem" id="obj-nota-canales">—</div>
-
-            <div style="margin-top:1.5rem">
-              <div style="font-weight:600;font-size:14px;margin-bottom:0.3rem">Si no querés subir todo de golpe</div>
-              <div style="font-size:12px;color:var(--texto-muted);margin-bottom:0.75rem" id="obj-esc-desc">—</div>
-              <div class="table-wrapper">
-                <table><thead id="obj-esc-head"></thead><tbody id="obj-esc-body"></tbody></table>
-              </div>
-              <div style="font-size:11px;color:var(--texto-muted);margin-top:0.5rem">En verde, el mes cierra sin pérdida.</div>
-            </div>
-
-            <div style="margin-top:1.5rem">
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem">
-                <div style="font-weight:600;font-size:14px">Lista de precios objetivo</div>
-                <button class="btn-outline" onclick="objCopiar()">📋 Copiar</button>
-              </div>
-              <pre id="obj-wpp" style="background:var(--gris-claro);border-radius:8px;padding:0.9rem;font-size:12px;white-space:pre-wrap;font-family:inherit;margin:0;line-height:1.6"></pre>
-            </div>
-
+            <div id="obj-semana" style="display:flex;justify-content:space-around;gap:0.75rem;flex-wrap:wrap;margin-top:0.9rem;font-size:13px;color:var(--texto-muted)"></div>
           </div>
         </div>
 
@@ -1996,7 +1951,7 @@
             <div class="metric-card">
               <div class="metric-label">Unidades p/ equilibrio</div>
               <div class="metric-value naranja" id="c-eq-unidades">—</div>
-              <div class="metric-sub">Base: 🍋‍🟩 1/2l Suico (peor caso)</div>
+              <div class="metric-sub">Con el margen real del mes</div>
             </div>
             <div class="metric-card">
               <div class="metric-label">Ganancia bruta</div>
@@ -2027,28 +1982,13 @@
           <div class="card">
             <div class="card-title">Punto de equilibrio mensual</div>
             <div style="font-size:13px;color:var(--texto-muted);margin-bottom:1.25rem">
-              Unidades necesarias de 🍋‍🟩 1/2l Suico para cubrir los costos fijos considerados (peor escenario).
-              El margen por unidad varía según canal.
+              Unidades que hacían falta este mes para cubrir los costos fijos, calculadas con
+              <strong>lo que dejó cada unidad realmente vendida</strong> (no con un canal supuesto).
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem">
-              <div style="background:var(--gris-claro);border-radius:10px;padding:1rem;text-align:center">
-                <div style="font-size:11px;color:var(--texto-muted);margin-bottom:0.3rem">CANAL UMEPAY</div>
-                <div style="font-size:24px;font-weight:700;color:var(--verde-oscuro)" id="eq-ume-u">—</div>
-                <div style="font-size:11px;color:var(--texto-muted)">unidades</div>
-                <div style="font-size:12px;color:var(--texto-muted);margin-top:0.3rem">margen <span id="eq-ume-m">—</span>/u</div>
-              </div>
-              <div style="background:var(--gris-claro);border-radius:10px;padding:1rem;text-align:center">
-                <div style="font-size:11px;color:var(--texto-muted);margin-bottom:0.3rem">CANAL AFUERA</div>
-                <div style="font-size:24px;font-weight:700;color:var(--verde)" id="eq-afu-u">—</div>
-                <div style="font-size:11px;color:var(--texto-muted)">unidades</div>
-                <div style="font-size:12px;color:var(--texto-muted);margin-top:0.3rem">margen <span id="eq-afu-m">—</span>/u</div>
-              </div>
-              <div style="background:var(--gris-claro);border-radius:10px;padding:1rem;text-align:center">
-                <div style="font-size:11px;color:var(--texto-muted);margin-bottom:0.3rem">MIX REAL DEL MES</div>
-                <div style="font-size:24px;font-weight:700;color:var(--azul)" id="eq-real-u">—</div>
-                <div style="font-size:11px;color:var(--texto-muted)">unidades</div>
-                <div style="font-size:12px;color:var(--texto-muted);margin-top:0.3rem">margen promedio <span id="eq-real-m">—</span>/u</div>
-              </div>
+            <div style="background:var(--gris-claro);border-radius:10px;padding:1.25rem;text-align:center;margin-bottom:1.5rem">
+              <div style="font-size:11px;color:var(--texto-muted);margin-bottom:0.3rem;letter-spacing:0.03em">UNIDADES NECESARIAS</div>
+              <div style="font-size:36px;font-weight:700;color:var(--azul);line-height:1.1" id="eq-real-u">—</div>
+              <div style="font-size:12px;color:var(--texto-muted);margin-top:0.4rem">cada unidad dejó en promedio <strong id="eq-real-m">—</strong></div>
             </div>
 
             <!-- Visual bar chart -->
@@ -2526,10 +2466,9 @@
 
         <!-- ===== SOLAPA: COMPARAR ===== -->
         <div id="an-tab-comparar">
-          <div class="seg-metric" id="cmp-metric">
-            <button data-m="unidades" onclick="cmpSetMetric('unidades', this)">Unidades</button>
-            <button data-m="plata" onclick="cmpSetMetric('plata', this)">Plata</button>
-            <button data-m="ganancia" class="on" onclick="cmpSetMetric('ganancia', this)">Ganancia</button>
+          <div style="font-size:12px;color:var(--texto-muted);margin-bottom:1rem">
+            Todo este análisis está en <strong>unidades vendidas</strong>. Se sacaron las vistas de Plata y
+            Ganancia porque no son comparables mes a mes: los costos con los que se calculó cada mes no fueron los mismos.
           </div>
 
           <div id="cmp-loading" class="loading" style="display:none"><div class="spinner"></div> Cargando...</div>
@@ -4330,18 +4269,13 @@ function pintarRent() {
     const ganBruta = totalVenta - totalCosto;
     const ganNeta  = ganBruta - fijosDelMes;
 
-    // Punto de equilibrio con 1/2l Suico como base
-    const costoBase = getCostoParaFecha('1/2l Suico', mesStr2);
-    const precBase = (sim && preciosSimRent['1/2l Suico']) ? preciosSimRent['1/2l Suico'] : PRECIOS['1/2l Suico'];
-    const margenUmeBase = precBase.umepay - costoBase;
-    const margenAfuBase = precBase.afuera - costoBase;
+    // Punto de equilibrio con el margen REAL del mes (lo que dejo cada unidad
+    // efectivamente vendida). Se sacaron los escenarios por canal: Julia queria
+    // un solo numero, no tres opciones (26-ago-2026).
     const margenPromedioReal = totalUnidades > 0 ? ganBruta / totalUnidades : 0;
-
-    const eqUme = margenUmeBase > 0 ? Math.ceil(fijosDelMes / margenUmeBase) : '∞';
-    const eqAfu = margenAfuBase > 0 ? Math.ceil(fijosDelMes / margenAfuBase) : '∞';
     const eqReal = margenPromedioReal > 0 ? Math.ceil(fijosDelMes / margenPromedioReal) : '∞';
     return { totalUnidades, totalVenta, totalCosto, ganBruta, ganNeta,
-             margenUmeBase, margenAfuBase, margenPromedioReal, eqUme, eqAfu, eqReal };
+             margenPromedioReal, eqReal };
   }
 
   const real = computar(false);
@@ -4357,10 +4291,6 @@ function pintarRent() {
   netaEl.className = 'metric-value ' + (R.ganNeta >= 0 ? 'verde' : 'naranja');
 
   document.getElementById('c-eq-unidades').textContent = typeof R.eqReal === 'number' ? R.eqReal : '∞';
-  document.getElementById('eq-ume-u').textContent = typeof R.eqUme === 'number' ? R.eqUme : '∞';
-  document.getElementById('eq-ume-m').textContent = pesos(R.margenUmeBase);
-  document.getElementById('eq-afu-u').textContent = typeof R.eqAfu === 'number' ? R.eqAfu : '∞';
-  document.getElementById('eq-afu-m').textContent = pesos(R.margenAfuBase);
   document.getElementById('eq-real-u').textContent = typeof R.eqReal === 'number' ? R.eqReal : '∞';
   document.getElementById('eq-real-m').textContent = pesos(Math.round(R.margenPromedioReal));
   document.getElementById('eq-pct-label').textContent = pctReal + '%';
@@ -5821,29 +5751,16 @@ function getConceptosFijos() {
 
 // Se llama al entrar a la pestaña Costos
 // =====================
-// CALCULADORA DE PRECIOS OBJETIVO (solapa Rentabilidad)
-// El margen que tiene que dejar cada unidad no se inventa: sale de
-//   (fijos del mes + ganancia deseada) / unidades que se venden por mes.
-// A partir de ese número armamos el precio de cada producto: costo + margen.
+// CALCULADORA DE UNIDADES OBJETIVO (solapa Rentabilidad)
+// Julia da el margen que le deja cada unidad y la app le dice cuántas unidades
+// necesita vender: (fijos + ganancia deseada) / margen por unidad.
+// (26-ago-2026: antes calculaba precios objetivo por producto; lo sacó porque
+//  no le servía. Ahora es UN solo número de unidades, no tres opciones.)
 // =====================
-const OBJ_CANALES = { umepay:'Umepay', afuera:'Afuera', personas:'Personas' };
 let objFijosManual = false;
 
 function objPesos(n) {
   return (n < 0 ? '−' : '') + '$' + Math.abs(Math.round(n)).toLocaleString('es-AR');
-}
-function objRedondear(n) { return Math.ceil(n / 100) * 100; }
-
-// Productos que entran en el cálculo: los de la lista que tienen costo y los 3 precios
-function objProductos() {
-  const f = hoy();
-  return PRODUCTOS_LISTA.map(prod => {
-    const p = PRECIOS[prod];
-    if (!p) return null;
-    const costo = getCostoParaFecha(prod, f) || p.costo || 0;
-    if (!costo) return null;
-    return { prod, costo, umepay: p.umepay||0, afuera: p.afuera||0, personas: p.personas||0 };
-  }).filter(x => x && x.umepay && x.afuera && x.personas);
 }
 
 // Trae los fijos del mes que está abierto en el editor de arriba, salvo que Julia
@@ -5863,138 +5780,31 @@ function objPrefill() {
 function objCalcular() {
   const cont = document.getElementById('obj-res');
   if (!cont) return;
-  const U     = parseFloat((document.getElementById('obj-unidades')||{}).value) || 0;
-  const FIJ   = parseFloat((document.getElementById('obj-fijos')||{}).value) || 0;
-  const GAN   = parseFloat((document.getElementById('obj-ganancia')||{}).value) || 0;
-  const canal = (document.getElementById('obj-canal')||{}).value || 'afuera';
-  const label = OBJ_CANALES[canal];
-  const items = objProductos();
+  const MARGEN = parseFloat((document.getElementById('obj-margen')||{}).value) || 0;
+  const FIJ    = parseFloat((document.getElementById('obj-fijos')||{}).value) || 0;
+  const GAN    = parseFloat((document.getElementById('obj-ganancia')||{}).value) || 0;
 
-  if (!U || !FIJ || !items.length) { cont.style.display = 'none'; return; }
+  if (!MARGEN || !FIJ) { cont.style.display = 'none'; return; }
   cont.style.display = 'block';
 
-  const meta     = FIJ + GAN;
-  const objetivo = meta / U;                                   // lo que debe dejar cada unidad
-  const mcHoy    = items.reduce((s,i) => s + (i[canal] - i.costo), 0) / items.length;
-  const brecha   = objetivo - mcHoy;
-  const juntaHoy = mcHoy * U;
-  const resHoy   = juntaHoy - FIJ;                             // resultado del mes con los precios de hoy
+  const meta = FIJ + GAN;
+  const unidades = Math.ceil(meta / MARGEN);
 
-  document.getElementById('obj-mc').textContent = objPesos(objetivo);
-  document.getElementById('obj-mc-cuenta').textContent =
-    objPesos(meta) + ' ÷ ' + U + ' unidades' +
-    (GAN > 0 ? '  (fijos ' + objPesos(FIJ) + ' + ganancia ' + objPesos(GAN) + ')' : '');
-  document.getElementById('obj-mc-hoy').textContent = objPesos(mcHoy);
-  const elB = document.getElementById('obj-brecha');
-  elB.textContent = brecha > 0 ? 'faltan ' + objPesos(brecha) + ' por unidad'
-                               : 'sobran ' + objPesos(-brecha) + ' por unidad';
-  elB.style.color = brecha > 0 ? 'var(--rojo)' : 'var(--verde)';
+  document.getElementById('obj-unidades').textContent = unidades.toLocaleString('es-AR');
+  document.getElementById('obj-cuenta').textContent =
+    objPesos(meta) + ' ÷ ' + objPesos(MARGEN) + ' por unidad' +
+    (GAN > 0 ? '   (fijos ' + objPesos(FIJ) + ' + ganancia ' + objPesos(GAN) + ')' : '');
 
-  // --- Cómo cierra el mes con los precios tal como están hoy
-  const unidNec = Math.ceil(meta / mcHoy);
-  const al = document.getElementById('obj-alerta');
-  if (resHoy < 0) {
-    al.style.background = '#fdecea';
-    al.style.color = 'var(--rojo)';
-    al.innerHTML = 'Con <strong>' + U + ' unidades</strong> a los precios de <strong>' + label + '</strong> de hoy juntás ' +
-      objPesos(juntaHoy) + ', y tus fijos son ' + objPesos(FIJ) + ': el mes cierra en <strong>' + objPesos(resHoy) + '</strong>.<br>' +
-      'Sin tocar precios necesitarías <strong>' + unidNec + ' unidades</strong> por mes (' + (unidNec - U) + ' más de las que estás poniendo).';
-  } else {
-    al.style.background = '#eaf5ee';
-    al.style.color = 'var(--verde-oscuro)';
-    al.innerHTML = 'Con <strong>' + U + ' unidades</strong> a los precios de <strong>' + label + '</strong> de hoy juntás ' +
-      objPesos(juntaHoy) + ' y los fijos son ' + objPesos(FIJ) + ': el mes cierra en <strong>' + objPesos(resHoy) + '</strong>. ' +
-      (GAN > 0 ? 'Para además ganar ' + objPesos(GAN) + ' necesitás <strong>' + unidNec + ' unidades</strong> o subir los precios como se ve abajo.'
-               : 'Ya estás cubierta.');
+  // Desglose para que el número sea manejable en el día a día
+  const sem = document.getElementById('obj-semana');
+  if (sem) {
+    const porSemana = Math.ceil(unidades / 4);
+    const porDia    = Math.ceil(unidades / 30);
+    sem.innerHTML =
+      '<div><strong style="color:var(--texto);font-size:17px">' + porSemana + '</strong> por semana</div>' +
+      '<div><strong style="color:var(--texto);font-size:17px">' + porDia + '</strong> por día</div>' +
+      '<div>facturando <strong style="color:var(--texto);font-size:17px">' + objPesos(meta) + '</strong> de margen</div>';
   }
-
-  // --- Tabla producto por producto
-  const otros = Object.keys(OBJ_CANALES).filter(c => c !== canal);
-  const tb = document.getElementById('obj-tabla-body');
-  tb.innerHTML = '';
-  let sumHoy = 0, sumObj = 0;
-  const nuevos = {};
-  items.forEach(i => {
-    const precioHoy = i[canal];
-    const dejaHoy   = precioHoy - i.costo;
-    const objP      = objRedondear(i.costo + objetivo);
-    const dif       = objP - precioHoy;
-    const pctDif    = precioHoy ? (dif / precioHoy * 100) : 0;
-    sumHoy += precioHoy;
-    sumObj += objP;
-    nuevos[i.prod] = {};
-    nuevos[i.prod][canal] = objP;
-    otros.forEach(c => { nuevos[i.prod][c] = objRedondear(objP * (i[c] / precioHoy)); });
-    const col   = dif > 0 ? 'var(--naranja)' : dif < 0 ? 'var(--verde)' : 'var(--texto-muted)';
-    // Atrasado respecto de TU PROPIA lista: deja bastante menos que el promedio de hoy.
-    // (comparar contra el objetivo no sirve: si el objetivo esta lejos, se marcaria todo)
-    const flojo = dejaHoy < mcHoy * 0.9;
-    tb.innerHTML += '<tr>' +
-      '<td style="font-weight:500">' + i.prod + (flojo ? ' <span title="Atrasado: deja menos que el resto de tu lista" style="color:var(--rojo)">▲</span>' : '') + '</td>' +
-      '<td style="color:var(--texto-muted)">' + objPesos(i.costo) + '</td>' +
-      '<td style="color:var(--texto-muted)">' + objPesos(precioHoy) + '</td>' +
-      '<td style="color:' + (dejaHoy < objetivo ? 'var(--rojo)' : 'var(--verde)') + '">' + objPesos(dejaHoy) + '</td>' +
-      '<td style="font-weight:600;color:var(--verde-oscuro)">' + objPesos(objP) + '</td>' +
-      '<td style="color:' + col + ';font-weight:500">' + (dif > 0 ? '+' : '') + objPesos(dif) +
-        ' <span style="font-size:11px;color:var(--texto-muted)">(' + (dif > 0 ? '+' : '') + pctDif.toFixed(0) + '%)</span></td>' +
-      '</tr>';
-  });
-  const aumProm = sumHoy ? (sumObj / sumHoy - 1) * 100 : 0;
-  document.getElementById('obj-nota-canales').innerHTML =
-    'Aumento promedio de la lista <strong>' + label + '</strong>: <strong>' + (aumProm >= 0 ? '+' : '') + aumProm.toFixed(1) + '%</strong>. ' +
-    'El ▲ marca los que están <em>atrasados respecto de tu propia lista</em> (dejan bastante menos que el resto): esos conviene corregirlos primero, aunque no toques nada más. ' +
-    'Los otros canales (' + otros.map(c => OBJ_CANALES[c]).join(' y ') + ') se ajustan solos manteniendo la misma diferencia que tienen hoy.';
-
-  // --- Grilla de escenarios: cuánto aumentás x cuánto vendés
-  const aums = [0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30];
-  const paso = U >= 200 ? 50 : 25;
-  const uds  = [U - paso*2, U - paso, U, U + paso, U + paso*2].filter(x => x > 0);
-  const mcCon = a => items.reduce((s,i) => s + (i[canal] * (1 + a) - i.costo), 0) / items.length;
-  document.getElementById('obj-esc-desc').innerHTML =
-    'Resultado del mes según cuánto aumentes la lista <strong>' + label + '</strong> y cuántas unidades vendas, ' +
-    'contra tu meta de ' + objPesos(meta) + (GAN > 0 ? ' (fijos + ganancia).' : ' de fijos.');
-  document.getElementById('obj-esc-head').innerHTML =
-    '<tr><th>Aumento</th>' + uds.map(u => '<th style="text-align:right">' + u + ' u.</th>').join('') + '</tr>';
-  document.getElementById('obj-esc-body').innerHTML = aums.map(a => {
-    const celdas = uds.map(u => {
-      const r  = mcCon(a) * u - meta;
-      const ok = r >= 0;
-      return '<td style="text-align:right;font-weight:' + (ok ? 600 : 400) +
-        ';color:' + (ok ? 'var(--verde-oscuro)' : 'var(--rojo)') +
-        ';background:' + (ok ? '#eaf5ee' : 'transparent') + '">' + objPesos(r) + '</td>';
-    }).join('');
-    const destacado = Math.abs(a * 100 - aumProm) < 2.5;   // el aumento que sale de la tabla de arriba
-    return '<tr><td style="font-weight:' + (destacado ? 700 : 500) + '">+' + (a*100).toFixed(0) + '%' +
-      (destacado ? ' ←' : '') + '</td>' + celdas + '</tr>';
-  }).join('');
-
-  // --- Lista para copiar
-  const mesesTxt = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-  const d = new Date();
-  let txt = '🎯 *Precios objetivo — ' + label + '*\n';
-  txt += 'Para cubrir ' + objPesos(FIJ) + ' de fijos' + (GAN > 0 ? ' y ganar ' + objPesos(GAN) : '') +
-         ' vendiendo ' + U + ' unidades/mes.\n';
-  txt += 'Cada unidad tiene que dejar ' + objPesos(objetivo) + '.\n\n';
-  items.forEach(i => {
-    txt += emojiProducto(i.prod) + ' ' + i.prod + ' — ' + objPesos(nuevos[i.prod][canal]) +
-           '   (hoy ' + objPesos(i[canal]) + ')\n';
-  });
-  txt += '\nOtros canales:\n';
-  items.forEach(i => {
-    txt += i.prod + ': ' + otros.map(c => OBJ_CANALES[c] + ' ' + objPesos(nuevos[i.prod][c])).join(' · ') + '\n';
-  });
-  txt += '\nCalculado el ' + d.getDate() + ' de ' + mesesTxt[d.getMonth()] + ' de ' + d.getFullYear();
-  document.getElementById('obj-wpp').textContent = txt;
-}
-
-function objCopiar() {
-  const txt = document.getElementById('obj-wpp').textContent;
-  const btn = (typeof event !== 'undefined' && event) ? event.target : null;
-  navigator.clipboard.writeText(txt).then(() => {
-    if (!btn) return;
-    btn.textContent = '✓ Copiado';
-    setTimeout(() => { btn.textContent = '📋 Copiar'; }, 2000);
-  });
 }
 
 async function abrirCostosFijos() {
@@ -7377,7 +7187,9 @@ async function confirmarEntrega() {
 // =====================
 // COMPARAR (solapa dentro de Análisis)
 // =====================
-let cmpMetric = 'ganancia';   // unidades | plata | ganancia
+// Julia saco las vistas de Plata y Ganancia (26-ago-2026): no son comparables mes a
+// mes porque los costos con los que se calculo cada mes no fueron los mismos.
+const cmpMetric = 'unidades';
 let cmpVentas = null;         // filas de Ventas ya parseadas (cant, total, ganancia)
 let cmpCierres = null;        // filas de Cierres_mes (valores congelados por mes)
 let cmpMesModo = 'reciente';  // 'reciente' (últimos 6) | 'YYYY' (un año) | 'comparar' (mismo mes por año)
@@ -7427,12 +7239,6 @@ async function cargarComparar() {
   }
 }
 
-function cmpSetMetric(m, btn) {
-  cmpMetric = m;
-  document.querySelectorAll('#cmp-metric button').forEach(b => b.classList.remove('on'));
-  if (btn) btn.classList.add('on');
-  renderComparar();
-}
 function cmpValor(o) { return cmpMetric === 'unidades' ? o.cant : cmpMetric === 'plata' ? o.total : o.ganancia; }
 function cmpFmt(v)   { return cmpMetric === 'unidades' ? (Math.round(v).toLocaleString('es-AR') + ' u') : pesos(v); }
 
