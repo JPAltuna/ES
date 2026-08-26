@@ -1866,6 +1866,88 @@
           <div class="msg-error" id="fijos-error"></div>
         </div>
 
+        <!-- ===== CALCULADORA DE PRECIOS OBJETIVO ===== -->
+        <div class="card" id="rent-obj-card">
+          <div class="card-title">🎯 Precios objetivo — ¿cuánto tiene que dejar cada producto?</div>
+          <div style="font-size:12px;color:var(--texto-muted);margin-bottom:1rem;line-height:1.5">
+            El precio no sale de un porcentaje inventado, sale de una división:<br>
+            <strong style="color:var(--texto)">(Gastos fijos + lo que querés ganar) ÷ unidades que vendés por mes = lo que tiene que dejar cada unidad</strong><br>
+            Eso es lo que queda <em>después</em> de pagar el costo de producción de ese frasco. Poné los números y la app te arma la lista.
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:0.75rem;align-items:end">
+            <div class="form-group" style="margin:0">
+              <label>Unidades por mes</label>
+              <input type="number" id="obj-unidades" value="300" min="1" oninput="objCalcular()" />
+            </div>
+            <div class="form-group" style="margin:0">
+              <label>Gastos fijos del mes</label>
+              <input type="number" id="obj-fijos" placeholder="0" oninput="objFijosManual=true; objCalcular()" />
+            </div>
+            <div class="form-group" style="margin:0">
+              <label>Ganancia deseada</label>
+              <input type="number" id="obj-ganancia" value="0" min="0" oninput="objCalcular()" />
+            </div>
+            <div class="form-group" style="margin:0">
+              <label>Canal de referencia</label>
+              <select id="obj-canal" onchange="objCalcular()">
+                <option value="afuera" selected>Afuera</option>
+                <option value="umepay">Umepay</option>
+                <option value="personas">Personas</option>
+              </select>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--texto-muted);margin-top:0.5rem">
+            💡 Ganancia deseada en <strong>0</strong> = cubrir los fijos sin pérdida, nada más.
+            Los fijos se traen solos del mes elegido arriba — <a href="#" onclick="objFijosManual=false;objPrefill();return false" style="color:var(--verde-oscuro)">↻ volver a traerlos</a>.
+          </div>
+
+          <div id="obj-res" style="display:none;margin-top:1.25rem">
+
+            <div style="background:var(--gris-claro);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap">
+                <div>
+                  <div style="font-size:11px;color:var(--texto-muted);letter-spacing:0.03em">CADA UNIDAD TIENE QUE DEJAR</div>
+                  <div style="font-size:34px;font-weight:700;color:var(--verde-oscuro);line-height:1.1" id="obj-mc">—</div>
+                  <div style="font-size:11px;color:var(--texto-muted)" id="obj-mc-cuenta">—</div>
+                </div>
+                <div style="text-align:right">
+                  <div style="font-size:11px;color:var(--texto-muted);letter-spacing:0.03em">HOY DEJA (PROMEDIO)</div>
+                  <div style="font-size:26px;font-weight:600;line-height:1.2" id="obj-mc-hoy">—</div>
+                  <div style="font-size:13px;font-weight:600" id="obj-brecha">—</div>
+                </div>
+              </div>
+            </div>
+
+            <div id="obj-alerta" style="padding:0.7rem 1rem;border-radius:8px;font-size:13px;line-height:1.5;margin-bottom:1rem"></div>
+
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Producto</th><th>Costo</th><th>Precio hoy</th><th>Deja hoy</th><th>Precio objetivo</th><th>Sube</th></tr></thead>
+                <tbody id="obj-tabla-body"></tbody>
+              </table>
+            </div>
+            <div style="font-size:11px;color:var(--texto-muted);margin-top:0.5rem" id="obj-nota-canales">—</div>
+
+            <div style="margin-top:1.5rem">
+              <div style="font-weight:600;font-size:14px;margin-bottom:0.3rem">Si no querés subir todo de golpe</div>
+              <div style="font-size:12px;color:var(--texto-muted);margin-bottom:0.75rem" id="obj-esc-desc">—</div>
+              <div class="table-wrapper">
+                <table><thead id="obj-esc-head"></thead><tbody id="obj-esc-body"></tbody></table>
+              </div>
+              <div style="font-size:11px;color:var(--texto-muted);margin-top:0.5rem">En verde, el mes cierra sin pérdida.</div>
+            </div>
+
+            <div style="margin-top:1.5rem">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem">
+                <div style="font-weight:600;font-size:14px">Lista de precios objetivo</div>
+                <button class="btn-outline" onclick="objCopiar()">📋 Copiar</button>
+              </div>
+              <pre id="obj-wpp" style="background:var(--gris-claro);border-radius:8px;padding:0.9rem;font-size:12px;white-space:pre-wrap;font-family:inherit;margin:0;line-height:1.6"></pre>
+            </div>
+
+          </div>
+        </div>
+
         <div class="card">
           <div class="card-title">Punto de equilibrio</div>
           <div class="form-grid" style="grid-template-columns: 1fr 1fr; max-width:400px">
@@ -5741,6 +5823,183 @@ function getConceptosFijos() {
 }
 
 // Se llama al entrar a la pestaña Costos
+// =====================
+// CALCULADORA DE PRECIOS OBJETIVO (solapa Rentabilidad)
+// El margen que tiene que dejar cada unidad no se inventa: sale de
+//   (fijos del mes + ganancia deseada) / unidades que se venden por mes.
+// A partir de ese número armamos el precio de cada producto: costo + margen.
+// =====================
+const OBJ_CANALES = { umepay:'Umepay', afuera:'Afuera', personas:'Personas' };
+let objFijosManual = false;
+
+function objPesos(n) {
+  return (n < 0 ? '−' : '') + '$' + Math.abs(Math.round(n)).toLocaleString('es-AR');
+}
+function objRedondear(n) { return Math.ceil(n / 100) * 100; }
+
+// Productos que entran en el cálculo: los de la lista que tienen costo y los 3 precios
+function objProductos() {
+  const f = hoy();
+  return PRODUCTOS_LISTA.map(prod => {
+    const p = PRECIOS[prod];
+    if (!p) return null;
+    const costo = getCostoParaFecha(prod, f) || p.costo || 0;
+    if (!costo) return null;
+    return { prod, costo, umepay: p.umepay||0, afuera: p.afuera||0, personas: p.personas||0 };
+  }).filter(x => x && x.umepay && x.afuera && x.personas);
+}
+
+// Trae los fijos del mes que está abierto en el editor de arriba, salvo que Julia
+// haya escrito un número a mano
+function objPrefill() {
+  const inp = document.getElementById('obj-fijos');
+  if (!inp) return;
+  if (!objFijosManual) {
+    const total = (typeof fijosEditMes !== 'undefined' && fijosEditMes && fijosEditMes.length)
+      ? fijosEditMes.reduce((s, f) => s + (f.monto > 0 ? f.monto : 0), 0)
+      : getFijosTotalMes(fijosMesSeleccionado || getMes());
+    if (total > 0) inp.value = Math.round(total);
+  }
+  objCalcular();
+}
+
+function objCalcular() {
+  const cont = document.getElementById('obj-res');
+  if (!cont) return;
+  const U     = parseFloat((document.getElementById('obj-unidades')||{}).value) || 0;
+  const FIJ   = parseFloat((document.getElementById('obj-fijos')||{}).value) || 0;
+  const GAN   = parseFloat((document.getElementById('obj-ganancia')||{}).value) || 0;
+  const canal = (document.getElementById('obj-canal')||{}).value || 'afuera';
+  const label = OBJ_CANALES[canal];
+  const items = objProductos();
+
+  if (!U || !FIJ || !items.length) { cont.style.display = 'none'; return; }
+  cont.style.display = 'block';
+
+  const meta     = FIJ + GAN;
+  const objetivo = meta / U;                                   // lo que debe dejar cada unidad
+  const mcHoy    = items.reduce((s,i) => s + (i[canal] - i.costo), 0) / items.length;
+  const brecha   = objetivo - mcHoy;
+  const juntaHoy = mcHoy * U;
+  const resHoy   = juntaHoy - FIJ;                             // resultado del mes con los precios de hoy
+
+  document.getElementById('obj-mc').textContent = objPesos(objetivo);
+  document.getElementById('obj-mc-cuenta').textContent =
+    objPesos(meta) + ' ÷ ' + U + ' unidades' +
+    (GAN > 0 ? '  (fijos ' + objPesos(FIJ) + ' + ganancia ' + objPesos(GAN) + ')' : '');
+  document.getElementById('obj-mc-hoy').textContent = objPesos(mcHoy);
+  const elB = document.getElementById('obj-brecha');
+  elB.textContent = brecha > 0 ? 'faltan ' + objPesos(brecha) + ' por unidad'
+                               : 'sobran ' + objPesos(-brecha) + ' por unidad';
+  elB.style.color = brecha > 0 ? 'var(--rojo)' : 'var(--verde)';
+
+  // --- Cómo cierra el mes con los precios tal como están hoy
+  const unidNec = Math.ceil(meta / mcHoy);
+  const al = document.getElementById('obj-alerta');
+  if (resHoy < 0) {
+    al.style.background = '#fdecea';
+    al.style.color = 'var(--rojo)';
+    al.innerHTML = 'Con <strong>' + U + ' unidades</strong> a los precios de <strong>' + label + '</strong> de hoy juntás ' +
+      objPesos(juntaHoy) + ', y tus fijos son ' + objPesos(FIJ) + ': el mes cierra en <strong>' + objPesos(resHoy) + '</strong>.<br>' +
+      'Sin tocar precios necesitarías <strong>' + unidNec + ' unidades</strong> por mes (' + (unidNec - U) + ' más de las que estás poniendo).';
+  } else {
+    al.style.background = '#eaf5ee';
+    al.style.color = 'var(--verde-oscuro)';
+    al.innerHTML = 'Con <strong>' + U + ' unidades</strong> a los precios de <strong>' + label + '</strong> de hoy juntás ' +
+      objPesos(juntaHoy) + ' y los fijos son ' + objPesos(FIJ) + ': el mes cierra en <strong>' + objPesos(resHoy) + '</strong>. ' +
+      (GAN > 0 ? 'Para además ganar ' + objPesos(GAN) + ' necesitás <strong>' + unidNec + ' unidades</strong> o subir los precios como se ve abajo.'
+               : 'Ya estás cubierta.');
+  }
+
+  // --- Tabla producto por producto
+  const otros = Object.keys(OBJ_CANALES).filter(c => c !== canal);
+  const tb = document.getElementById('obj-tabla-body');
+  tb.innerHTML = '';
+  let sumHoy = 0, sumObj = 0;
+  const nuevos = {};
+  items.forEach(i => {
+    const precioHoy = i[canal];
+    const dejaHoy   = precioHoy - i.costo;
+    const objP      = objRedondear(i.costo + objetivo);
+    const dif       = objP - precioHoy;
+    const pctDif    = precioHoy ? (dif / precioHoy * 100) : 0;
+    sumHoy += precioHoy;
+    sumObj += objP;
+    nuevos[i.prod] = {};
+    nuevos[i.prod][canal] = objP;
+    otros.forEach(c => { nuevos[i.prod][c] = objRedondear(objP * (i[c] / precioHoy)); });
+    const col   = dif > 0 ? 'var(--naranja)' : dif < 0 ? 'var(--verde)' : 'var(--texto-muted)';
+    // Atrasado respecto de TU PROPIA lista: deja bastante menos que el promedio de hoy.
+    // (comparar contra el objetivo no sirve: si el objetivo esta lejos, se marcaria todo)
+    const flojo = dejaHoy < mcHoy * 0.9;
+    tb.innerHTML += '<tr>' +
+      '<td style="font-weight:500">' + i.prod + (flojo ? ' <span title="Atrasado: deja menos que el resto de tu lista" style="color:var(--rojo)">▲</span>' : '') + '</td>' +
+      '<td style="color:var(--texto-muted)">' + objPesos(i.costo) + '</td>' +
+      '<td style="color:var(--texto-muted)">' + objPesos(precioHoy) + '</td>' +
+      '<td style="color:' + (dejaHoy < objetivo ? 'var(--rojo)' : 'var(--verde)') + '">' + objPesos(dejaHoy) + '</td>' +
+      '<td style="font-weight:600;color:var(--verde-oscuro)">' + objPesos(objP) + '</td>' +
+      '<td style="color:' + col + ';font-weight:500">' + (dif > 0 ? '+' : '') + objPesos(dif) +
+        ' <span style="font-size:11px;color:var(--texto-muted)">(' + (dif > 0 ? '+' : '') + pctDif.toFixed(0) + '%)</span></td>' +
+      '</tr>';
+  });
+  const aumProm = sumHoy ? (sumObj / sumHoy - 1) * 100 : 0;
+  document.getElementById('obj-nota-canales').innerHTML =
+    'Aumento promedio de la lista <strong>' + label + '</strong>: <strong>' + (aumProm >= 0 ? '+' : '') + aumProm.toFixed(1) + '%</strong>. ' +
+    'El ▲ marca los que están <em>atrasados respecto de tu propia lista</em> (dejan bastante menos que el resto): esos conviene corregirlos primero, aunque no toques nada más. ' +
+    'Los otros canales (' + otros.map(c => OBJ_CANALES[c]).join(' y ') + ') se ajustan solos manteniendo la misma diferencia que tienen hoy.';
+
+  // --- Grilla de escenarios: cuánto aumentás x cuánto vendés
+  const aums = [0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30];
+  const paso = U >= 200 ? 50 : 25;
+  const uds  = [U - paso*2, U - paso, U, U + paso, U + paso*2].filter(x => x > 0);
+  const mcCon = a => items.reduce((s,i) => s + (i[canal] * (1 + a) - i.costo), 0) / items.length;
+  document.getElementById('obj-esc-desc').innerHTML =
+    'Resultado del mes según cuánto aumentes la lista <strong>' + label + '</strong> y cuántas unidades vendas, ' +
+    'contra tu meta de ' + objPesos(meta) + (GAN > 0 ? ' (fijos + ganancia).' : ' de fijos.');
+  document.getElementById('obj-esc-head').innerHTML =
+    '<tr><th>Aumento</th>' + uds.map(u => '<th style="text-align:right">' + u + ' u.</th>').join('') + '</tr>';
+  document.getElementById('obj-esc-body').innerHTML = aums.map(a => {
+    const celdas = uds.map(u => {
+      const r  = mcCon(a) * u - meta;
+      const ok = r >= 0;
+      return '<td style="text-align:right;font-weight:' + (ok ? 600 : 400) +
+        ';color:' + (ok ? 'var(--verde-oscuro)' : 'var(--rojo)') +
+        ';background:' + (ok ? '#eaf5ee' : 'transparent') + '">' + objPesos(r) + '</td>';
+    }).join('');
+    const destacado = Math.abs(a * 100 - aumProm) < 2.5;   // el aumento que sale de la tabla de arriba
+    return '<tr><td style="font-weight:' + (destacado ? 700 : 500) + '">+' + (a*100).toFixed(0) + '%' +
+      (destacado ? ' ←' : '') + '</td>' + celdas + '</tr>';
+  }).join('');
+
+  // --- Lista para copiar
+  const mesesTxt = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const d = new Date();
+  let txt = '🎯 *Precios objetivo — ' + label + '*\n';
+  txt += 'Para cubrir ' + objPesos(FIJ) + ' de fijos' + (GAN > 0 ? ' y ganar ' + objPesos(GAN) : '') +
+         ' vendiendo ' + U + ' unidades/mes.\n';
+  txt += 'Cada unidad tiene que dejar ' + objPesos(objetivo) + '.\n\n';
+  items.forEach(i => {
+    txt += emojiProducto(i.prod) + ' ' + i.prod + ' — ' + objPesos(nuevos[i.prod][canal]) +
+           '   (hoy ' + objPesos(i[canal]) + ')\n';
+  });
+  txt += '\nOtros canales:\n';
+  items.forEach(i => {
+    txt += i.prod + ': ' + otros.map(c => OBJ_CANALES[c] + ' ' + objPesos(nuevos[i.prod][c])).join(' · ') + '\n';
+  });
+  txt += '\nCalculado el ' + d.getDate() + ' de ' + mesesTxt[d.getMonth()] + ' de ' + d.getFullYear();
+  document.getElementById('obj-wpp').textContent = txt;
+}
+
+function objCopiar() {
+  const txt = document.getElementById('obj-wpp').textContent;
+  const btn = (typeof event !== 'undefined' && event) ? event.target : null;
+  navigator.clipboard.writeText(txt).then(() => {
+    if (!btn) return;
+    btn.textContent = '✓ Copiado';
+    setTimeout(() => { btn.textContent = '📋 Copiar'; }, 2000);
+  });
+}
+
 async function abrirCostosFijos() {
   if (!fijosMesSeleccionado) fijosMesSeleccionado = getMes();
   const inp = document.getElementById('fijos-mes');
@@ -5801,6 +6060,7 @@ function actualizarTotalFijos() {
   const c = document.getElementById('fijos-cuota');
   if (t) t.textContent = pesos(total);
   if (c) c.textContent = pesos(total / 4);
+  objPrefill();   // mantiene sincronizada la calculadora de precios objetivo
 }
 
 function agregarConceptoFijo() {
