@@ -1232,7 +1232,6 @@
                 <option value="">— seleccioná —</option>
                 <option value="Umepay">Umepay</option>
                 <option value="Afuera">Afuera</option>
-                <option value="Personas">Personas</option>
                 <option value="Feria">Feria</option>
                 <option value="Regalo">Regalo</option>
               </select>
@@ -1369,11 +1368,10 @@
                 <option value="">— elegí el cliente —</option>
               </select>
             </div>
-            <div class="form-group">
+            <div class="form-group" style="display:none">
               <label>Lista de precios</label>
               <select id="ped-lista-precio" onchange="renderPedidosForm()">
                 <option value="afuera">Afuera</option>
-                <option value="personas">Personas</option>
               </select>
             </div>
             <div class="form-group">
@@ -1425,7 +1423,6 @@
                 <option value="">— seleccioná —</option>
                 <option value="Umepay">Umepay (sin descuento)</option>
                 <option value="Afuera">Afuera</option>
-                <option value="Personas">Personas</option>
               </select>
             </div>
             <div class="form-group">
@@ -1933,7 +1930,7 @@
             </div>
             <div class="table-wrapper" id="rent-sim-tabla-wrap" style="display:none;margin-top:1rem">
               <table>
-                <thead><tr><th>Producto</th><th>Costo</th><th>Umepay</th><th>Afuera</th><th>Personas</th></tr></thead>
+                <thead><tr><th>Producto</th><th>Costo</th><th>Umepay</th><th>Afuera</th></tr></thead>
                 <tbody id="rent-sim-body"></tbody>
               </table>
             </div>
@@ -2399,8 +2396,6 @@
                     <th>Margen</th>
                     <th>Precio Afuera</th>
                     <th>Margen</th>
-                    <th>Precio Personas</th>
-                    <th>Margen</th>
                     <th>Vigente desde</th>
                   </tr>
                 </thead>
@@ -2420,7 +2415,6 @@
                 <select id="wpp-precio-canal" onchange="generarListaPreciosWpp()">
                   <option value="Umepay">Umepay</option>
                   <option value="Afuera">Afuera</option>
-                  <option value="Personas">Personas</option>
                 </select>
               </div>
             </div>
@@ -2684,7 +2678,6 @@
         <select id="loc-nuevo-canal" style="flex:1;border:1px solid var(--borde);border-radius:8px;padding:9px 10px;font-size:15px">
           <option value="Umepay">Umepay</option>
           <option value="Afuera">Afuera</option>
-          <option value="Personas">Personas</option>
         </select>
         <button class="btn-verde" onclick="agregarLocalDesdeModal()" style="white-space:nowrap">Agregar</button>
       </div>
@@ -4379,7 +4372,6 @@ function renderSimRentTabla() {
       <td style="color:var(--texto-muted)">${pesos(costo)}</td>
       <td>${campoInput(prod, 'umepay',   p.umepay)}</td>
       <td>${campoInput(prod, 'afuera',   p.afuera)}</td>
-      <td>${campoInput(prod, 'personas', p.personas)}</td>
     </tr>`;
   });
 }
@@ -5394,7 +5386,9 @@ async function generarReporteMensual() {
     });
 
     // Simple cross-table: rows=products, cols=canals
-    const canalesActivos = ['Umepay','Afuera','Personas','Regalo'].filter(c => porCanalProd[c]);
+    // Feria se habia quedado afuera de esta tabla; Personas se mantiene porque
+    // hay ventas viejas cargadas con ese canal.
+    const canalesActivos = ['Umepay','Afuera','Feria','Personas','Regalo'].filter(c => porCanalProd[c]);
     let canalHtml = `<div class="table-wrapper"><table style="width:100%;border-collapse:collapse;font-size:13px">
       <thead><tr>
         <th style="padding:6px 8px;border:1px solid var(--borde);background:var(--gris-claro)">Producto</th>
@@ -6442,7 +6436,7 @@ function generarListaPreciosWpp() {
   const sel = document.getElementById('wpp-precio-canal');
   if (!sel) return;
   const canal = sel.value;
-  const canalKey = canal === 'Umepay' ? 'umepay' : canal === 'Afuera' ? 'afuera' : 'personas';
+  const canalKey = canal === 'Umepay' ? 'umepay' : 'afuera';
   const fuente = (preciosActuales && Object.keys(preciosActuales).length) ? preciosActuales : PRECIOS;
   const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   const d = new Date();
@@ -6477,7 +6471,6 @@ function renderTablaPrecios(precios) {
     const costoReal = getCostoParaFecha(prod, hoyRender);
     const mUme = p.umepay - costoReal;
     const mAfu = p.afuera - costoReal;
-    const mPer = p.personas - costoReal;
     const editable = modoSimulacion;
 
     if (editable) {
@@ -6498,13 +6491,6 @@ function renderTablaPrecios(precios) {
             onchange="actualizarSimulado('${prod}','afuera',this.value)" />
         </td>
         <td style="color:${mAfu>=0?'var(--verde)':'var(--rojo)'};font-weight:500" id="sim-mafu-${prod.replace(/[^a-z0-9]/gi,'_')}">${pesos(mAfu)}</td>
-        <td>
-          <input type="number" id="sim-per-${prod.replace(/[^a-z0-9]/gi,'_')}"
-            style="width:90px;border:1px solid var(--verde);border-radius:6px;padding:4px 8px;font-size:13px"
-            value="${p.personas}"
-            onchange="actualizarSimulado('${prod}','personas',this.value)" />
-        </td>
-        <td style="color:${mPer>=0?'var(--verde)':'var(--rojo)'};font-weight:500" id="sim-mper-${prod.replace(/[^a-z0-9]/gi,'_')}">${pesos(mPer)}</td>
         <td style="color:var(--texto-muted);font-size:12px">${p.vigente||'—'}</td>
       </tr>`;
     } else {
@@ -6515,8 +6501,6 @@ function renderTablaPrecios(precios) {
         <td style="color:${mUme>=0?'var(--verde)':'var(--rojo)'};font-weight:500">${pesos(mUme)}</td>
         <td>${pesos(p.afuera)}</td>
         <td style="color:${mAfu>=0?'var(--verde)':'var(--rojo)'};font-weight:500">${pesos(mAfu)}</td>
-        <td>${pesos(p.personas)}</td>
-        <td style="color:${mPer>=0?'var(--verde)':'var(--rojo)'};font-weight:500">${pesos(mPer)}</td>
         <td style="color:var(--texto-muted);font-size:12px">${p.vigente||'—'}</td>
       </tr>`;
     }
@@ -6556,7 +6540,6 @@ function actualizarSimulado(prod, campo, val) {
   // Sólo se repinta el margen del canal que se tocó
   if (campo === 'umepay')        setColor(`sim-mume-${key}`, p.umepay   - costoReal);
   else if (campo === 'afuera')   setColor(`sim-mafu-${key}`, p.afuera   - costoReal);
-  else if (campo === 'personas') setColor(`sim-mper-${key}`, p.personas - costoReal);
 }
 
 async function aplicarPrecios() {
@@ -6565,6 +6548,9 @@ async function aplicarPrecios() {
 
   try {
     // Build historial rows for changed products
+    // Personas ya no se edita: se guarda igualado a Afuera para que la columna de
+    // la planilla y el historial (9 columnas) sigan siendo validos.
+    Object.values(preciosSimulados).forEach(p => { p.personas = p.afuera; });
     const histRows = [];
     Object.entries(preciosSimulados).forEach(([prod, nuevo]) => {
       const ant = preciosActuales[prod];
@@ -6662,9 +6648,11 @@ let pedSheetId = null;           // id interno de la pestaña Pedidos
 function nuevoIdPedido() { return 'p' + Date.now() + Math.floor(Math.random()*1000); }
 function pedInputId(prod) { return 'pedp-' + prod.replace(/[^a-z0-9]/gi,'_'); }
 function pedeId(tipo)     { return 'pede-' + tipo.replace(/[^a-z0-9]/gi,'_'); }
-function listaCanalKey(l)    { return l === 'personas' ? 'personas' : 'afuera'; }
-function listaCanalNombre(l) { return l === 'personas' ? 'Personas' : 'Afuera'; }
-function getListaForm()      { return (document.getElementById('ped-lista-precio')||{}).value || 'afuera'; }
+// Personas dejo de existir como canal (26-ago-2026): quedan Umepay, Afuera y
+// Feria. Los pedidos van siempre con la lista Afuera.
+function listaCanalKey()     { return 'afuera'; }
+function listaCanalNombre()  { return 'Afuera'; }
+function getListaForm()      { return 'afuera'; }
 
 // --- Persistencia en el Sheet (pestaña "Pedidos") ---
 // La pestaña se crea sola la primera vez. Columnas: id, fecha, cliente, nota, lista, items(JSON), estado
@@ -6732,7 +6720,7 @@ function resumenItems(items) {
     .map(p => `${emojiProducto(p)} ${p} ×${items[p]}`)
     .join(', ');
 }
-// Monto de un pedido según la lista de precios elegida (afuera/personas) a la fecha dada
+// Monto de un pedido con la lista Afuera a la fecha dada
 function montoPedido(items, fecha, lista) {
   const ck = listaCanalKey(lista);
   let total = 0;
@@ -6765,7 +6753,7 @@ function renderPedidosForm() {
       <button type="button" onclick="stepPed('${id}',1)" style="width:44px;height:44px;border:1px solid var(--borde);background:var(--bg);border-radius:10px;font-size:22px;line-height:1;cursor:pointer;flex-shrink:0">+</button>
     </div>`;
   });
-  poblarSelectLocalesPedidos();   // el desplegable de cliente se filtra por la lista (Afuera/Personas)
+  poblarSelectLocalesPedidos();   // el desplegable de cliente muestra los locales de Afuera
   actualizarPreviewPedido();
 }
 function stepPed(id, delta) {
@@ -7125,7 +7113,7 @@ async function confirmarEntrega() {
   }
   err.style.display = 'none';
 
-  const canal = listaCanalNombre(p.lista);     // Afuera o Personas
+  const canal = listaCanalNombre();            // siempre Afuera
   const canalKey = listaCanalKey(p.lista);
   const local = p.cliente;
   const mes = mesStr(fecha);
@@ -7145,7 +7133,7 @@ async function confirmarEntrega() {
     rows.push([fecha, mes, canal, local, prod, cant, precio, cant*precio, pago, fechaPago, estado]);
   });
 
-  // Filas de Envases devueltos (Afuera/Personas → aplica descuento)
+  // Filas de Envases devueltos (Afuera → aplica descuento)
   const env = leerEnvasesEntrega();
   const envRows = [];
   Object.keys(env).forEach(tipo => {
@@ -7563,6 +7551,9 @@ async function cargarLocales(force) {
 
 function localesDeCanal(canales) {
   const set = Array.isArray(canales) ? canales : [canales];
+  // Personas ya no es un canal. Los locales viejos que quedaron marcados asi se
+  // muestran junto con los de Afuera para no perderlos (no se toca la planilla).
+  if (set.includes('Afuera')) set.push('Personas');
   return [...new Set(LOCALES.filter(l => set.includes(l.canal)).map(l => l.nombre))]
     .sort((a,b) => a.localeCompare(b));
 }
@@ -7605,7 +7596,7 @@ function poblarSelectLocalesVentas() {
 function poblarSelectLocalesPedidos() {
   const sel = document.getElementById('ped-cliente');
   if (!sel) return;
-  const canal = getListaForm() === 'personas' ? 'Personas' : 'Afuera';
+  const canal = 'Afuera';   // los pedidos van siempre por la lista Afuera
   const prev = sel.value;
   const nombres = localesDeCanal(canal);
   let opts = '<option value="">— elegí el cliente —</option>' + nombres.map(n => `<option value="${escAttr(n)}">${n}</option>`).join('');
@@ -7622,12 +7613,13 @@ function onLocalVentaChange() {
 }
 function onClientePedidoChange() {
   const sel = document.getElementById('ped-cliente');
-  if (sel.value === '__gestionar__') { sel.value = ''; abrirGestionLocales(getListaForm()==='personas'?'Personas':'Afuera'); }
+  if (sel.value === '__gestionar__') { sel.value = ''; abrirGestionLocales('Afuera'); }
 }
 
 // ---- Modal de gestión de locales ----
 async function abrirGestionLocales(canalDefault) {
-  document.getElementById('loc-nuevo-canal').value = ['Umepay','Afuera','Personas'].includes(canalDefault) ? canalDefault : 'Afuera';
+  // 'Personas' ya no es opcion: un local viejo marcado asi cae en Afuera.
+  document.getElementById('loc-nuevo-canal').value = ['Umepay','Afuera'].includes(canalDefault) ? canalDefault : 'Afuera';
   document.getElementById('loc-nuevo-nombre').value = '';
   document.getElementById('loc-modal-error').style.display = 'none';
   document.getElementById('locales-modal').style.display = 'flex';
