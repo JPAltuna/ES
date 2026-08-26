@@ -1863,12 +1863,12 @@
           <div class="msg-error" id="fijos-error"></div>
         </div>
 
-        <!-- ===== CALCULADORA DE UNIDADES OBJETIVO ===== -->
+        <!-- ===== UNIDADES PARA LLEGAR AL EQUILIBRIO ===== -->
         <div class="card" id="rent-obj-card">
-          <div class="card-title">🎯 ¿Cuántas unidades tengo que vender?</div>
+          <div class="card-title">🎯 ¿Cuántas unidades tengo que vender este mes?</div>
           <div style="font-size:12px;color:var(--texto-muted);margin-bottom:1rem;line-height:1.5">
-            <strong style="color:var(--texto)">(Gastos fijos + lo que querés ganar) ÷ lo que te deja cada unidad = unidades por mes</strong><br>
-            "Lo que te deja cada unidad" es el precio menos el costo de producción de ese frasco.
+            <strong style="color:var(--texto)">(Gastos fijos + lo que querés ganar) ÷ lo que deja cada unidad = unidades del mes</strong><br>
+            "Lo que deja cada unidad" es el precio menos el costo de producción de ese frasco.
           </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0.75rem;align-items:end">
             <div class="form-group" style="margin:0">
@@ -1884,127 +1884,36 @@
               <input type="number" id="obj-ganancia" value="0" min="0" oninput="objCalcular()" />
             </div>
           </div>
-          <div style="font-size:11px;color:var(--texto-muted);margin-top:0.5rem">
-            💡 Ganancia deseada en <strong>0</strong> = cubrir los fijos sin pérdida, nada más.
+          <div style="font-size:11px;color:var(--texto-muted);margin-top:0.6rem;line-height:1.6">
+            💡 <strong>$2.800 es el peor escenario</strong>: es lo que deja el ½ litro de kéfir de agua, el producto de menor margen.
+            Vendiendo otros productos vas a llegar al equilibrio con menos unidades que las que dice acá.<br>
+            Ganancia deseada en <strong>0</strong> = cubrir los fijos sin pérdida, nada más.
             Los fijos se traen solos del mes elegido arriba — <a href="#" onclick="objFijosManual=false;objPrefill();return false" style="color:var(--verde-oscuro)">↻ volver a traerlos</a>.
           </div>
 
           <div id="obj-res" style="display:none;margin-top:1.25rem">
             <div style="background:var(--gris-claro);border-radius:12px;padding:1.25rem;text-align:center">
-              <div style="font-size:11px;color:var(--texto-muted);letter-spacing:0.03em">TENÉS QUE VENDER POR MES</div>
+              <div style="font-size:11px;color:var(--texto-muted);letter-spacing:0.03em">TENÉS QUE VENDER</div>
               <div style="font-size:46px;font-weight:700;color:var(--verde-oscuro);line-height:1.1" id="obj-unidades">—</div>
-              <div style="font-size:13px;color:var(--texto-muted)">unidades</div>
+              <div style="font-size:13px;color:var(--texto-muted)">unidades en el mes</div>
               <div style="font-size:12px;color:var(--texto-muted);margin-top:0.6rem" id="obj-cuenta">—</div>
             </div>
             <div id="obj-semana" style="display:flex;justify-content:space-around;gap:0.75rem;flex-wrap:wrap;margin-top:0.9rem;font-size:13px;color:var(--texto-muted)"></div>
-          </div>
-        </div>
 
-        <div class="card">
-          <div class="card-title">Punto de equilibrio</div>
-          <div class="form-grid" style="grid-template-columns: 1fr 1fr; max-width:400px">
-            <div class="form-group">
-              <label>Mes a analizar</label>
-              <input type="month" id="costos-mes" />
-            </div>
-            <div style="display:flex; align-items:flex-end">
-              <button class="btn-verde" onclick="analizarCostos()">Analizar</button>
-            </div>
-          </div>
-        </div>
-
-        <div id="costos-loading" class="loading" style="display:none"><div class="spinner"></div> Calculando...</div>
-
-        <div id="costos-content" style="display:none">
-          <!-- Simulador de precios -->
-          <div class="card" id="rent-sim-card">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap">
-              <div class="card-title" style="margin:0">🧪 Simular cambio de precios</div>
-              <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
-                <button class="btn-outline" id="rent-sim-btn" onclick="startSimRent()">Simular precios nuevos</button>
-                <button class="btn-outline" id="rent-sim-reset" onclick="resetSimRent()" style="display:none">↩️ Volver a reales</button>
-              </div>
-            </div>
-            <div style="font-size:12px;color:var(--texto-muted);margin-top:0.4rem">
-              Cambiá el precio de <strong>cualquiera de los tres canales</strong> y mirá al instante cómo cambian la ganancia y el punto de equilibrio del mes. Los tres precios son independientes: tocar uno no modifica los otros. No se guarda nada.
-            </div>
-            <div class="table-wrapper" id="rent-sim-tabla-wrap" style="display:none;margin-top:1rem">
-              <table>
-                <thead><tr><th>Producto</th><th>Costo</th><th>Umepay</th><th>Afuera</th></tr></thead>
-                <tbody id="rent-sim-body"></tbody>
-              </table>
-            </div>
-          </div>
-
-          <div id="rent-sim-banner" style="display:none;background:var(--amarillo-claro);color:var(--amarillo);padding:0.6rem 1rem;border-radius:8px;font-size:13px;margin-bottom:1rem;font-weight:500">
-            🧪 Estás viendo números <strong>SIMULADOS</strong> con precios nuevos. Nada de esto se guarda.
-          </div>
-
-          <div class="metrics-grid">
-            <div class="metric-card">
-              <div class="metric-label">Unidades vendidas</div>
-              <div class="metric-value" id="c-unidades">—</div>
-            </div>
-            <div class="metric-card">
-              <div class="metric-label">Unidades p/ equilibrio</div>
-              <div class="metric-value naranja" id="c-eq-unidades">—</div>
-              <div class="metric-sub">Con el margen real del mes</div>
-            </div>
-            <div class="metric-card">
-              <div class="metric-label">Ganancia bruta</div>
-              <div class="metric-value verde" id="c-gan-bruta">—</div>
-              <div class="metric-sub">Sin descontar fijos</div>
-            </div>
-            <div class="metric-card">
-              <div class="metric-label">Ganancia neta</div>
-              <div class="metric-value" id="c-gan-neta">—</div>
-              <div class="metric-sub" id="c-gan-neta-sub">Descontando costos fijos del mes</div>
-            </div>
-          </div>
-
-          <div class="card" id="rent-sim-cmp" style="display:none">
-            <div class="card-title">Real vs. simulado</div>
-            <div class="table-wrapper">
-              <table>
-                <thead><tr><th>Concepto</th><th>Real</th><th>Simulado</th><th>Diferencia</th></tr></thead>
-                <tbody>
-                  <tr><td>Ganancia bruta del mes</td><td id="cmp-bruta-real">—</td><td id="cmp-bruta-sim">—</td><td id="cmp-bruta-dif">—</td></tr>
-                  <tr><td>Ganancia neta del mes</td><td id="cmp-neta-real">—</td><td id="cmp-neta-sim">—</td><td id="cmp-neta-dif">—</td></tr>
-                  <tr><td>Unidades para equilibrio</td><td id="cmp-eq-real">—</td><td id="cmp-eq-sim">—</td><td id="cmp-eq-dif">—</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-title">Punto de equilibrio mensual</div>
-            <div style="font-size:13px;color:var(--texto-muted);margin-bottom:1.25rem">
-              Unidades que hacían falta este mes para cubrir los costos fijos, calculadas con
-              <strong>lo que dejó cada unidad realmente vendida</strong> (no con un canal supuesto).
-            </div>
-            <div style="background:var(--gris-claro);border-radius:10px;padding:1.25rem;text-align:center;margin-bottom:1.5rem">
-              <div style="font-size:11px;color:var(--texto-muted);margin-bottom:0.3rem;letter-spacing:0.03em">UNIDADES NECESARIAS</div>
-              <div style="font-size:36px;font-weight:700;color:var(--azul);line-height:1.1" id="eq-real-u">—</div>
-              <div style="font-size:12px;color:var(--texto-muted);margin-top:0.4rem">cada unidad dejó en promedio <strong id="eq-real-m">—</strong></div>
-            </div>
-
-            <!-- Visual bar chart -->
-            <div style="margin-top:0.5rem">
+            <!-- Cómo venís este mes -->
+            <div id="obj-avance" style="display:none;margin-top:1.5rem">
               <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--texto-muted);margin-bottom:0.4rem">
-                <span>Cobertura del mes con ventas reales</span>
-                <span id="eq-pct-label">—%</span>
+                <span id="obj-avance-txt">—</span>
+                <span id="obj-avance-pct">—%</span>
               </div>
               <div style="background:var(--gris-claro);border-radius:20px;height:24px;overflow:hidden;position:relative">
-                <div id="eq-barra" style="height:100%;border-radius:20px;transition:width 0.6s ease;background:var(--verde);width:0%"></div>
-                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:12px;font-weight:600;color:white;text-shadow:0 1px 2px rgba(0,0,0,0.3)" id="eq-barra-label"></div>
-              </div>
-              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--texto-muted);margin-top:0.3rem">
-                <span>0</span>
-                <span id="eq-meta-label">Meta: — u.</span>
+                <div id="obj-avance-barra" style="height:100%;border-radius:20px;transition:width 0.6s ease;background:var(--verde);width:0%"></div>
+                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:12px;font-weight:600;color:var(--texto)" id="obj-avance-label"></div>
               </div>
             </div>
           </div>
         </div>
+
       </div>
 
 
@@ -4197,191 +4106,6 @@ async function guardarCierreCaja() {
 // =====================
 // COSTOS
 // =====================
-// Estado del simulador de precios (solo pantalla, no se guarda)
-let simRentActiva = false;
-let preciosSimRent = {};   // { prod: {umepay, afuera, personas, costo} }
-let rentData = null;       // { mes, ventas, fijosDelMes } — cache para no re-descargar en cada cambio
-
-function canalKeyRent(c) {
-  c = (c||'').toString().trim().toLowerCase();
-  if (c === 'umepay')   return 'umepay';
-  if (c === 'afuera')   return 'afuera';
-  if (c === 'personas') return 'personas';
-  return null;
-}
-
-async function analizarCostos() {
-  const mes = document.getElementById('costos-mes').value;
-  if (!mes) return;
-
-  document.getElementById('costos-loading').style.display = 'flex';
-  document.getElementById('costos-content').style.display = 'none';
-
-  try {
-    const data = await sheetsGet('Ventas!A:K');
-    const ventas = data.slice(1).filter(r => {
-      const f=normFecha(r[0]);
-      const prod=(r[4]||'').trim();
-      return f && f.startsWith(mes) && PRODUCTOS_VALIDOS.includes(prod);
-    });
-
-    await cargarFijosPorMes();
-    const fijosDelMes = getFijosTotalMes(mes);
-
-    rentData = { mes, ventas, fijosDelMes };
-    if (simRentActiva) renderSimRentTabla();
-    pintarRent();
-  } catch(e) {
-    document.getElementById('costos-loading').innerHTML = '<span style="color:var(--rojo)">Error: ' + e.message + '</span>';
-  }
-}
-
-// Calcula y pinta los resultados usando rentData (sin re-descargar). Si el
-// simulador está activo, muestra los números simulados y la comparación.
-function pintarRent() {
-  if (!rentData) return;
-  const { mes, ventas, fijosDelMes } = rentData;
-  const mesStr2 = mes + '-01';
-
-  // Calcula todos los números del mes. sim=true → re-precifica cada venta con
-  // los precios simulados según el canal (columna C de Ventas).
-  function computar(sim) {
-    let totalUnidades=0, totalVenta=0, totalCosto=0;
-    ventas.forEach(r => {
-      const prod=(r[4]||'').trim(), cant=parseFloat(r[5])||0, precio=parseFloat(r[6])||0;
-      let recTotal=parseFloat(r[7]); if(isNaN(recTotal)) recTotal=precio*cant;
-      const costo=getCostoParaFecha(prod, normFecha(r[0]))*cant;
-      let venta = recTotal;
-      if (sim) {
-        const ck = canalKeyRent(r[2]);
-        const sp = (ck && preciosSimRent[prod]) ? preciosSimRent[prod][ck] : null;
-        if (sp != null && !isNaN(sp)) venta = sp * cant;
-      }
-      totalUnidades+=cant; totalVenta+=venta; totalCosto+=costo;
-    });
-    const ganBruta = totalVenta - totalCosto;
-    const ganNeta  = ganBruta - fijosDelMes;
-
-    // Punto de equilibrio con el margen REAL del mes (lo que dejo cada unidad
-    // efectivamente vendida). Se sacaron los escenarios por canal: Julia queria
-    // un solo numero, no tres opciones (26-ago-2026).
-    const margenPromedioReal = totalUnidades > 0 ? ganBruta / totalUnidades : 0;
-    const eqReal = margenPromedioReal > 0 ? Math.ceil(fijosDelMes / margenPromedioReal) : '∞';
-    return { totalUnidades, totalVenta, totalCosto, ganBruta, ganNeta,
-             margenPromedioReal, eqReal };
-  }
-
-  const real = computar(false);
-  const R = simRentActiva ? computar(true) : real;
-
-  const pctReal = R.eqReal !== '∞' && R.eqReal ? Math.min(Math.round((R.totalUnidades / R.eqReal) * 100), 100) : 0;
-  const colorBarra = pctReal >= 100 ? 'var(--verde)' : pctReal >= 60 ? 'var(--amarillo)' : 'var(--naranja)';
-
-  document.getElementById('c-unidades').textContent = R.totalUnidades;
-  document.getElementById('c-gan-bruta').textContent = pesos(R.ganBruta);
-  const netaEl = document.getElementById('c-gan-neta');
-  netaEl.textContent = pesos(R.ganNeta);
-  netaEl.className = 'metric-value ' + (R.ganNeta >= 0 ? 'verde' : 'naranja');
-
-  document.getElementById('c-eq-unidades').textContent = typeof R.eqReal === 'number' ? R.eqReal : '∞';
-  document.getElementById('eq-real-u').textContent = typeof R.eqReal === 'number' ? R.eqReal : '∞';
-  document.getElementById('eq-real-m').textContent = pesos(Math.round(R.margenPromedioReal));
-  document.getElementById('eq-pct-label').textContent = pctReal + '%';
-  document.getElementById('eq-barra').style.width = pctReal + '%';
-  document.getElementById('eq-barra').style.background = colorBarra;
-  document.getElementById('eq-barra-label').textContent = R.totalUnidades + ' u. vendidas';
-  document.getElementById('eq-meta-label').textContent = `Meta: ${typeof R.eqReal === 'number' ? R.eqReal : '∞'} u.`;
-
-  // Banner + tabla comparativa Real vs. Simulado
-  const banner = document.getElementById('rent-sim-banner');
-  const cmp = document.getElementById('rent-sim-cmp');
-  if (simRentActiva) {
-    banner.style.display = 'block';
-    cmp.style.display = 'block';
-    const difTxt = (a, b) => { const d = a - b; return (d >= 0 ? '+' : '') + pesos(d); };
-    const difColor = (a, b) => (a - b) >= 0 ? 'var(--verde)' : 'var(--rojo)';
-    const setDif = (id, sim, rl) => { const el=document.getElementById(id); el.textContent=difTxt(sim,rl); el.style.color=difColor(sim,rl); el.style.fontWeight='600'; };
-
-    document.getElementById('cmp-bruta-real').textContent = pesos(real.ganBruta);
-    document.getElementById('cmp-bruta-sim').textContent  = pesos(R.ganBruta);
-    setDif('cmp-bruta-dif', R.ganBruta, real.ganBruta);
-    document.getElementById('cmp-neta-real').textContent = pesos(real.ganNeta);
-    document.getElementById('cmp-neta-sim').textContent  = pesos(R.ganNeta);
-    setDif('cmp-neta-dif', R.ganNeta, real.ganNeta);
-
-    const eqRealTxt = typeof real.eqReal === 'number' ? real.eqReal + ' u.' : '∞';
-    const eqSimTxt  = typeof R.eqReal === 'number' ? R.eqReal + ' u.' : '∞';
-    document.getElementById('cmp-eq-real').textContent = eqRealTxt;
-    document.getElementById('cmp-eq-sim').textContent  = eqSimTxt;
-    const eqDifEl = document.getElementById('cmp-eq-dif');
-    if (typeof real.eqReal === 'number' && typeof R.eqReal === 'number') {
-      const d = R.eqReal - real.eqReal; // menos unidades = mejor
-      eqDifEl.textContent = (d > 0 ? '+' : '') + d + ' u.';
-      eqDifEl.style.color = d <= 0 ? 'var(--verde)' : 'var(--rojo)';
-      eqDifEl.style.fontWeight = '600';
-    } else {
-      eqDifEl.textContent = '—'; eqDifEl.style.color = 'var(--texto-muted)';
-    }
-  } else {
-    banner.style.display = 'none';
-    cmp.style.display = 'none';
-  }
-
-  document.getElementById('costos-loading').style.display = 'none';
-  document.getElementById('costos-content').style.display = 'block';
-}
-
-// --- Simulador de precios en Rentabilidad ---
-function startSimRent() {
-  simRentActiva = true;
-  preciosSimRent = {};
-  Object.entries(PRECIOS).forEach(([k,v]) => {
-    preciosSimRent[k] = { umepay:v.umepay, afuera:v.afuera, personas:v.personas, costo:v.costo };
-  });
-  renderSimRentTabla();
-  document.getElementById('rent-sim-tabla-wrap').style.display = 'block';
-  document.getElementById('rent-sim-btn').style.display = 'none';
-  document.getElementById('rent-sim-reset').style.display = 'inline-block';
-  pintarRent();
-}
-
-function resetSimRent() {
-  simRentActiva = false;
-  preciosSimRent = {};
-  document.getElementById('rent-sim-tabla-wrap').style.display = 'none';
-  document.getElementById('rent-sim-btn').style.display = 'inline-block';
-  document.getElementById('rent-sim-reset').style.display = 'none';
-  pintarRent();
-}
-
-function renderSimRentTabla() {
-  const mes = document.getElementById('costos-mes').value || hoy().slice(0,7);
-  const fechaCosto = mes + '-01';
-  const tbody = document.getElementById('rent-sim-body');
-  tbody.innerHTML = '';
-  // Los tres canales son inputs independientes: tocar uno no recalcula los otros.
-  const campoInput = (prod, campo, val) =>
-    `<input type="number" value="${val||0}"
-      style="width:90px;border:1px solid var(--verde);border-radius:6px;padding:4px 8px;font-size:13px"
-      onchange="onSimRentPrecio('${prod}','${campo}',this.value)" />`;
-  Object.keys(PRECIOS).forEach(prod => {
-    const costo = getCostoParaFecha(prod, fechaCosto);
-    const p = preciosSimRent[prod] || {};
-    tbody.innerHTML += `<tr>
-      <td style="font-weight:500">${prod}</td>
-      <td style="color:var(--texto-muted)">${pesos(costo)}</td>
-      <td>${campoInput(prod, 'umepay',   p.umepay)}</td>
-      <td>${campoInput(prod, 'afuera',   p.afuera)}</td>
-    </tr>`;
-  });
-}
-
-function onSimRentPrecio(prod, campo, val) {
-  const nuevo = Math.round(parseFloat(val)||0);
-  if (!preciosSimRent[prod]) preciosSimRent[prod] = {};
-  preciosSimRent[prod][campo] = nuevo;
-  pintarRent();
-}
 
 
 
@@ -5745,13 +5469,15 @@ function getConceptosFijos() {
 
 // Se llama al entrar a la pestaña Costos
 // =====================
-// CALCULADORA DE UNIDADES OBJETIVO (solapa Rentabilidad)
-// Julia da el margen que le deja cada unidad y la app le dice cuántas unidades
-// necesita vender: (fijos + ganancia deseada) / margen por unidad.
-// (26-ago-2026: antes calculaba precios objetivo por producto; lo sacó porque
-//  no le servía. Ahora es UN solo número de unidades, no tres opciones.)
+// UNIDADES PARA LLEGAR AL EQUILIBRIO (solapa Rentabilidad)
+// Un solo criterio: (fijos del mes + ganancia deseada) / lo que deja cada unidad.
+// El margen por defecto (2800) es el PEOR ESCENARIO: lo que deja el 1/2l de
+// kefir de agua, el producto de menor margen.
+// (26-ago-2026: antes convivian esta tarjeta y todo el bloque "Analizar el mes"
+//  midiendo lo mismo con numeros distintos. Julia pidio unificar.)
 // =====================
 let objFijosManual = false;
+let objVendidasMes = null;   // unidades ya vendidas en el mes en curso
 
 function objPesos(n) {
   return (n < 0 ? '−' : '') + '$' + Math.abs(Math.round(n)).toLocaleString('es-AR');
@@ -5767,6 +5493,24 @@ function objPrefill() {
       ? fijosEditMes.reduce((s, f) => s + (f.monto > 0 ? f.monto : 0), 0)
       : getFijosTotalMes(fijosMesSeleccionado || getMes());
     if (total > 0) inp.value = Math.round(total);
+  }
+  objCalcular();
+}
+
+// Unidades ya vendidas en el mes en curso, para mostrar cuánto falta.
+// Se carga sola al entrar a la solapa: no hay boton de "Analizar".
+async function cargarUnidadesMes() {
+  try {
+    const mes = getMes();
+    const data = await sheetsGet('Ventas!A:K');
+    objVendidasMes = data.slice(1).reduce((acc, r) => {
+      const f = normFecha(r[0]);
+      if (!f || f.slice(0,7) !== mes) return acc;
+      if (!PRODUCTOS_VALIDOS.includes((r[4]||'').trim())) return acc;
+      return acc + (parseFloat(r[5]) || 0);
+    }, 0);
+  } catch(e) {
+    objVendidasMes = null;   // sin datos, simplemente no se muestra el avance
   }
   objCalcular();
 }
@@ -5792,12 +5536,28 @@ function objCalcular() {
   // Desglose para que el número sea manejable en el día a día
   const sem = document.getElementById('obj-semana');
   if (sem) {
-    const porSemana = Math.ceil(unidades / 4);
-    const porDia    = Math.ceil(unidades / 30);
     sem.innerHTML =
-      '<div><strong style="color:var(--texto);font-size:17px">' + porSemana + '</strong> por semana</div>' +
-      '<div><strong style="color:var(--texto);font-size:17px">' + porDia + '</strong> por día</div>' +
-      '<div>facturando <strong style="color:var(--texto);font-size:17px">' + objPesos(meta) + '</strong> de margen</div>';
+      '<div><strong style="color:var(--texto);font-size:17px">' + Math.ceil(unidades / 4) + '</strong> por semana</div>' +
+      '<div><strong style="color:var(--texto);font-size:17px">' + Math.ceil(unidades / 30) + '</strong> por día</div>';
+  }
+
+  // Cómo viene el mes en curso
+  const av = document.getElementById('obj-avance');
+  if (av) {
+    if (objVendidasMes === null) { av.style.display = 'none'; }
+    else {
+      av.style.display = 'block';
+      const faltan = Math.max(0, unidades - objVendidasMes);
+      const pct = unidades > 0 ? Math.min(Math.round(objVendidasMes / unidades * 100), 100) : 0;
+      document.getElementById('obj-avance-txt').textContent =
+        faltan > 0 ? 'Llevás ' + objVendidasMes + ' vendidas · te faltan ' + faltan
+                   : 'Llevás ' + objVendidasMes + ' vendidas · ya cubriste el mes 🎉';
+      document.getElementById('obj-avance-pct').textContent = pct + '%';
+      const barra = document.getElementById('obj-avance-barra');
+      barra.style.width = pct + '%';
+      barra.style.background = pct >= 100 ? 'var(--verde)' : pct >= 60 ? 'var(--amarillo)' : 'var(--naranja)';
+      document.getElementById('obj-avance-label').textContent = objVendidasMes + ' de ' + unidades + ' u.';
+    }
   }
 }
 
@@ -5807,6 +5567,7 @@ async function abrirCostosFijos() {
   if (inp) inp.value = fijosMesSeleccionado;
   await cargarFijosPorMes(true);
   cargarMesEnEditor(fijosMesSeleccionado);
+  cargarUnidadesMes();   // avance real del mes, sin boton de por medio
 }
 
 function cargarMesEnEditor(mes) {
@@ -6610,7 +6371,6 @@ function iniciarApp() {
   renderProductosGrid();
   document.getElementById('e-fecha').value = hoy();
   document.getElementById('eg-fecha').value = hoy();
-  document.getElementById('costos-mes').value = getMes();
   setFechas('dash-desde','dash-hasta');
   setFechas('caja-desde','caja-hasta');
 
