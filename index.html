@@ -3912,12 +3912,16 @@ async function cargarCaja() {
     const egresos = egresosData.slice(1).filter(r => { const f=normFecha(r[0]); return f && f >= desde && f <= hasta; });
 
     let cash=0, transfe=0;
+    // Ganancia bruta de lo efectivamente COBRADO en el periodo (plata que entro
+    // menos el costo de producir eso). Va a la columna H del cierre.
+    cajaGanBrutaPeriodo = 0;
     cobradas.forEach(r => {
       const precio=parseFloat(r[6])||0, cant=parseFloat(r[5])||0;
       let total=parseFloat(r[7]); if(isNaN(total)) total=precio*cant;
       const pago = (r[8]||'').trim();
       if (pago==='Cash') cash+=total;
       else if (pago==='Transfe') transfe+=total;
+      cajaGanBrutaPeriodo += total - getCostoParaFecha((r[4]||'').trim(), normFecha(r[0])) * cant;
     });
 
     let totalEgresos = 0;
@@ -3968,11 +3972,14 @@ async function cargarCaja() {
 // =====================
 let cajaTeoricoCash = 0;
 let cajaTeoricoTransfe = 0;
+let cajaGanBrutaPeriodo = 0;   // ganancia bruta cobrada en el periodo (col H del cierre)
 
 async function cargarCierreCaja(desde, hasta, cashCobrado, transfeCobrado, egCash, egTransfe) {
   // Load previous closure to get starting balance
   try {
-    const histData = await sheetsGet('Caja_cierres!A:G');
+    // A:I, no A:G: el historial usa la columna H (ganancia bruta) y la I (cuota
+    // de fijos). Pidiendo solo A:G venian siempre vacias y el Acumulado daba 0.
+    const histData = await sheetsGet('Caja_cierres!A:I');
     const filas = histData.slice(1).filter(r => r[0]);
 
     let antCash = 0, antTransfe = 0;
@@ -4023,10 +4030,10 @@ async function cargarCierreCaja(desde, hasta, cashCobrado, transfeCobrado, egCas
           <td style="font-size:12px">${r[0]||''}</td>
           <td style="color:var(--verde)">${r[7]?pesos(r[7]):''}</td>
           <td style="color:var(--texto-muted)">${r[8]?pesos(r[8]):''}</td>
-          <td style="font-weight:600;color:${resultSem>=0?'var(--verde)':'var(--naranja)'}">${resultSem>=0?'+':''}${pesos(resultSem)}</td>
-          <td style="font-weight:600;color:${acumVal>=0?'var(--verde)':'var(--naranja)'}">${acumVal>=0?'+':''}${pesos(acumVal)}</td>
+          <td style="font-weight:600;color:${resultSem>=0?'var(--verde)':'var(--naranja)'}">${resultSem>=0?'+':'-'}${pesos(Math.abs(resultSem))}</td>
+          <td style="font-weight:600;color:${acumVal>=0?'var(--verde)':'var(--naranja)'}">${acumVal>=0?'+':'-'}${pesos(Math.abs(acumVal))}</td>
           <td style="font-weight:500">${r[2]?pesos(parseFloat(r[2])):''}</td>
-          <td style="color:${Math.abs(diffC)<100?'var(--verde)':diffC<0?'var(--naranja)':'var(--azul)'};font-weight:500">${diffC>=0?'+':''}${pesos(diffC)}</td>
+          <td style="color:${Math.abs(diffC)<100?'var(--verde)':diffC<0?'var(--naranja)':'var(--azul)'};font-weight:500">${diffC>=0?'+':'-'}${pesos(Math.abs(diffC))}</td>
         </tr>`;
       });
     }
@@ -4071,10 +4078,14 @@ async function guardarCierreCaja() {
   const diffTransfe = (!isNaN(realTransfe)) ? realTransfe - cajaTeoricoTransfe : 0;
   const label = `${desde} al ${hasta}`;
 
-  // Get current ganancia bruta and cuota from reporte if available
-  const ganBrutaGuardada = parseFloat(document.getElementById('dash-ganancia')?.textContent?.replace(/[^0-9-]/g,''))||0;
   await cargarFijosPorMes();
-  const cuotaFijos = Math.round(getFijosTotalMes((desde||hoy()).slice(0,7)) / 4);
+  // Cuota de fijos PROPORCIONAL a los dias del periodo. Antes era siempre
+  // fijos/4 (una semana), asi que un cierre de 3 dias o de un mes entero
+  // descontaba lo mismo y el Acumulado quedaba mal.
+  const mesCierre = (desde || hoy()).slice(0,7);
+  const diasMes = new Date(+mesCierre.slice(0,4), +mesCierre.slice(5,7), 0).getDate();
+  const diasPeriodo = Math.max(1, Math.round((new Date(hasta) - new Date(desde)) / 86400000) + 1);
+  const cuotaFijos = Math.round(getFijosTotalMes(mesCierre) * Math.min(diasPeriodo, diasMes) / diasMes);
 
   const row = [
     label,
@@ -4084,13 +4095,13 @@ async function guardarCierreCaja() {
     Math.round(cajaTeoricoTransfe),
     !isNaN(realTransfe) ? Math.round(realTransfe) : '',
     !isNaN(realTransfe) ? Math.round(diffTransfe) : '',
-    '',   // col H: ganancia bruta (se puede completar manualmente)
+    Math.round(cajaGanBrutaPeriodo),   // col H: ganancia bruta cobrada en el periodo
     cuotaFijos,  // col I: cuota fijos
   ];
 
   document.getElementById('caj-cierre-spinner').style.display = 'block';
   try {
-    await sheetsAppend('Caja_cierres!A:G', [row]);
+    await sheetsAppend('Caja_cierres!A:I', [row]);
     document.getElementById('caj-cierre-spinner').style.display = 'none';
     document.getElementById('caj-cierre-success').style.display = 'block';
     setTimeout(() => document.getElementById('caj-cierre-success').style.display = 'none', 3000);
