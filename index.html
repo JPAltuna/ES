@@ -1974,7 +1974,7 @@
               </div>
             </div>
             <div style="font-size:12px;color:var(--texto-muted);margin-top:0.4rem">
-              Cambiá el precio <strong>Umepay</strong> y mirá al instante cómo cambian la ganancia y el punto de equilibrio del mes. Afuera y Personas se calculan solos (×1.20 y ×1.25). No se guarda nada.
+              Cambiá el precio de <strong>cualquiera de los tres canales</strong> y mirá al instante cómo cambian la ganancia y el punto de equilibrio del mes. Los tres precios son independientes: tocar uno no modifica los otros. No se guarda nada.
             </div>
             <div class="table-wrapper" id="rent-sim-tabla-wrap" style="display:none;margin-top:1rem">
               <table>
@@ -2446,7 +2446,7 @@
             </div>
 
             <div id="prec-simulando-badge" style="display:none;background:var(--amarillo-claro);color:var(--amarillo);padding:0.5rem 1rem;border-radius:8px;font-size:13px;margin-bottom:1rem">
-              ✏️ Editando precios — al cambiar Umepay, Afuera y Personas se autocompletan como sugerencia (×1.20 y ×1.25), pero podés escribirles el valor que quieras a mano. Los cambios no se guardan hasta apretar "Aplicar precios".
+              ✏️ Editando precios — los tres precios son independientes: cambiar uno no toca los otros. Escribí cada canal con el valor que quieras. Los cambios no se guardan hasta apretar "Aplicar precios".
             </div>
 
             <div class="table-wrapper">
@@ -4436,31 +4436,28 @@ function renderSimRentTabla() {
   const fechaCosto = mes + '-01';
   const tbody = document.getElementById('rent-sim-body');
   tbody.innerHTML = '';
+  // Los tres canales son inputs independientes: tocar uno no recalcula los otros.
+  const campoInput = (prod, campo, val) =>
+    `<input type="number" value="${val||0}"
+      style="width:90px;border:1px solid var(--verde);border-radius:6px;padding:4px 8px;font-size:13px"
+      onchange="onSimRentPrecio('${prod}','${campo}',this.value)" />`;
   Object.keys(PRECIOS).forEach(prod => {
-    const key = prod.replace(/[^a-z0-9]/gi,'_');
     const costo = getCostoParaFecha(prod, fechaCosto);
     const p = preciosSimRent[prod] || {};
     tbody.innerHTML += `<tr>
       <td style="font-weight:500">${prod}</td>
       <td style="color:var(--texto-muted)">${pesos(costo)}</td>
-      <td><input type="number" value="${p.umepay||0}"
-        style="width:90px;border:1px solid var(--verde);border-radius:6px;padding:4px 8px;font-size:13px"
-        onchange="onSimRentPrecio('${prod}',this.value)" /></td>
-      <td id="srp-afu-${key}">${pesos(p.afuera||0)}</td>
-      <td id="srp-per-${key}">${pesos(p.personas||0)}</td>
+      <td>${campoInput(prod, 'umepay',   p.umepay)}</td>
+      <td>${campoInput(prod, 'afuera',   p.afuera)}</td>
+      <td>${campoInput(prod, 'personas', p.personas)}</td>
     </tr>`;
   });
 }
 
-function onSimRentPrecio(prod, val) {
+function onSimRentPrecio(prod, campo, val) {
   const nuevo = Math.round(parseFloat(val)||0);
   if (!preciosSimRent[prod]) preciosSimRent[prod] = {};
-  preciosSimRent[prod].umepay   = nuevo;
-  preciosSimRent[prod].afuera   = Math.ceil(nuevo * 1.20 / 100) * 100;
-  preciosSimRent[prod].personas = Math.ceil(nuevo * 1.25 / 100) * 100;
-  const key = prod.replace(/[^a-z0-9]/gi,'_');
-  const af = document.getElementById('srp-afu-'+key); if (af) af.textContent = pesos(preciosSimRent[prod].afuera);
-  const pe = document.getElementById('srp-per-'+key); if (pe) pe.textContent = pesos(preciosSimRent[prod].personas);
+  preciosSimRent[prod][campo] = nuevo;
   pintarRent();
 }
 
@@ -6740,30 +6737,16 @@ function actualizarSimulado(prod, campo, val) {
   if (!preciosSimulados[prod]) return;
   const nuevo = Math.round(parseFloat(val)||0);
   preciosSimulados[prod][campo] = nuevo;
-  // Al cambiar Umepay, Afuera y Personas se AUTOCOMPLETAN como sugerencia (×1.20 y ×1.25),
-  // pero quedan editables: si Julia escribe un valor propio de Afuera/Personas, no se pisa.
-  if (campo === 'umepay') {
-    preciosSimulados[prod].afuera   = Math.ceil(nuevo * 1.20 / 100) * 100;
-    preciosSimulados[prod].personas = Math.ceil(nuevo * 1.25 / 100) * 100;
-  }
-  // Update cells inline without full re-render
+  // Los tres precios son INDEPENDIENTES: tocar Umepay ya no recalcula Afuera ni
+  // Personas. Cada canal se escribe a mano (pedido de Julia, 26-ago-2026).
   const key = prod.replace(/[^a-z0-9]/gi,'_');
   const costoReal = getCostoParaFecha(prod, hoy());
   const p = preciosSimulados[prod];
   const setColor = (id, val) => { const el=document.getElementById(id); if(el) { el.textContent=pesos(val); el.style.color=val>=0?'var(--verde)':'var(--rojo)'; }};
-  if (campo === 'umepay') {
-    const inpAfu = document.getElementById(`sim-afu-${key}`);
-    const inpPer = document.getElementById(`sim-per-${key}`);
-    if(inpAfu) inpAfu.value = p.afuera;
-    if(inpPer) inpPer.value = p.personas;
-    setColor(`sim-mafu-${key}`, p.afuera - costoReal);
-    setColor(`sim-mper-${key}`, p.personas - costoReal);
-  } else if (campo === 'afuera') {
-    setColor(`sim-mafu-${key}`, p.afuera - costoReal);
-  } else if (campo === 'personas') {
-    setColor(`sim-mper-${key}`, p.personas - costoReal);
-  }
-  setColor(`sim-mume-${key}`, p.umepay - costoReal);
+  // Sólo se repinta el margen del canal que se tocó
+  if (campo === 'umepay')        setColor(`sim-mume-${key}`, p.umepay   - costoReal);
+  else if (campo === 'afuera')   setColor(`sim-mafu-${key}`, p.afuera   - costoReal);
+  else if (campo === 'personas') setColor(`sim-mper-${key}`, p.personas - costoReal);
 }
 
 async function aplicarPrecios() {
