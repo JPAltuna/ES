@@ -2370,8 +2370,8 @@
         <!-- ===== SOLAPA: COMPARAR ===== -->
         <div id="an-tab-comparar">
           <div style="font-size:12px;color:var(--texto-muted);margin-bottom:1rem">
-            Todo este análisis está en <strong>unidades vendidas</strong>. Se sacaron las vistas de Plata y
-            Ganancia porque no son comparables mes a mes: los costos con los que se calculó cada mes no fueron los mismos.
+            Los cortes por producto, canal y local están en <strong>unidades vendidas</strong>.
+            El mes a mes de arriba te deja ver además la facturación y la ganancia.
           </div>
 
           <div id="cmp-loading" class="loading" style="display:none"><div class="spinner"></div> Cargando...</div>
@@ -2379,9 +2379,42 @@
           <div id="cmp-content" style="display:none">
             <div class="card">
               <div class="card-title">📈 Mes a mes <span id="cmp-mes-prov" style="display:none;font-size:10px;color:var(--amarillo);font-weight:600">· mes en curso provisional</span></div>
-              <div id="cmp-mes-anios" class="seg-metric" style="margin:0.5rem 0 0.85rem;flex-wrap:wrap"></div>
-              <div id="cmp-mes"></div>
-              <div id="cmp-mes-note" style="font-size:11px;color:var(--texto-muted);margin-top:8px"></div>
+
+              <div class="seg-metric" id="cmp-vista" style="margin:0.5rem 0 1rem;flex-wrap:wrap">
+                <button class="on" onclick="cmpVistaSet('volumen',this)">Cuánto vendí</button>
+                <button onclick="cmpVistaSet('ganancia',this)">Cuánto me quedó</button>
+              </div>
+
+              <!-- Vista 1: unidades + facturación, uno al lado del otro -->
+              <div id="cmp-vista-volumen" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:1.4rem 1.6rem">
+                <div>
+                  <div style="font-size:13px;font-weight:600;color:var(--texto);margin-bottom:2px">Unidades vendidas</div>
+                  <div style="font-size:11px;color:var(--texto-muted);margin-bottom:6px">frascos que salieron</div>
+                  <div id="cmp-g-unidades"></div>
+                </div>
+                <div>
+                  <div style="font-size:13px;font-weight:600;color:var(--texto);margin-bottom:2px">Facturación</div>
+                  <div style="font-size:11px;color:var(--texto-muted);margin-bottom:6px">plata vendida, antes de descontar nada</div>
+                  <div id="cmp-g-plata"></div>
+                </div>
+              </div>
+
+              <!-- Vista 2: ganancia bruta + neta, uno al lado del otro -->
+              <div id="cmp-vista-ganancia" style="display:none;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:1.4rem 1.6rem">
+                <div>
+                  <div style="font-size:13px;font-weight:600;color:var(--texto);margin-bottom:2px">Ganancia bruta</div>
+                  <div style="font-size:11px;color:var(--texto-muted);margin-bottom:6px">facturación − costo de producción</div>
+                  <div id="cmp-g-bruta"></div>
+                </div>
+                <div>
+                  <div style="font-size:13px;font-weight:600;color:var(--texto);margin-bottom:2px">Ganancia neta</div>
+                  <div style="font-size:11px;color:var(--texto-muted);margin-bottom:6px">bruta − gastos fijos del mes</div>
+                  <div id="cmp-g-neta"></div>
+                </div>
+              </div>
+
+              <div id="cmp-mes-note" style="font-size:11px;color:var(--texto-muted);margin-top:10px"></div>
+              <div id="cmp-fijos-detalle" style="display:none;margin-top:1.1rem"></div>
             </div>
 
             <div class="card">
@@ -7033,7 +7066,6 @@ function ultimosMeses(n) {
 }
 
 function renderComparar() {
-  renderMesModoChips();
   renderMesAMes();
   poblarProdMesSel();
   renderProdMes();
@@ -7046,59 +7078,208 @@ function cmpAnios() {
   return [...new Set((cmpVentas||[]).map(v => (v.mes||'').slice(0,4)))].filter(Boolean).sort();
 }
 
-// Los años ahora se comparan dentro del propio gráfico (una línea por año, con
-// leyenda), así que los botones Últimos 6 / año / Comparar años ya no hacen falta.
-function renderMesModoChips() {
-  const cont = document.getElementById('cmp-mes-anios');
-  if (cont) cont.style.display = 'none';
+// =====================
+// GASTOS FIJOS QUE SE USAN PARA LA GANANCIA NETA
+// =====================
+// Los fijos no estan cargados mes a mes de todo el año. Para que la neta sea
+// comparable de enero a hoy se aplica UN SOLO criterio, en este orden:
+//   1) los fijos cargados en la app para ese mes (Costos > Gastos fijos)
+//   2) los que quedaron congelados al cerrar el mes (pestaña Cierres_mes)
+//   3) el estimado mensual de abajo, el mismo para todos los meses
+// El detalle de que se uso en cada mes se muestra debajo del grafico, asi no
+// hay que adivinar de donde salio el numero. (27-ago-2026, pedido de Julia)
+const FIJOS_ESTIMADOS = [
+  { concepto: 'Alquiler',     monto: 300000 },
+  { concepto: 'Sueldo Julia', monto: 240000 },
+  { concepto: 'Sueldo Negri', monto: 600000 },
+  { concepto: 'Combustible',  monto: 100000 },
+  { concepto: 'Monotributo',  monto:  20000 }
+];
+const FIJOS_EST_TOTAL = FIJOS_ESTIMADOS.reduce((s, f) => s + f.monto, 0);   // 1.260.000
+
+// Lo que Julia haya dejado escrito la ultima vez (se guarda en el celular)
+let cmpFijosEst = FIJOS_EST_TOTAL;
+try {
+  const _g = parseFloat(localStorage.getItem('es_fijos_est'));
+  if (_g > 0) cmpFijosEst = _g;
+} catch(e) {}
+
+// { monto, fuente: 'cargados'|'cierre'|'estimado', detalle: [{concepto,monto}] }
+function fijosDeMes(mes) {
+  const cargados = ((FIJOS_POR_MES && FIJOS_POR_MES[mes]) || []).filter(f => f.monto > 0);
+  if (cargados.length) {
+    return { monto: cargados.reduce((s, f) => s + f.monto, 0), fuente: 'cargados', detalle: cargados };
+  }
+  // Columna E = fijos considerados, columna I = detalle en JSON
+  const cierre = cmpCierres && cmpCierres.find(r => (r[0]||'').trim() === mes);
+  if (cierre && (parseFloat(cierre[4]) || 0) > 0) {
+    let detalle = [];
+    try { detalle = JSON.parse(cierre[8] || '[]').map(f => ({ concepto: f.nombre, monto: f.monto })); } catch(e) {}
+    return { monto: parseFloat(cierre[4]) || 0, fuente: 'cierre', detalle };
+  }
+  return {
+    monto: cmpFijosEst,
+    fuente: 'estimado',
+    detalle: cmpFijosEst === FIJOS_EST_TOTAL ? FIJOS_ESTIMADOS : []
+  };
 }
 
-// Valor de un mes ('YYYY-MM') según la métrica activa, respetando los cierres congelados
-function valorMes(mes) {
-  const mesActual = getMes();
-  const cierre = cmpCierres && cmpCierres.find(r => (r[0]||'').trim() === mes);
-  if (cierre && mes !== mesActual) {
-    const value = cmpMetric === 'unidades' ? (parseFloat(cierre[1])||0)
-                : cmpMetric === 'plata'    ? (parseFloat(cierre[2])||0)
-                : (parseFloat(cierre[5])||0);   // ganancia neta congelada
+// =====================
+// LOS CUATRO GRAFICOS MES A MES
+// =====================
+// metrica: 'unidades' | 'plata' | 'bruta' | 'neta'
+// Se calcula SIEMPRE desde Ventas para que los meses sean comparables entre si.
+// Solo si un mes no tiene ninguna venta cargada se cae al cierre congelado.
+function valorMesMetrica(mes, metrica) {
+  const rows = (cmpVentas || []).filter(v => v.mes === mes);
+  if (!rows.length) {
+    const cierre = cmpCierres && cmpCierres.find(r => (r[0]||'').trim() === mes);
+    if (!cierre) return { value: 0, prov: false, hasData: false };
+    const bruta = parseFloat(cierre[3]) || 0;
+    const value = metrica === 'unidades' ? (parseFloat(cierre[1]) || 0)
+                : metrica === 'plata'    ? (parseFloat(cierre[2]) || 0)
+                : metrica === 'bruta'    ? bruta
+                : bruta - fijosDeMes(mes).monto;
     return { value, prov: false, hasData: true };
   }
-  const rows = (cmpVentas||[]).filter(v => v.mes === mes);
-  if (!rows.length) return { value: 0, prov: false, hasData: false };
-  let value;
-  if (cmpMetric === 'unidades')   value = rows.reduce((s,v)=>s+v.cant,0);
-  else if (cmpMetric === 'plata') value = rows.reduce((s,v)=>s+v.total,0);
-  else value = rows.reduce((s,v)=>s+v.ganancia,0) - (getFijosTotalMes(mes)||0);
-  return { value, prov: (mes === mesActual), hasData: true };
+  const cant  = rows.reduce((s, v) => s + v.cant, 0);
+  const total = rows.reduce((s, v) => s + v.total, 0);
+  const bruta = rows.reduce((s, v) => s + v.ganancia, 0);
+  const value = metrica === 'unidades' ? cant
+              : metrica === 'plata'    ? total
+              : metrica === 'bruta'    ? bruta
+              : bruta - fijosDeMes(mes).monto;
+  return { value, prov: (mes === getMes()), hasData: true };
 }
 
-// Mes a mes con el MISMO gráfico de líneas que Análisis>Insumos: eje X con los 12
-// meses fijos, una línea por año, escala en enteros y valor exacto al tocar el punto.
-function renderMesAMes() {
+// Meses con datos, de enero del primer año hasta el mes en curso
+function cmpMesesConDatos() {
   const mesActual = getMes();
-  const notaBase = cmpMetric === 'ganancia' ? 'Ganancia neta (con fijos). Los meses cerrados usan los valores que congelaste en el cierre.'
-                 : cmpMetric === 'plata'    ? 'Total facturado por mes.'
-                 : 'Unidades vendidas por mes.';
-  const notaEl = document.getElementById('cmp-mes-note');
-  const provEl = document.getElementById('cmp-mes-prov');
-
-  const series = {};
-  let hayProv = false;
+  const out = [];
   cmpAnios().forEach(a => {
     for (let m = 1; m <= 12; m++) {
-      const mes = `${a}-${String(m).padStart(2,'0')}`;
-      if (mes > mesActual) continue;            // no mostramos meses futuros
-      const r = valorMes(mes);
-      if (!r.hasData) continue;                 // mes sin ventas → sin punto
-      if (r.prov) hayProv = true;
-      if (!series[a]) series[a] = Array(12).fill(null);
-      series[a][m-1] = Math.round(r.value);
+      const mes = a + '-' + String(m).padStart(2, '0');
+      if (mes > mesActual) break;
+      if (valorMesMetrica(mes, 'unidades').hasData) out.push(mes);
     }
   });
+  return out;
+}
 
-  dibujarLineaMeses('cmp-mes', series, { pre: cmpMetric === 'unidades' ? '' : '$' });
-  if (provEl) provEl.style.display = hayProv ? 'inline' : 'none';
-  if (notaEl) notaEl.textContent = notaBase + ' Tocá un punto para ver el valor exacto.';
+// Arma { '2025': [12 valores], '2026': [...] } para dibujarLineaMeses
+function serieMeses(metrica) {
+  const series = {};
+  let prov = false;
+  cmpMesesConDatos().forEach(mes => {
+    const a = mes.slice(0, 4), m = +mes.slice(5, 7);
+    const r = valorMesMetrica(mes, metrica);
+    if (r.prov) prov = true;
+    if (!series[a]) series[a] = Array(12).fill(null);
+    series[a][m - 1] = Math.round(r.value);
+  });
+  return { series, prov };
+}
+
+// Vista activa del bloque "Mes a mes"
+let cmpVista = 'volumen';
+
+function cmpVistaAplicar() {
+  const vol  = document.getElementById('cmp-vista-volumen');
+  const gan  = document.getElementById('cmp-vista-ganancia');
+  const det  = document.getElementById('cmp-fijos-detalle');
+  const nota = document.getElementById('cmp-mes-note');
+  if (vol) vol.style.display = (cmpVista === 'volumen')  ? 'grid' : 'none';
+  if (gan) gan.style.display = (cmpVista === 'ganancia') ? 'grid' : 'none';
+  if (det) det.style.display = (cmpVista === 'ganancia') ? 'block' : 'none';
+  if (nota) nota.textContent = (cmpVista === 'ganancia')
+    ? 'Bruta = lo facturado menos el costo de producir lo que vendiste. Neta = bruta menos los gastos fijos del mes. Tocá un punto para ver el valor exacto.'
+    : 'Unidades vendidas y plata facturada por mes. Tocá un punto para ver el valor exacto.';
+}
+
+function cmpVistaSet(v, btn) {
+  cmpVista = v;
+  document.querySelectorAll('#cmp-vista button').forEach(b => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  cmpVistaAplicar();
+}
+
+function renderMesAMes() {
+  const u = serieMeses('unidades');
+  dibujarLineaMeses('cmp-g-unidades', u.series,                    { pre: ''  });
+  dibujarLineaMeses('cmp-g-plata',    serieMeses('plata').series,  { pre: '$' });
+  dibujarLineaMeses('cmp-g-bruta',    serieMeses('bruta').series,  { pre: '$' });
+  dibujarLineaMeses('cmp-g-neta',     serieMeses('neta').series,   { pre: '$' });
+  const provEl = document.getElementById('cmp-mes-prov');
+  if (provEl) provEl.style.display = u.prov ? 'inline' : 'none';
+  renderFijosDetalle();
+  cmpVistaAplicar();
+}
+
+// Cascara fija del detalle de fijos (se arma una sola vez para no perder el foco
+// del input mientras Julia escribe)
+function renderFijosDetalle() {
+  const el = document.getElementById('cmp-fijos-detalle');
+  if (!el) return;
+  if (!el.dataset.armado) {
+    const listaEst = FIJOS_ESTIMADOS.map(f => f.concepto + ' ' + pesos(f.monto)).join(' · ');
+    el.innerHTML =
+      '<div style="border-top:1px solid var(--borde);padding-top:0.9rem">' +
+        '<div style="font-size:13px;font-weight:600;color:var(--texto);margin-bottom:0.5rem">🧾 Qué gastos fijos se descontaron en cada mes</div>' +
+        '<div style="display:flex;align-items:end;gap:0.6rem;flex-wrap:wrap;margin-bottom:0.8rem">' +
+          '<div class="form-group" style="margin:0;max-width:190px">' +
+            '<label>Estimado mensual</label>' +
+            '<input type="number" id="cmp-fijos-est" min="0" step="10000" oninput="cmpFijosEstChange(this.value)" />' +
+          '</div>' +
+          '<div style="font-size:11px;color:var(--texto-muted);line-height:1.5;flex:1;min-width:200px">' +
+            'Se usa solo en los meses que no tienen fijos cargados.<br>' +
+            'Por defecto ' + pesos(FIJOS_EST_TOTAL) + ': ' + listaEst +
+          '</div>' +
+        '</div>' +
+        '<div id="cmp-fijos-tabla"></div>' +
+        '<div style="font-size:11px;color:var(--texto-muted);margin-top:0.7rem;line-height:1.5">' +
+          'Para que un mes deje de ser estimado, cargale los fijos reales en <strong>Costos → Gastos fijos</strong> eligiendo ese mes.' +
+        '</div>' +
+      '</div>';
+    el.dataset.armado = '1';
+    const inp = document.getElementById('cmp-fijos-est');
+    if (inp) inp.value = cmpFijosEst;
+  }
+  renderFijosTabla();
+}
+
+function renderFijosTabla() {
+  const cont = document.getElementById('cmp-fijos-tabla');
+  if (!cont) return;
+  const ETIQ = {
+    cargados: ['Cargados en la app', 'var(--verde-oscuro)'],
+    cierre:   ['Congelados al cerrar el mes', 'var(--verde)'],
+    estimado: ['Estimado', 'var(--amarillo)']
+  };
+  const filas = cmpMesesConDatos().map(mes => {
+    const f = fijosDeMes(mes);
+    const et = ETIQ[f.fuente];
+    const nombre = MESES_CORTO[+mes.slice(5,7)] + ' ' + mes.slice(0,4);
+    const detalle = f.detalle.length
+      ? f.detalle.map(d => d.concepto + ' ' + pesos(d.monto)).join(' · ')
+      : 'sin desglose';
+    return '<tr>' +
+      '<td style="padding:5px 8px 5px 0;font-size:12.5px;white-space:nowrap">' + nombre + '</td>' +
+      '<td style="padding:5px 8px;font-size:12.5px;font-weight:600;text-align:right;white-space:nowrap">' + pesos(f.monto) + '</td>' +
+      '<td style="padding:5px 0 5px 8px;font-size:11px;color:' + et[1] + ';font-weight:600;white-space:nowrap">' + et[0] + '</td>' +
+      '</tr>' +
+      '<tr><td colspan="3" style="padding:0 0 7px 0;font-size:10.5px;color:var(--texto-muted);line-height:1.4">' + detalle + '</td></tr>';
+  }).join('');
+  cont.innerHTML = filas
+    ? '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">' + filas + '</table></div>'
+    : '<div style="font-size:12px;color:var(--texto-muted)">Todavía no hay meses con ventas cargadas.</div>';
+}
+
+function cmpFijosEstChange(val) {
+  const v = parseFloat(val);
+  cmpFijosEst = (isNaN(v) || v < 0) ? FIJOS_EST_TOTAL : Math.round(v);
+  try { localStorage.setItem('es_fijos_est', String(cmpFijosEst)); } catch(e) {}
+  dibujarLineaMeses('cmp-g-neta', serieMeses('neta').series, { pre: '$' });
+  renderFijosTabla();
 }
 
 // Barras agrupadas: cada grupo (mes) con una barra por año
