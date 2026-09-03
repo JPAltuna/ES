@@ -1321,7 +1321,10 @@
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:0.9rem">
             <div class="card-title" style="margin:0">Ventas cargadas</div>
-            <button class="btn-outline" onclick="vrLimpiarFiltros()" style="font-size:12px;padding:5px 11px">Limpiar filtros</button>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button class="btn-outline" onclick="vrUltimaSemana()" style="font-size:12px;padding:5px 11px">Última semana</button>
+              <button class="btn-outline" onclick="vrLimpiarFiltros()" style="font-size:12px;padding:5px 11px">Ver todo</button>
+            </div>
           </div>
 
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:0.6rem;margin-bottom:0.9rem">
@@ -3500,7 +3503,17 @@ function limpiarFormVentaCompleto() {
 // Las filas se traen una vez y se guardan en memoria; filtrar y editar no
 // vuelve a pegarle a la planilla. idx = numero de fila real en el Sheet.
 let ventasCache = [];
+let vrInicializado = false;   // el filtro por defecto se pone una sola vez
 const VR_TOPE = 50;   // filas que se dibujan como maximo
+
+// Hace 7 dias, en formato AAAA-MM-DD. Se arma con los getters locales (no con
+// toISOString) para que el huso horario no corra el dia para atras.
+function vrHaceUnaSemana() {
+  const d = new Date(hoy() + 'T12:00:00');
+  d.setDate(d.getDate() - 7);
+  const p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
 
 async function cargarVentasRecientes() {
   document.getElementById('ventas-recientes-loading').style.display = 'flex';
@@ -3516,6 +3529,13 @@ async function cargarVentasRecientes() {
       return b.idx - a.idx;                         // misma fecha: la cargada despues primero
     });
     poblarVrLocales();
+    // Por defecto se ve la ultima semana. Solo la primera vez: si Julia ya toco
+    // los filtros, recargar (por ejemplo tras cobrar una venta) no se los pisa.
+    if (!vrInicializado) {
+      vrInicializado = true;
+      const d = document.getElementById('vr-desde');
+      if (d && !d.value) d.value = vrHaceUnaSemana();
+    }
     renderVentasRecientes();
     document.getElementById('ventas-recientes-loading').style.display = 'none';
     document.getElementById('ventas-recientes-tabla').style.display = 'block';
@@ -3537,6 +3557,17 @@ function poblarVrLocales() {
   if (prev && nombres.includes(prev)) sel.value = prev;
 }
 
+// Vuelve al estado por defecto: los ultimos 7 dias, sin otros filtros
+function vrUltimaSemana() {
+  ['vr-local','vr-estado','vr-hasta'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const d = document.getElementById('vr-desde');
+  if (d) d.value = vrHaceUnaSemana();
+  renderVentasRecientes();
+}
+
+// Saca todos los filtros, incluida la semana
 function vrLimpiarFiltros() {
   ['vr-local','vr-estado','vr-desde','vr-hasta'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
