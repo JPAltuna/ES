@@ -1600,16 +1600,17 @@
       <!-- CAJA SEMANAL -->
       <div class="page" id="page-caja">
         <div class="page-header">
-          <div class="page-title">Caja semanal</div>
-          <div class="page-desc">Control de cobros y pagos de la semana</div>
+          <div class="page-title">Caja</div>
+          <div class="page-desc">Cómo está la caja hoy. Cambiá las fechas si querés el reporte de otro período.</div>
         </div>
 
         <div class="semana-selector">
-          <label>Semana del</label>
+          <label>Del</label>
           <input type="date" id="caja-desde" />
           <label>al</label>
           <input type="date" id="caja-hasta" />
           <button class="btn-verde" onclick="cargarCaja()">Calcular</button>
+          <button class="btn-outline" onclick="cajaHoy()">Hoy</button>
         </div>
 
         <div id="caja-loading" class="loading" style="display:none"><div class="spinner"></div> Calculando...</div>
@@ -1619,6 +1620,7 @@
           <!-- Cierre real -->
           <div class="card" style="border:2px solid var(--verde-claro)">
             <div class="card-title">Cierre de caja</div>
+            <div id="caj-aviso-rango" style="display:none;background:var(--amarillo-claro);border-radius:10px;padding:0.8rem 0.9rem;margin-bottom:1rem;font-size:12.5px;color:var(--amarillo);line-height:1.6"></div>
             <div style="font-size:13px;color:var(--texto-muted);margin-bottom:1rem">
               Ingresá los saldos reales contados. El sistema calcula la diferencia con el teórico.
             </div>
@@ -3166,7 +3168,7 @@ function showPage(name, btn) {
   if (name === 'envases') cargarEnvasesRecientes();
   if (name === 'egresos') cargarEgresosRecientes();
   if (name === 'dashboard') { setFechas('dash-desde','dash-hasta'); cargarResumenMes(); }
-  if (name === 'caja') { setFechas('caja-desde','caja-hasta'); }
+  if (name === 'caja') cajaHoy();
   if (name === 'costos') abrirCostosFijos();
   if (name === 'cobros') { setFechas('cob-desde','cob-hasta'); }
   if (name === 'precios') cargarPrecios();
@@ -4244,6 +4246,42 @@ function copiarResumenDash() {
 // =====================
 // CAJA SEMANAL
 // =====================
+// Dia siguiente a una fecha AAAA-MM-DD (getters locales, no toISOString)
+function diaSiguiente(f) {
+  const d = new Date(f + 'T12:00:00');
+  d.setDate(d.getDate() + 1);
+  const p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+
+// Fecha en que termino el ultimo cierre guardado. La columna A del historial es
+// la etiqueta "AAAA-MM-DD al AAAA-MM-DD".
+function finDeCierre(fila) {
+  const m = String((fila && fila[0]) || '').match(/(\d{4}-\d{2}-\d{2})\D+(\d{4}-\d{2}-\d{2})/);
+  return m ? m[2] : null;
+}
+
+async function ultimoCierreHasta() {
+  try {
+    const data = await sheetsGet('Caja_cierres!A:I');
+    const filas = data.slice(1).filter(r => r[0]);
+    return filas.length ? finDeCierre(filas[filas.length - 1]) : null;
+  } catch(e) { return null; }
+}
+
+// La caja se abre en la situacion de HOY: desde el dia siguiente al ultimo
+// cierre guardado (que es el saldo del que parte la cuenta) hasta hoy. Asi los
+// cobros y egresos que se suman son exactamente los que faltan contar.
+async function cajaHoy() {
+  const fin = await ultimoCierreHasta();
+  const d = document.getElementById('caja-desde');
+  const h = document.getElementById('caja-hasta');
+  if (!d || !h) return;
+  d.value = fin ? diaSiguiente(fin) : inicioSemana();
+  h.value = hoy();
+  await cargarCaja();
+}
+
 async function cargarCaja() {
   const desde = document.getElementById('caja-desde').value;
   const hasta = document.getElementById('caja-hasta').value;
@@ -4352,6 +4390,21 @@ async function cargarCierreCaja(desde, hasta, cashCobrado, transfeCobrado, egCas
 
     cajaTeoricoCash = antCash + cashCobrado - egCash;
     cajaTeoricoTransfe = antTransfe + transfeCobrado - egTransfe;
+
+    // Los saldos teoricos SIEMPRE parten del ultimo cierre guardado. Si el rango
+    // elegido no arranca justo despues de ese cierre, la cuenta de abajo no
+    // cierra: sirve como reporte del periodo, no para cerrar la caja.
+    const aviso = document.getElementById('caj-aviso-rango');
+    if (aviso) {
+      const fin = filas.length ? finDeCierre(filas[filas.length - 1]) : null;
+      const desalineado = fin && desde && desde !== diaSiguiente(fin);
+      aviso.style.display = desalineado ? 'block' : 'none';
+      if (desalineado) {
+        aviso.innerHTML = '⚠️ Estás viendo un <strong>reporte del período elegido</strong>. ' +
+          'El último cierre terminó el ' + fin + ', así que los saldos teóricos de acá abajo ' +
+          'no corresponden a este rango. Para cerrar la caja apretá <strong>Hoy</strong>.';
+      }
+    }
 
     document.getElementById('caj-ant-cash').textContent = pesos(antCash);
     document.getElementById('caj-cobros-cash').textContent = pesos(cashCobrado);
@@ -4466,8 +4519,9 @@ async function guardarCierreCaja() {
     document.getElementById('caj-cierre-spinner').style.display = 'none';
     document.getElementById('caj-cierre-success').style.display = 'block';
     setTimeout(() => document.getElementById('caj-cierre-success').style.display = 'none', 3000);
-    // Reload to update historial
-    cargarCaja();
+    // Tras cerrar, la caja se reposiciona sola en el periodo nuevo: desde el dia
+    // siguiente al cierre recien guardado hasta hoy.
+    cajaHoy();
   } catch(e) {
     document.getElementById('caj-cierre-spinner').style.display = 'none';
     document.getElementById('caj-cierre-error').textContent = 'Error: ' + e.message;
@@ -6746,7 +6800,8 @@ function iniciarApp() {
   document.getElementById('e-fecha').value = hoy();
   document.getElementById('eg-fecha').value = hoy();
   setFechas('dash-desde','dash-hasta');
-  setFechas('caja-desde','caja-hasta');
+  // La caja se posiciona sola al entrar a la pestaña (cajaHoy), no hace falta
+  // dejarla en la semana calendario.
 
   // Sincroniza precios desde el Sheet para que el formulario de ventas
   // use siempre los precios vigentes (no los del código).
