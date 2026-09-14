@@ -2089,6 +2089,11 @@
               <div class="card-title" style="margin:0">Cartera de clientes</div>
               <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
                 <select id="pv-anio" onchange="renderPuntosVenta()" style="border:1px solid var(--borde);border-radius:8px;padding:5px 10px;font-size:13px;background:white"></select>
+                <div class="seg-metric" id="pv-canal" style="margin:0">
+                  <button class="on" onclick="pvCanalSet('todos',this)">Todos</button>
+                  <button onclick="pvCanalSet('umepay',this)">Umepay</button>
+                  <button onclick="pvCanalSet('afuera',this)">Fuera de Umepay</button>
+                </div>
                 <div class="seg-metric" id="pv-filtro" style="margin:0">
                   <button class="on" onclick="pvFiltroSet('todos',this)">Todos</button>
                   <button onclick="pvFiltroSet('activo',this)">Activos</button>
@@ -2111,16 +2116,22 @@
           </div>
 
           <div class="card" id="pv-detalle-card" style="display:none">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:0.3rem">
-              <div class="card-title" style="margin:0" id="pv-det-titulo">Detalle</div>
-              <button class="btn-gris" onclick="pvCerrarDetalle()" style="font-size:12px;padding:4px 12px">Cerrar</button>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:0.5rem">
+              <div class="card-title" style="margin:0">🧴 Qué le vendo a <span id="pv-det-titulo"></span></div>
+              <select id="pv-det-sel" onchange="pvElegirCliente(this.value)" style="border:1px solid var(--borde);border-radius:8px;padding:5px 10px;font-size:13px;background:white"></select>
             </div>
-            <div id="pv-det-resumen" style="font-size:12.5px;color:var(--texto-muted);margin-bottom:0.9rem;line-height:1.7"></div>
-            <div class="table-wrapper">
-              <table>
-                <thead><tr><th>Producto</th><th>Unidades</th><th>u/mes</th><th>Precio promedio</th><th>Total</th></tr></thead>
-                <tbody id="pv-det-body"></tbody>
-              </table>
+            <div id="pv-det-resumen" style="font-size:12.5px;color:var(--texto-muted);margin-bottom:1rem;line-height:1.7"></div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(295px,1fr));gap:1.2rem 1.6rem;align-items:start">
+              <div>
+                <div style="font-size:12px;color:var(--texto-muted);margin-bottom:0.7rem">Unidades por producto</div>
+                <div id="pv-det-torta"></div>
+              </div>
+              <div class="table-wrapper">
+                <table>
+                  <thead><tr><th>Producto</th><th>Unidades</th><th>u/mes</th><th>Precio promedio</th><th>Total</th></tr></thead>
+                  <tbody id="pv-det-body"></tbody>
+                </table>
+              </div>
             </div>
           </div>
 
@@ -2958,27 +2969,63 @@ const VOLUMEN_PRODUCTO = {
   'Chucrut':       { kg: 0.5 },    // estimado
 };
 
-// Suma litros y kilos de una lista de ventas ya parseadas ({prod, cant})
-function volumenDe(rows) {
-  let litros = 0, kg = 0;
+// Los 9 productos son en realidad 5 cosas distintas: el litro y el medio litro
+// de cada una son el mismo producto en otro envase. Para decir "produje tantos
+// litros de suico" hay que sumarlos juntos y separados del resto.
+const FAMILIA_PRODUCTO = {
+  '1/2l Suico':    'Suico',
+  '1l Suico':      'Suico',
+  '1/2l Hibiscus': 'Hibiscus',
+  '1l Hibiscus':   'Hibiscus',
+  '1/2l Leche':    'Yogur de leche',
+  '1l Leche':      'Yogur de leche',
+  'Kesir':         'Kesir',
+  'Kesir petit':   'Kesir',
+  'Chucrut':       'Chucrut',
+};
+const FAMILIAS = ['Suico', 'Hibiscus', 'Yogur de leche', 'Kesir', 'Chucrut'];
+
+// Un color por familia, y el medio litro en el mismo tono pero mas claro, para
+// que cualquier grafico por producto se lea de una.
+const COLOR_PRODUCTO = {
+  '1l Suico':      '#1D9E75',
+  '1/2l Suico':    '#7CC9AC',
+  '1l Hibiscus':   '#A32D2D',
+  '1/2l Hibiscus': '#CF7B7B',
+  '1l Leche':      '#185FA5',
+  '1/2l Leche':    '#77A6D1',
+  'Kesir':         '#D85A30',
+  'Kesir petit':   '#EBA085',
+  'Chucrut':       '#BA7517',
+};
+
+// Cuanto producto salio, abierto por familia:
+// [{ familia:'Suico', cant:84, unidad:'L' }, ...] en orden fijo, sin los ceros
+function volumenPorFamilia(rows) {
+  const acc = {};
   (rows||[]).forEach(v => {
     const t = VOLUMEN_PRODUCTO[v.prod];
-    if (!t) return;
-    litros += (t.litros || 0) * (v.cant || 0);
-    kg     += (t.kg     || 0) * (v.cant || 0);
+    const fam = FAMILIA_PRODUCTO[v.prod];
+    if (!t || !fam) return;
+    if (!acc[fam]) acc[fam] = { familia: fam, cant: 0, unidad: t.kg ? 'kg' : 'L' };
+    acc[fam].cant += ((t.litros || 0) + (t.kg || 0)) * (v.cant || 0);
   });
-  return { litros, kg };
+  return FAMILIAS.filter(f => acc[f] && acc[f].cant).map(f => acc[f]);
 }
 
-// "312 u · 214 L · 18,5 kg" (saltea lo que da cero)
+// Total de unidades sueltas (frascos y botellas)
+function unidadesDe(rows) {
+  return (rows||[]).reduce((a, v) => a + (v.cant || 0), 0);
+}
+
+// "Suico 84 L · Hibiscus 12 L · Kesir 7,5 kg"
 function volumenTexto(rows) {
-  const { litros, kg } = volumenDe(rows);
-  const u = (rows||[]).reduce((a, v) => a + (v.cant || 0), 0);
-  const num = (n, d) => n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: d });
-  const partes = [num(u, 0) + ' unidades'];
-  if (litros) partes.push(num(litros, 1) + ' L');
-  if (kg)     partes.push(num(kg, 2) + ' kg');
-  return partes.join('  ·  ');
+  const fams = volumenPorFamilia(rows);
+  if (!fams.length) return '';
+  return fams.map(f =>
+    f.familia + ' ' + f.cant.toLocaleString('es-AR', { maximumFractionDigits: f.unidad === 'kg' ? 2 : 1 })
+    + ' ' + f.unidad
+  ).join('  ·  ');
 }
 
 // =====================
@@ -8037,12 +8084,21 @@ function renderProdMes() {
   const items = Object.keys(acc).map(k => ({ label: k, value: acc[k] })).sort((a,b) => b.value - a.value);
   barsHoriz('cmp-prodmes', items, v => Math.round(v).toLocaleString('es-AR') + ' u');
 
-  // Abajo del grafico, lo mismo pero en litros y kilos: es el numero de produccion
+  // Abajo del grafico, lo mismo pero en litros y kilos y abierto por familia:
+  // es el numero de produccion del mes
   const rows = (cmpVentas||[]).filter(v => v.mes === mes);
   const el = document.getElementById('cmp-prodmes-vol');
-  if (el) el.innerHTML = rows.length
-    ? '<span style="color:var(--texto-muted)">Salieron</span> <strong>' + volumenTexto(rows) + '</strong>'
-    : '';
+  if (!el) return;
+  if (!rows.length) { el.innerHTML = ''; return; }
+  const chips = volumenPorFamilia(rows).map(f =>
+    '<span style="display:inline-flex;align-items:baseline;gap:5px;background:var(--gris-claro);border-radius:7px;padding:3px 9px">'
+    + '<span style="color:var(--texto-muted);font-size:11.5px">' + f.familia + '</span>'
+    + '<strong style="white-space:nowrap">' + f.cant.toLocaleString('es-AR', { maximumFractionDigits: f.unidad === 'kg' ? 2 : 1 })
+    + ' ' + f.unidad + '</strong></span>'
+  ).join(' ');
+  el.innerHTML = '<div style="color:var(--texto-muted);margin-bottom:6px">Salieron <strong style="color:var(--texto)">'
+    + Math.round(unidadesDe(rows)).toLocaleString('es-AR') + ' unidades</strong> en total</div>'
+    + '<div style="display:flex;gap:6px;flex-wrap:wrap">' + chips + '</div>';
 }
 
 // --- Torta de ventas por canal (mensual o anual) ---
@@ -8076,20 +8132,25 @@ function renderTortaCanal() {
   dibujarTorta('cmp-torta', entries);
 }
 
-function dibujarTorta(containerId, entries) {
+// opts.fmt: como se escribe cada valor en la leyenda (por defecto, el del modulo
+// Comparar). opts.color: funcion label -> color, para que cada producto tenga
+// siempre el mismo. Los que ya la llamaban con 2 argumentos siguen igual.
+function dibujarTorta(containerId, entries, opts) {
   const el = document.getElementById(containerId);
   if (!el) return;
+  const fmt = (opts && opts.fmt) || cmpFmtCorto;
   const total = entries.reduce((s,e) => s + e.value, 0);
   if (!total) { el.innerHTML = '<div style="font-size:13px;color:var(--texto-muted)">Sin datos en este período.</div>'; return; }
-  const colores = ['var(--verde)','var(--azul)','var(--naranja)','var(--amarillo)','var(--rojo)'];
+  const base = ['var(--verde)','var(--azul)','var(--naranja)','var(--amarillo)','var(--rojo)'];
+  const colorDe = (e,i) => (opts && opts.color && opts.color(e.label)) || base[i % base.length];
   let acc = 0; const segs = [];
-  entries.forEach((e,i) => { const from = acc/total*360; acc += e.value; const to = acc/total*360; segs.push(`${colores[i%colores.length]} ${from}deg ${to}deg`); });
+  entries.forEach((e,i) => { const from = acc/total*360; acc += e.value; const to = acc/total*360; segs.push(`${colorDe(e,i)} ${from}deg ${to}deg`); });
   const leyenda = entries.map((e,i) => {
     const pct = Math.round(e.value/total*100);
     return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
-      <span style="width:12px;height:12px;border-radius:3px;background:${colores[i%colores.length]};flex:0 0 12px"></span>
+      <span style="width:12px;height:12px;border-radius:3px;background:${colorDe(e,i)};flex:0 0 12px"></span>
       <span style="font-size:13.5px;flex:1">${e.label}</span>
-      <span style="font-size:13px;font-weight:700;color:var(--verde-oscuro);white-space:nowrap">${pct}% · ${cmpFmtCorto(e.value)}</span>
+      <span style="font-size:13px;font-weight:700;color:var(--verde-oscuro);white-space:nowrap">${pct}% · ${fmt(e.value)}</span>
     </div>`;
   }).join('');
   el.innerHTML = `<div style="display:flex;align-items:center;gap:1.3rem;flex-wrap:wrap;justify-content:center">
@@ -8153,6 +8214,8 @@ const PV_CANALES_FUERA = ['Regalo'];
 
 let pvVentas = null;      // filas de Ventas parseadas
 let pvFiltro = 'todos';
+let pvCanal = 'todos';    // todos | umepay | afuera
+let pvOpciones = [];      // los locales del selector de detalle, para el onchange
 let pvAbierto = null;     // local con el detalle desplegado
 let pvFilas = [];         // lo que se esta mostrando en la tabla, para el onclick
 
@@ -8243,12 +8306,29 @@ function pvFiltroSet(f, btn) {
   renderPuntosVenta();
 }
 
+// Umepay o fuera de Umepay. Filtra todo (tarjetas, tabla y detalle) para poder
+// mirar los dos negocios por separado.
+function pvCanalSet(c, btn) {
+  pvCanal = c;
+  document.querySelectorAll('#pv-canal button').forEach(b => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  pvAbierto = null;   // el local que estaba abierto puede no estar en este canal
+  renderPuntosVenta();
+}
+
+function pvVentasDelCanal() {
+  if (pvCanal === 'umepay') return (pvVentas||[]).filter(v => v.canal === 'Umepay');
+  if (pvCanal === 'afuera') return (pvVentas||[]).filter(v => v.canal !== 'Umepay');
+  return pvVentas || [];
+}
+
 function renderPuntosVenta() {
   if (!pvVentas) return;
   const selA = document.getElementById('pv-anio');
   const anio = selA ? selA.value : '';
-  const delPeriodo = anio ? pvVentas.filter(v => (v.mes||'').slice(0,4) === anio) : pvVentas;
-  const fichas = Object.values(pvFichas(delPeriodo, pvVentas));
+  const base = pvVentasDelCanal();
+  const delPeriodo = anio ? base.filter(v => (v.mes||'').slice(0,4) === anio) : base;
+  const fichas = Object.values(pvFichas(delPeriodo, base));
 
   fichas.forEach(o => {
     o.dias = pvDias(o.ultima);
@@ -8296,7 +8376,7 @@ function renderPuntosVenta() {
     + '</tr>').join('');
   if (vacio) vacio.style.display = pvFilas.length ? 'none' : 'block';
 
-  pvRenderDetalle(fichas.find(o => o.local === pvAbierto));
+  pvRenderDetalle(fichas);
 }
 
 function pvAbrirDetalle(i) {
@@ -8309,13 +8389,32 @@ function pvAbrirDetalle(i) {
   }
 }
 
-function pvCerrarDetalle() { pvAbierto = null; renderPuntosVenta(); }
+// El selector guarda el indice y no el nombre, asi no rompe con locales que
+// tengan comillas o acentos raros en el nombre
+function pvElegirCliente(i) {
+  const o = pvOpciones[+i];
+  if (!o) return;
+  pvAbierto = o.local;
+  renderPuntosVenta();
+}
 
-function pvRenderDetalle(o) {
+function pvRenderDetalle(fichas) {
   const card = document.getElementById('pv-detalle-card');
   if (!card) return;
-  if (!o) { card.style.display = 'none'; return; }
+  const conDatos = (fichas||[]).filter(f => f.enPeriodo).sort((a, b) => b.total - a.total);
+  if (!conDatos.length) { card.style.display = 'none'; return; }
+
+  // Si todavia no eligio a nadie, se abre con el que mas te compra
+  pvOpciones = conDatos;
+  let o = conDatos.find(f => f.local === pvAbierto);
+  if (!o) { o = conDatos[0]; pvAbierto = o.local; }
   card.style.display = 'block';
+
+  const sel = document.getElementById('pv-det-sel');
+  if (sel) {
+    sel.innerHTML = conDatos.map((f, i) => '<option value="' + i + '">' + f.local + '</option>').join('');
+    sel.value = String(conDatos.indexOf(o));
+  }
 
   const tit = document.getElementById('pv-det-titulo');
   if (tit) tit.textContent = o.local;
@@ -8326,7 +8425,9 @@ function pvRenderDetalle(o) {
       'Primera compra el <strong>' + pvFecha(o.primera) + '</strong>'
     + ' \u00b7 \u00faltima el <strong>' + pvFecha(o.ultima) + '</strong> (hace ' + o.dias + ' d\u00edas)'
     + '<br>Te compr\u00f3 en <strong>' + o.nMeses + (o.nMeses === 1 ? ' mes' : ' meses') + '</strong>'
-    + ' del per\u00edodo: <strong>' + vol + '</strong> por <strong>' + pesos(o.total) + '</strong>';
+    + ' del per\u00edodo: <strong>' + Math.round(o.unidades).toLocaleString('es-AR') + ' unidades</strong>'
+    + (vol ? ' (' + vol + ')' : '')
+    + ' por <strong>' + pesos(o.total) + '</strong>';
 
   const body = document.getElementById('pv-det-body');
   if (!body) return;
@@ -8338,12 +8439,19 @@ function pvRenderDetalle(o) {
     .sort((a, b) => b.total - a.total);
   body.innerHTML = filas.map(f =>
       '<tr>'
-    + '<td style="font-weight:500">' + f.prod + '</td>'
+    + '<td style="font-weight:500"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;background:'
+      + (COLOR_PRODUCTO[f.prod] || 'var(--gris)') + '"></span>' + f.prod + '</td>'
     + '<td>' + Math.round(f.cant).toLocaleString('es-AR') + '</td>'
     + '<td>' + (f.cant / o.nMeses).toLocaleString('es-AR', { maximumFractionDigits:1 }) + '</td>'
     + '<td>' + pesos(f.prom) + '</td>'
     + '<td style="font-weight:600">' + pesos(f.total) + '</td>'
     + '</tr>').join('');
+
+  // Torta de unidades por producto, con el color fijo de cada uno
+  dibujarTorta('pv-det-torta', filas.map(f => ({ label: f.prod, value: f.cant })), {
+    fmt: v => Math.round(v).toLocaleString('es-AR') + ' u',
+    color: l => COLOR_PRODUCTO[l]
+  });
 }
 
 // =====================
