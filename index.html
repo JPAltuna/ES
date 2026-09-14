@@ -1879,6 +1879,7 @@
 
         <div class="subtabs an-sec-tabs">
           <button class="subtab" onclick="analisisSec('ventas')">📈 Ventas</button>
+          <button class="subtab" onclick="analisisSec('clientes')">🏪 Puntos de venta</button>
           <button class="subtab" onclick="analisisSec('insumos')">🥛 Insumos</button>
           <button class="subtab" onclick="analisisSec('egresos')">💸 Egresos</button>
           <button class="subtab on" onclick="analisisSec('rentabilidad')">💰 Rentabilidad</button>
@@ -1979,6 +1980,7 @@
         </div>
         <div class="subtabs an-sec-tabs">
           <button class="subtab" onclick="analisisSec('ventas')">📈 Ventas</button>
+          <button class="subtab" onclick="analisisSec('clientes')">🏪 Puntos de venta</button>
           <button class="subtab on" onclick="analisisSec('insumos')">🥛 Insumos</button>
           <button class="subtab" onclick="analisisSec('egresos')">💸 Egresos</button>
           <button class="subtab" onclick="analisisSec('rentabilidad')">💰 Rentabilidad</button>
@@ -2026,6 +2028,7 @@
         </div>
         <div class="subtabs an-sec-tabs">
           <button class="subtab" onclick="analisisSec('ventas')">📈 Ventas</button>
+          <button class="subtab" onclick="analisisSec('clientes')">🏪 Puntos de venta</button>
           <button class="subtab" onclick="analisisSec('insumos')">🥛 Insumos</button>
           <button class="subtab" onclick="analisisSec('egresos')">💸 Egresos</button>
           <button class="subtab" onclick="analisisSec('rentabilidad')">💰 Rentabilidad</button>
@@ -2040,6 +2043,90 @@
         </div>
       </div>
 
+      <!-- ANÁLISIS: PUNTOS DE VENTA (cartera de clientes) -->
+      <div class="page" id="page-an-clientes">
+        <div class="page-header">
+          <div class="page-title">Análisis</div>
+          <div class="page-desc">Puntos de venta: quién te compra, cuánto y hace cuánto que no</div>
+        </div>
+        <div class="subtabs an-sec-tabs">
+          <button class="subtab" onclick="analisisSec('ventas')">📈 Ventas</button>
+          <button class="subtab on" onclick="analisisSec('clientes')">🏪 Puntos de venta</button>
+          <button class="subtab" onclick="analisisSec('insumos')">🥛 Insumos</button>
+          <button class="subtab" onclick="analisisSec('egresos')">💸 Egresos</button>
+          <button class="subtab" onclick="analisisSec('rentabilidad')">💰 Rentabilidad</button>
+          <button class="subtab" onclick="analisisSec('stock')">📦 Stock</button>
+        </div>
+
+        <div id="pv-loading" class="loading" style="display:none"><div class="spinner"></div> Cargando...</div>
+        <div id="pv-content" style="display:none">
+
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-label">Activos</div>
+              <div class="metric-value verde" id="pv-m-activos">—</div>
+              <div class="metric-sub" id="pv-m-activos-sub"></div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Para reflotar</div>
+              <div class="metric-value amarillo" id="pv-m-reflotar">—</div>
+              <div class="metric-sub" id="pv-m-reflotar-sub"></div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Perdidos</div>
+              <div class="metric-value naranja" id="pv-m-perdidos">—</div>
+              <div class="metric-sub" id="pv-m-perdidos-sub"></div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Compra promedio</div>
+              <div class="metric-value" id="pv-m-promedio">—</div>
+              <div class="metric-sub">por punto activo, por mes</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:0.8rem">
+              <div class="card-title" style="margin:0">Cartera de clientes</div>
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                <select id="pv-anio" onchange="renderPuntosVenta()" style="border:1px solid var(--borde);border-radius:8px;padding:5px 10px;font-size:13px;background:white"></select>
+                <div class="seg-metric" id="pv-filtro" style="margin:0">
+                  <button class="on" onclick="pvFiltroSet('todos',this)">Todos</button>
+                  <button onclick="pvFiltroSet('activo',this)">Activos</button>
+                  <button onclick="pvFiltroSet('reflotar',this)">Reflotar</button>
+                  <button onclick="pvFiltroSet('perdido',this)">Perdidos</button>
+                </div>
+              </div>
+            </div>
+            <div style="font-size:12px;color:var(--texto-muted);margin-bottom:0.8rem">
+              Tocá cualquier fila para ver qué le vendés a ese punto de venta.
+              El promedio por mes se calcula sobre los meses en que efectivamente te compró.
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Local</th><th>Canal</th><th>Alta</th><th>Última compra</th><th>Estado</th><th>u/mes</th><th>$/mes</th><th>Total</th></tr></thead>
+                <tbody id="pv-body"></tbody>
+              </table>
+            </div>
+            <div id="pv-vacio" style="display:none;font-size:13px;color:var(--texto-muted);padding:0.8rem 0">Ningún punto de venta en este filtro.</div>
+          </div>
+
+          <div class="card" id="pv-detalle-card" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:0.3rem">
+              <div class="card-title" style="margin:0" id="pv-det-titulo">Detalle</div>
+              <button class="btn-gris" onclick="pvCerrarDetalle()" style="font-size:12px;padding:4px 12px">Cerrar</button>
+            </div>
+            <div id="pv-det-resumen" style="font-size:12.5px;color:var(--texto-muted);margin-bottom:0.9rem;line-height:1.7"></div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Producto</th><th>Unidades</th><th>u/mes</th><th>Precio promedio</th><th>Total</th></tr></thead>
+                <tbody id="pv-det-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
       <!-- ANÁLISIS: EGRESOS (gastos por mes) -->
       <div class="page" id="page-an-egresos">
         <div class="page-header">
@@ -2048,6 +2135,7 @@
         </div>
         <div class="subtabs an-sec-tabs">
           <button class="subtab" onclick="analisisSec('ventas')">📈 Ventas</button>
+          <button class="subtab" onclick="analisisSec('clientes')">🏪 Puntos de venta</button>
           <button class="subtab" onclick="analisisSec('insumos')">🥛 Insumos</button>
           <button class="subtab on" onclick="analisisSec('egresos')">💸 Egresos</button>
           <button class="subtab" onclick="analisisSec('rentabilidad')">💰 Rentabilidad</button>
@@ -2409,6 +2497,7 @@
 
         <div class="subtabs an-sec-tabs">
           <button class="subtab on" onclick="analisisSec('ventas')">📈 Ventas</button>
+          <button class="subtab" onclick="analisisSec('clientes')">🏪 Puntos de venta</button>
           <button class="subtab" onclick="analisisSec('insumos')">🥛 Insumos</button>
           <button class="subtab" onclick="analisisSec('egresos')">💸 Egresos</button>
           <button class="subtab" onclick="analisisSec('rentabilidad')">💰 Rentabilidad</button>
@@ -2434,8 +2523,8 @@
               <div class="card-title">📈 Mes a mes <span id="cmp-mes-prov" style="display:none;font-size:10px;color:var(--amarillo);font-weight:600">· mes en curso provisional</span></div>
 
               <div class="seg-metric" id="cmp-vista" style="margin:0.5rem 0 1rem;flex-wrap:wrap">
-                <button class="on" onclick="cmpVistaSet('volumen',this)">Cuánto vendí</button>
-                <button onclick="cmpVistaSet('ganancia',this)">Cuánto me quedó</button>
+                <button class="on" onclick="cmpVistaSet('volumen',this)">Unidades vendidas</button>
+                <button onclick="cmpVistaSet('ganancia',this)">Ganancias</button>
               </div>
 
               <!-- Promedio mensual de la vista activa -->
@@ -2482,6 +2571,7 @@
                     <select id="cmp-prodmes-sel" onchange="renderProdMes()" style="border:1px solid var(--borde);border-radius:8px;padding:5px 10px;font-size:13px;background:white"></select>
                   </div>
                   <div id="cmp-prodmes"></div>
+                  <div id="cmp-prodmes-vol" style="font-size:12.5px;margin-top:0.6rem;padding-top:0.6rem;border-top:1px solid var(--borde)"></div>
                 </div>
 
                 <div>
@@ -2852,6 +2942,45 @@ const COSTO_ENVASE = {
 
 const PRODUCTOS_VALIDOS = Object.keys(PRECIOS);
 
+// Cuanto producto sale en cada unidad vendida, para poder decir "este mes saque
+// tantos litros" y no solo "tantos frascos". Los liquidos son el tamano del
+// envase; los solidos (Kesir y Chucrut) van en kilos porque se venden por peso.
+// OJO: los tres pesos de abajo son estimados mios, Julia los tiene que confirmar. (14-sep-2026)
+const VOLUMEN_PRODUCTO = {
+  '1/2l Suico':    { litros: 0.5 },
+  '1l Suico':      { litros: 1 },
+  '1/2l Leche':    { litros: 0.5 },
+  '1l Leche':      { litros: 1 },
+  '1/2l Hibiscus': { litros: 0.5 },
+  '1l Hibiscus':   { litros: 1 },
+  'Kesir':         { kg: 0.5 },    // estimado
+  'Kesir petit':   { kg: 0.25 },   // estimado
+  'Chucrut':       { kg: 0.5 },    // estimado
+};
+
+// Suma litros y kilos de una lista de ventas ya parseadas ({prod, cant})
+function volumenDe(rows) {
+  let litros = 0, kg = 0;
+  (rows||[]).forEach(v => {
+    const t = VOLUMEN_PRODUCTO[v.prod];
+    if (!t) return;
+    litros += (t.litros || 0) * (v.cant || 0);
+    kg     += (t.kg     || 0) * (v.cant || 0);
+  });
+  return { litros, kg };
+}
+
+// "312 u · 214 L · 18,5 kg" (saltea lo que da cero)
+function volumenTexto(rows) {
+  const { litros, kg } = volumenDe(rows);
+  const u = (rows||[]).reduce((a, v) => a + (v.cant || 0), 0);
+  const num = (n, d) => n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: d });
+  const partes = [num(u, 0) + ' unidades'];
+  if (litros) partes.push(num(litros, 1) + ' L');
+  if (kg)     partes.push(num(kg, 2) + ' kg');
+  return partes.join('  ·  ');
+}
+
 // =====================
 // COSTOS EN LA PLANILLA (pestaña "Costos")
 // =====================
@@ -3172,7 +3301,7 @@ function showPage(name, btn) {
 
   // Las 4 solapas de Análisis (Ventas/Insumos/Rentabilidad/Stock) son páginas
   // distintas pero comparten la misma entrada de menú → la dejamos marcada.
-  const SEC_ANALISIS = ['analisis','costos','an-insumos','an-stock','an-egresos'];
+  const SEC_ANALISIS = ['analisis','costos','an-insumos','an-stock','an-egresos','an-clientes'];
   if (SEC_ANALISIS.includes(name)) {
     const na = document.getElementById('nav-analisis'); if (na) na.classList.add('active');
   }
@@ -3188,6 +3317,7 @@ function showPage(name, btn) {
   if (name === 'precios') cargarPrecios();
   if (name === 'insumos') { cargarInsumos(); insTab('stock', document.querySelector('#ins-subtabs .subtab')); }
   if (name === 'an-insumos') cargarAnalisisInsumos();
+  if (name === 'an-clientes') cargarPuntosVenta();
   if (name === 'an-egresos') cargarAnalisisEgresos();
   if (name === 'cierre') { document.getElementById('cierre-mes').value = getMes(); cargarHistorialCierres(); }
   if (name === 'reporte-mensual') { document.getElementById('repmes-mes').value = getMes(); }
@@ -3201,7 +3331,7 @@ function showPage(name, btn) {
 // Cambia entre las solapas de la sección Análisis (cada una es su propia página,
 // pero comparten la barra de solapas de arriba para que se sienta una sola).
 function analisisSec(tab) {
-  const map = { ventas:'analisis', insumos:'an-insumos', egresos:'an-egresos', rentabilidad:'costos', stock:'an-stock' };
+  const map = { ventas:'analisis', clientes:'an-clientes', insumos:'an-insumos', egresos:'an-egresos', rentabilidad:'costos', stock:'an-stock' };
   showPage(map[tab] || 'analisis', null);
   window.scrollTo(0, 0);
 }
@@ -7514,19 +7644,7 @@ async function cargarComparar() {
     await cargarFijosPorMes();
     cmpVentas = ventasData.slice(1)
       .filter(r => r[0] && PRODUCTOS_VALIDOS.includes((r[4]||'').trim()))
-      .map(r => {
-        const fecha = normFecha(r[0]);
-        const prod = (r[4]||'').trim();
-        const cant = parseFloat(r[5]) || 0;
-        let total = parseFloat(r[7]); if (isNaN(total)) total = (parseFloat(r[6])||0) * cant;
-        const costo = getCostoParaFecha(prod, fecha) * cant;
-        return {
-          fecha, mes: (fecha||'').slice(0,7),
-          canal: (r[2]||'').trim() || '(s/ canal)',
-          local: (r[3]||'').trim() || '(s/ local)',
-          prod, cant, total, ganancia: total - costo
-        };
-      });
+      .map(parsearFilaVenta);
     cmpCierres = (cierresData||[]).slice(1);
     renderComparar();
     load.style.display = 'none'; cont.style.display = 'block';
@@ -7918,6 +8036,13 @@ function renderProdMes() {
   (cmpVentas||[]).filter(v => v.mes === mes).forEach(v => { acc[v.prod] = (acc[v.prod]||0) + v.cant; });
   const items = Object.keys(acc).map(k => ({ label: k, value: acc[k] })).sort((a,b) => b.value - a.value);
   barsHoriz('cmp-prodmes', items, v => Math.round(v).toLocaleString('es-AR') + ' u');
+
+  // Abajo del grafico, lo mismo pero en litros y kilos: es el numero de produccion
+  const rows = (cmpVentas||[]).filter(v => v.mes === mes);
+  const el = document.getElementById('cmp-prodmes-vol');
+  if (el) el.innerHTML = rows.length
+    ? '<span style="color:var(--texto-muted)">Salieron</span> <strong>' + volumenTexto(rows) + '</strong>'
+    : '';
 }
 
 // --- Torta de ventas por canal (mensual o anual) ---
@@ -7995,6 +8120,230 @@ function agruparCmp(rows, keyFn, top) {
   items.sort((a,b) => Math.abs(b.value) - Math.abs(a.value));
   if (top) items = items.slice(0, top);
   return items;
+}
+
+// Una fila cruda de Ventas!A:K convertida en lo que usan los analisis.
+// La comparten "Comparar" y "Puntos de venta" para que los numeros no se
+// separen nunca entre una pantalla y la otra.
+function parsearFilaVenta(r) {
+  const fecha = normFecha(r[0]);
+  const prod = (r[4]||'').trim();
+  const cant = parseFloat(r[5]) || 0;
+  let total = parseFloat(r[7]); if (isNaN(total)) total = (parseFloat(r[6])||0) * cant;
+  const costo = getCostoParaFecha(prod, fecha) * cant;
+  return {
+    fecha, mes: (fecha||'').slice(0,7),
+    canal: (r[2]||'').trim() || '(s/ canal)',
+    local: (r[3]||'').trim() || '(s/ local)',
+    prod, cant, total, ganancia: total - costo
+  };
+}
+
+// =====================
+// PUNTOS DE VENTA (cartera de clientes)
+// =====================
+// Contesta tres cosas: quien me compra, cuanto, y hace cuanto que no aparece.
+// El kefir es compra frecuente (semanal o quincenal), asi que un local que hace
+// mas de mes y medio que no pide ya se enfrio. (14-sep-2026)
+const PV_DIAS_ACTIVO   = 45;   // hasta 45 dias sin comprar: sigue activo
+const PV_DIAS_REFLOTAR = 180;  // de 45 a 180: se puede reflotar. Mas que eso: perdido
+
+// Los regalos no son clientes, no entran a la cartera
+const PV_CANALES_FUERA = ['Regalo'];
+
+let pvVentas = null;      // filas de Ventas parseadas
+let pvFiltro = 'todos';
+let pvAbierto = null;     // local con el detalle desplegado
+let pvFilas = [];         // lo que se esta mostrando en la tabla, para el onclick
+
+async function cargarPuntosVenta() {
+  const load = document.getElementById('pv-loading');
+  const cont = document.getElementById('pv-content');
+  if (!load || !cont) return;
+  load.style.display = 'flex'; cont.style.display = 'none';
+  load.innerHTML = '<div class="spinner"></div> Cargando...';
+  try {
+    const ventasData = await sheetsGet('Ventas!A:K');
+    pvVentas = ventasData.slice(1)
+      .filter(r => r[0] && PRODUCTOS_VALIDOS.includes((r[4]||'').trim()))
+      .map(parsearFilaVenta)
+      .filter(v => v.fecha && !PV_CANALES_FUERA.includes(v.canal))
+      .sort((a, b) => a.fecha.localeCompare(b.fecha));
+    poblarPvAnio();
+    renderPuntosVenta();
+    load.style.display = 'none'; cont.style.display = 'block';
+  } catch(e) {
+    load.innerHTML = '<span style="color:var(--rojo)">No se pudo cargar: ' + e.message + '</span>';
+  }
+}
+
+// Dias desde una fecha hasta hoy
+function pvDias(desde) {
+  if (!desde) return 99999;
+  const a = new Date(desde + 'T12:00:00');
+  const b = new Date(hoy() + 'T12:00:00');
+  return Math.max(0, Math.round((b - a) / 86400000));
+}
+
+function pvEstado(dias) {
+  if (dias <= PV_DIAS_ACTIVO)   return { k:'activo',   txt:'Activo',        badge:'badge-verde' };
+  if (dias <= PV_DIAS_REFLOTAR) return { k:'reflotar', txt:'Para reflotar', badge:'badge-amarillo' };
+  return { k:'perdido', txt:'Perdido', badge:'badge-naranja' };
+}
+
+function pvFecha(f) {
+  if (!f) return '-';
+  const p = f.split('-');
+  return p[2] + '/' + p[1] + '/' + p[0].slice(2);
+}
+
+// Arma una ficha por local. El alta y la ultima compra salen SIEMPRE de todo el
+// historial (si no, al filtrar por año el alta mentiria); los numeros salen de
+// las filas del periodo elegido.
+function pvFichas(delPeriodo, historial) {
+  const f = {};
+  // Las dos listas vienen ordenadas por fecha, asi que el ultimo canal que se
+  // asigna es el de la compra mas reciente
+  (historial||[]).forEach(v => {
+    if (!f[v.local]) f[v.local] = {
+      local: v.local, canal: v.canal, primera: v.fecha, ultima: v.fecha,
+      meses: {}, unidades: 0, total: 0, porProd: {}, enPeriodo: false
+    };
+    const o = f[v.local];
+    if (v.fecha < o.primera) o.primera = v.fecha;
+    if (v.fecha > o.ultima)  o.ultima  = v.fecha;
+    o.canal = v.canal;
+  });
+  (delPeriodo||[]).forEach(v => {
+    const o = f[v.local]; if (!o) return;
+    o.enPeriodo = true;
+    o.meses[v.mes] = true;
+    o.unidades += v.cant;
+    o.total    += v.total;
+    if (!o.porProd[v.prod]) o.porProd[v.prod] = { cant:0, total:0 };
+    o.porProd[v.prod].cant  += v.cant;
+    o.porProd[v.prod].total += v.total;
+  });
+  return f;
+}
+
+function poblarPvAnio() {
+  const sel = document.getElementById('pv-anio');
+  if (!sel) return;
+  const anios = [...new Set((pvVentas||[]).map(v => (v.mes||'').slice(0,4)))].filter(Boolean).sort().reverse();
+  sel.innerHTML = anios.map(a => '<option value="' + a + '">' + a + '</option>').join('')
+                + '<option value="">Todo el historial</option>';
+  if (anios.length) sel.value = anios[0];
+}
+
+function pvFiltroSet(f, btn) {
+  pvFiltro = f;
+  document.querySelectorAll('#pv-filtro button').forEach(b => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  renderPuntosVenta();
+}
+
+function renderPuntosVenta() {
+  if (!pvVentas) return;
+  const selA = document.getElementById('pv-anio');
+  const anio = selA ? selA.value : '';
+  const delPeriodo = anio ? pvVentas.filter(v => (v.mes||'').slice(0,4) === anio) : pvVentas;
+  const fichas = Object.values(pvFichas(delPeriodo, pvVentas));
+
+  fichas.forEach(o => {
+    o.dias = pvDias(o.ultima);
+    o.estado = pvEstado(o.dias);
+    o.nMeses = Math.max(1, Object.keys(o.meses).length);
+    o.uMes = o.unidades / o.nMeses;
+    o.pMes = o.total / o.nMeses;
+  });
+
+  // Las tarjetas de arriba miran el estado de HOY, sin importar el año elegido
+  const cuenta = { activo:0, reflotar:0, perdido:0 };
+  fichas.forEach(o => cuenta[o.estado.k]++);
+  const activos = fichas.filter(o => o.estado.k === 'activo' && o.enPeriodo);
+  const sumPlata = activos.reduce((a, o) => a + o.total, 0);
+  const sumMeses = activos.reduce((a, o) => a + o.nMeses, 0);
+
+  const set = (id, txt) => { const e = document.getElementById(id); if (e) e.textContent = txt; };
+  set('pv-m-activos',  cuenta.activo);
+  set('pv-m-reflotar', cuenta.reflotar);
+  set('pv-m-perdidos', cuenta.perdido);
+  set('pv-m-activos-sub',  'compraron hace ' + PV_DIAS_ACTIVO + ' días o menos');
+  set('pv-m-reflotar-sub', 'sin comprar hace ' + PV_DIAS_ACTIVO + ' a ' + PV_DIAS_REFLOTAR + ' días');
+  set('pv-m-perdidos-sub', 'hace más de ' + PV_DIAS_REFLOTAR + ' días');
+  set('pv-m-promedio', sumMeses ? pesos(sumPlata / sumMeses) : '-');
+
+  // Tabla
+  pvFilas = fichas
+    .filter(o => o.enPeriodo)
+    .filter(o => pvFiltro === 'todos' || o.estado.k === pvFiltro)
+    .sort((a, b) => b.total - a.total);
+
+  const body = document.getElementById('pv-body');
+  const vacio = document.getElementById('pv-vacio');
+  if (body) body.innerHTML = pvFilas.map((o, i) =>
+      '<tr onclick="pvAbrirDetalle(' + i + ')" style="cursor:pointer' + (pvAbierto === o.local ? ';background:var(--gris-claro)' : '') + '">'
+    + '<td style="font-weight:500">' + o.local + '</td>'
+    + '<td><span class="badge badge-gris">' + o.canal + '</span></td>'
+    + '<td style="white-space:nowrap">' + pvFecha(o.primera) + '</td>'
+    + '<td style="white-space:nowrap">' + pvFecha(o.ultima)
+      + ' <span style="color:var(--texto-muted);font-size:11px">' + o.dias + 'd</span></td>'
+    + '<td><span class="badge ' + o.estado.badge + '">' + o.estado.txt + '</span></td>'
+    + '<td>' + o.uMes.toLocaleString('es-AR', { maximumFractionDigits:1 }) + '</td>'
+    + '<td>' + pesos(o.pMes) + '</td>'
+    + '<td style="font-weight:600">' + pesos(o.total) + '</td>'
+    + '</tr>').join('');
+  if (vacio) vacio.style.display = pvFilas.length ? 'none' : 'block';
+
+  pvRenderDetalle(fichas.find(o => o.local === pvAbierto));
+}
+
+function pvAbrirDetalle(i) {
+  const o = pvFilas[i]; if (!o) return;
+  pvAbierto = (pvAbierto === o.local) ? null : o.local;
+  renderPuntosVenta();
+  if (pvAbierto) {
+    const c = document.getElementById('pv-detalle-card');
+    if (c && c.scrollIntoView) c.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }
+}
+
+function pvCerrarDetalle() { pvAbierto = null; renderPuntosVenta(); }
+
+function pvRenderDetalle(o) {
+  const card = document.getElementById('pv-detalle-card');
+  if (!card) return;
+  if (!o) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+
+  const tit = document.getElementById('pv-det-titulo');
+  if (tit) tit.textContent = o.local;
+
+  const vol = volumenTexto(Object.keys(o.porProd).map(prod => ({ prod, cant: o.porProd[prod].cant })));
+  const res = document.getElementById('pv-det-resumen');
+  if (res) res.innerHTML =
+      'Primera compra el <strong>' + pvFecha(o.primera) + '</strong>'
+    + ' \u00b7 \u00faltima el <strong>' + pvFecha(o.ultima) + '</strong> (hace ' + o.dias + ' d\u00edas)'
+    + '<br>Te compr\u00f3 en <strong>' + o.nMeses + (o.nMeses === 1 ? ' mes' : ' meses') + '</strong>'
+    + ' del per\u00edodo: <strong>' + vol + '</strong> por <strong>' + pesos(o.total) + '</strong>';
+
+  const body = document.getElementById('pv-det-body');
+  if (!body) return;
+  const filas = Object.keys(o.porProd)
+    .map(prod => {
+      const d = o.porProd[prod];
+      return { prod, cant: d.cant, total: d.total, prom: d.cant ? d.total / d.cant : 0 };
+    })
+    .sort((a, b) => b.total - a.total);
+  body.innerHTML = filas.map(f =>
+      '<tr>'
+    + '<td style="font-weight:500">' + f.prod + '</td>'
+    + '<td>' + Math.round(f.cant).toLocaleString('es-AR') + '</td>'
+    + '<td>' + (f.cant / o.nMeses).toLocaleString('es-AR', { maximumFractionDigits:1 }) + '</td>'
+    + '<td>' + pesos(f.prom) + '</td>'
+    + '<td style="font-weight:600">' + pesos(f.total) + '</td>'
+    + '</tr>').join('');
 }
 
 // =====================
