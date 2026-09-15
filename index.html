@@ -2956,7 +2956,8 @@ const PRODUCTOS_VALIDOS = Object.keys(PRECIOS);
 // Cuanto producto sale en cada unidad vendida, para poder decir "este mes saque
 // tantos litros" y no solo "tantos frascos". Los liquidos son el tamano del
 // envase; los solidos (Kesir y Chucrut) van en kilos porque se venden por peso.
-// OJO: los tres pesos de abajo son estimados mios, Julia los tiene que confirmar. (14-sep-2026)
+// El pote grande es de 480 g (Julia, 14-sep-2026) y el petit es la mitad exacta
+// del grande, igual que la receta.
 const VOLUMEN_PRODUCTO = {
   '1/2l Suico':    { litros: 0.5 },
   '1l Suico':      { litros: 1 },
@@ -2964,9 +2965,9 @@ const VOLUMEN_PRODUCTO = {
   '1l Leche':      { litros: 1 },
   '1/2l Hibiscus': { litros: 0.5 },
   '1l Hibiscus':   { litros: 1 },
-  'Kesir':         { kg: 0.5 },    // estimado
-  'Kesir petit':   { kg: 0.25 },   // estimado
-  'Chucrut':       { kg: 0.5 },    // estimado
+  'Kesir':         { kg: 0.48 },
+  'Kesir petit':   { kg: 0.24 },
+  'Chucrut':       { kg: 0.48 },
 };
 
 // Los 9 productos son en realidad 5 cosas distintas: el litro y el medio litro
