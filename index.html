@@ -1935,9 +1935,13 @@
             </div>
             <div class="form-group" style="margin:0">
               <label>Ganancia deseada</label>
-              <input type="number" id="obj-ganancia" value="0" min="0" oninput="objCalcular()" />
+              <div style="display:flex;gap:0.4rem">
+                <input type="number" id="obj-ganancia" value="0" min="0" oninput="objCalcular()" style="flex:1;min-width:0" />
+                <button type="button" class="btn-verde" id="obj-ganancia-btn" onclick="objGuardarGanancia()" title="Guardar la ganancia deseada" style="padding:6px 12px;white-space:nowrap">💾</button>
+              </div>
             </div>
           </div>
+          <div id="obj-guardado" style="display:none;font-size:12px;color:var(--verde-oscuro);margin-top:0.5rem"></div>
           <div style="font-size:11px;color:var(--texto-muted);margin-top:0.6rem;line-height:1.6">
             💡 <strong>$2.800 es el peor escenario</strong>: es lo que deja el ½ litro de kéfir de agua, el producto de menor margen.
             Vendiendo otros productos vas a llegar al equilibrio con menos unidades que las que dice acá.<br>
@@ -6204,6 +6208,55 @@ function getConceptosFijos() {
 let objFijosManual = false;
 let objVendidasMes = null;   // unidades ya vendidas en el mes en curso
 
+// Ganancia deseada guardada en este dispositivo: queda fija (con las unidades
+// que daba al guardarla) hasta que se cambie el número y se vuelva a guardar.
+const OBJ_GANANCIA_KEY = 'es_obj_ganancia';
+
+function objLeerGanancia() {
+  try { return JSON.parse(localStorage.getItem(OBJ_GANANCIA_KEY)) || null; }
+  catch(e) { return null; }
+}
+
+function objGuardarGanancia() {
+  const inp = document.getElementById('obj-ganancia');
+  if (!inp) return;
+  const unidades = parseInt((document.getElementById('obj-unidades')||{}).textContent.replace(/\D/g, ''), 10);
+  const g = {
+    ganancia: parseFloat(inp.value) || 0,
+    unidades: isNaN(unidades) ? null : unidades,
+    fecha: new Date().toISOString().slice(0, 10)
+  };
+  try { localStorage.setItem(OBJ_GANANCIA_KEY, JSON.stringify(g)); } catch(e) {}
+  objMostrarGuardado();
+}
+
+// Al cargar: pone la ganancia guardada en el campo
+function objRestaurarGanancia() {
+  const g = objLeerGanancia();
+  const inp = document.getElementById('obj-ganancia');
+  if (g && inp) inp.value = g.ganancia;
+}
+
+// Muestra qué quedó guardado y si el número del campo ya no coincide
+function objMostrarGuardado() {
+  const box = document.getElementById('obj-guardado');
+  const btn = document.getElementById('obj-ganancia-btn');
+  const inp = document.getElementById('obj-ganancia');
+  if (!box || !btn || !inp) return;
+  const g = objLeerGanancia();
+  const actual = parseFloat(inp.value) || 0;
+  const igual = g && g.ganancia === actual;
+  btn.textContent = igual ? '✓' : '💾';
+  btn.title = igual ? 'Ganancia guardada' : 'Guardar la ganancia deseada';
+  if (!g) { box.style.display = 'none'; return; }
+  const [a, m, d] = g.fecha.split('-');
+  box.style.display = 'block';
+  box.style.color = igual ? 'var(--verde-oscuro)' : 'var(--texto-muted)';
+  box.textContent = '✓ Guardado el ' + d + '/' + m + ': ganancia ' + objPesos(g.ganancia) +
+    (g.unidades !== null ? ' → ' + g.unidades.toLocaleString('es-AR') + ' unidades' : '') +
+    (igual ? '' : '   (cambiaste el número: tocá 💾 para guardar el nuevo)');
+}
+
 function objPesos(n) {
   return (n < 0 ? '−' : '') + '$' + Math.abs(Math.round(n)).toLocaleString('es-AR');
 }
@@ -6247,6 +6300,7 @@ function objCalcular() {
   const FIJ    = parseFloat((document.getElementById('obj-fijos')||{}).value) || 0;
   const GAN    = parseFloat((document.getElementById('obj-ganancia')||{}).value) || 0;
 
+  objMostrarGuardado();
   if (!MARGEN || !FIJ) { cont.style.display = 'none'; return; }
   cont.style.display = 'block';
 
@@ -8828,6 +8882,7 @@ function renderStock() {
 
 // Check if config exists
 window.addEventListener('load', () => {
+  objRestaurarGanancia();
   const saved = localStorage.getItem('es_config');
   if (saved) {
     try {
