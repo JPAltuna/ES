@@ -1950,11 +1950,21 @@
           </div>
 
           <div id="obj-res" style="display:none;margin-top:1.25rem">
-            <div style="background:var(--gris-claro);border-radius:12px;padding:1.25rem;text-align:center">
-              <div style="font-size:11px;color:var(--texto-muted);letter-spacing:0.03em">TENÉS QUE VENDER</div>
-              <div style="font-size:46px;font-weight:700;color:var(--verde-oscuro);line-height:1.1" id="obj-unidades">—</div>
-              <div style="font-size:13px;color:var(--texto-muted)">unidades en el mes</div>
-              <div style="font-size:12px;color:var(--texto-muted);margin-top:0.6rem" id="obj-cuenta">—</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0.75rem">
+              <!-- Punto de equilibrio: ganancia 0 -->
+              <div style="background:var(--gris-claro);border-radius:12px;padding:1.25rem;text-align:center">
+                <div style="font-size:11px;color:var(--texto-muted);letter-spacing:0.03em">PARA CUBRIR GASTOS FIJOS</div>
+                <div style="font-size:46px;font-weight:700;color:var(--texto);line-height:1.1" id="obj-equilibrio">—</div>
+                <div style="font-size:13px;color:var(--texto-muted)">unidades en el mes</div>
+                <div style="font-size:12px;color:var(--texto-muted);margin-top:0.6rem" id="obj-equilibrio-cuenta">—</div>
+              </div>
+              <!-- Con la ganancia deseada -->
+              <div style="background:var(--gris-claro);border-radius:12px;padding:1.25rem;text-align:center">
+                <div style="font-size:11px;color:var(--texto-muted);letter-spacing:0.03em" id="obj-unidades-titulo">GANANCIA DESEADA</div>
+                <div style="font-size:46px;font-weight:700;color:var(--verde-oscuro);line-height:1.1" id="obj-unidades">—</div>
+                <div style="font-size:13px;color:var(--texto-muted)" id="obj-unidades-sub">unidades en el mes</div>
+                <div style="font-size:12px;color:var(--texto-muted);margin-top:0.6rem" id="obj-cuenta">—</div>
+              </div>
             </div>
             <div id="obj-semana" style="display:flex;justify-content:space-around;gap:0.75rem;flex-wrap:wrap;margin-top:0.9rem;font-size:13px;color:var(--texto-muted)"></div>
 
@@ -6304,13 +6314,28 @@ function objCalcular() {
   if (!MARGEN || !FIJ) { cont.style.display = 'none'; return; }
   cont.style.display = 'block';
 
+  // Punto de equilibrio: lo minimo para cubrir los fijos (ganancia 0)
+  const equilibrio = Math.ceil(FIJ / MARGEN);
+  document.getElementById('obj-equilibrio').textContent = equilibrio.toLocaleString('es-AR');
+  document.getElementById('obj-equilibrio-cuenta').textContent =
+    objPesos(FIJ) + ' de fijos ÷ ' + objPesos(MARGEN) + ' por unidad';
+
+  // Con la ganancia deseada (si hay una cargada)
   const meta = FIJ + GAN;
   const unidades = Math.ceil(meta / MARGEN);
-
-  document.getElementById('obj-unidades').textContent = unidades.toLocaleString('es-AR');
-  document.getElementById('obj-cuenta').textContent =
-    objPesos(meta) + ' ÷ ' + objPesos(MARGEN) + ' por unidad' +
-    (GAN > 0 ? '   (fijos ' + objPesos(FIJ) + ' + ganancia ' + objPesos(GAN) + ')' : '');
+  if (GAN > 0) {
+    document.getElementById('obj-unidades-titulo').textContent = 'GANANCIA DESEADA';
+    document.getElementById('obj-unidades').textContent = unidades.toLocaleString('es-AR');
+    document.getElementById('obj-unidades-sub').textContent =
+      'unidades en el mes (' + (unidades - equilibrio).toLocaleString('es-AR') + ' más que para cubrir los fijos)';
+    document.getElementById('obj-cuenta').textContent =
+      '(' + objPesos(FIJ) + ' + ' + objPesos(GAN) + ') ÷ ' + objPesos(MARGEN) + ' por unidad';
+  } else {
+    document.getElementById('obj-unidades-titulo').textContent = 'GANANCIA DESEADA';
+    document.getElementById('obj-unidades').textContent = '—';
+    document.getElementById('obj-unidades-sub').textContent = 'unidades en el mes';
+    document.getElementById('obj-cuenta').textContent = 'Poné una ganancia deseada arriba y te aparece acá';
+  }
 
   // Desglose para que el número sea manejable en el día a día
   const sem = document.getElementById('obj-semana');
