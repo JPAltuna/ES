@@ -683,6 +683,9 @@
     margin-bottom: -1px;
   }
   .subtab.on { color: var(--verde-oscuro); border-bottom-color: var(--verde); }
+  /* En pantallas angostas las solapas bajan a otra fila en vez de ensanchar la página */
+  .subtabs { flex-wrap: wrap; }
+  .subtab { white-space: nowrap; flex-shrink: 0; }
 
   /* Selector de métrica (segmentado) */
   .seg-metric {
@@ -876,6 +879,12 @@
     }
 
     .mobile-back.show { display: inline-flex; }
+
+    /* Que nada ensanche la página más que la pantalla */
+    .content { min-width: 0; }
+
+    /* El 💾 de "Ganancia deseada" no ocupa todo el ancho, así el campo se ve */
+    #obj-ganancia-btn { width: auto; flex: 0 0 auto; padding: 6px 14px; }
   }
 
   @media (max-width: 400px) {
@@ -1936,7 +1945,7 @@
             <div class="form-group" style="margin:0">
               <label>Ganancia deseada</label>
               <div style="display:flex;gap:0.4rem">
-                <input type="number" id="obj-ganancia" value="0" min="0" oninput="objCalcular()" style="flex:1;min-width:0" />
+                <input type="number" id="obj-ganancia" value="0" min="0" oninput="objCalcular(); objGuardarGanancia()" style="flex:1;min-width:0" />
                 <button type="button" class="btn-verde" id="obj-ganancia-btn" onclick="objGuardarGanancia()" title="Guardar la ganancia deseada" style="padding:6px 12px;white-space:nowrap">💾</button>
               </div>
             </div>
