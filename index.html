@@ -1950,7 +1950,7 @@
               </div>
             </div>
           </div>
-          <div id="obj-guardado" style="display:none;font-size:12px;color:var(--verde-oscuro);margin-top:0.5rem"></div>
+          <div id="obj-guardado" style="display:none;font-size:12px;color:var(--verde-oscuro);margin-top:0.5rem"><span id="obj-guardado-txt"></span><span id="obj-guardado-sheet" style="color:var(--texto-muted)"></span></div>
           <div style="font-size:11px;color:var(--texto-muted);margin-top:0.6rem;line-height:1.6">
             💡 <strong>$2.800 es el peor escenario</strong>: es lo que deja el ½ litro de kéfir de agua, el producto de menor margen.
             Vendiendo otros productos vas a llegar al equilibrio con menos unidades que las que dice acá.<br>
@@ -6230,9 +6230,58 @@ let objFijosManual = false;
 let objVendidasMes = null;   // unidades ya vendidas en el mes en curso
 let objGananciaMes = null;   // ganancia bruta real del mes en curso (precio - costo de lo vendido)
 
-// Ganancia deseada guardada en este dispositivo: queda fija (con las unidades
-// que daba al guardarla) hasta que se cambie el número y se vuelva a guardar.
+// Ganancia deseada: se guarda en la planilla (pestaña "Config") para que sea la
+// misma en el celu y en la compu. En el aparato queda una copia para mostrarla
+// al instante mientras se trae la de la planilla.
 const OBJ_GANANCIA_KEY = 'es_obj_ganancia';
+const CFG_TAB = 'Config';
+const CFG_GANANCIA = 'ganancia_deseada';
+let objSheetTimer = null;
+
+async function ensureConfigTab() {
+  if (await getSheetIdByTitle(CFG_TAB) !== null) return;
+  const token = await getAccessToken();
+  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.sheetId}:batchUpdate`, {
+    method:'POST', headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+    body: JSON.stringify({ requests:[{ addSheet:{ properties:{ title: CFG_TAB } } }] })
+  }).then(r => r.json());
+  if (res.error) throw new Error(res.error.message);
+  await sheetsUpdate(`${CFG_TAB}!A1:D1`, [['Clave','Valor','Unidades','Fecha']]);
+}
+
+// Escribe la ganancia en la planilla (actualiza su fila o la agrega)
+async function objGuardarGananciaSheet(g) {
+  const nota = document.getElementById('obj-guardado-sheet');
+  try {
+    await ensureConfigTab();
+    const filas = await sheetsGet(`${CFG_TAB}!A:D`);
+    const i = filas.findIndex(r => (r[0]||'').trim() === CFG_GANANCIA);
+    // Con apóstrofe para que la planilla lo guarde tal cual (sin formato de fecha ni miles)
+    const fila = [CFG_GANANCIA, "'" + g.ganancia, g.unidades === null ? '' : "'" + g.unidades, "'" + g.fecha];
+    if (i >= 0) await sheetsUpdate(`${CFG_TAB}!A${i+1}:D${i+1}`, [fila]);
+    else await sheetsAppend(`${CFG_TAB}!A:D`, [fila]);
+    if (nota) nota.textContent = ' · en todos los aparatos';
+  } catch(e) {
+    if (nota) nota.textContent = ' · solo en este aparato (no se pudo guardar en la planilla)';
+  }
+}
+
+// Trae la ganancia de la planilla; si hay una, manda sobre la del aparato
+async function objCargarGananciaSheet() {
+  try {
+    if (await getSheetIdByTitle(CFG_TAB) === null) return;
+    const fila = (await sheetsGet(`${CFG_TAB}!A:D`)).find(r => (r[0]||'').trim() === CFG_GANANCIA);
+    if (!fila) return;
+    const num = v => { const n = parseInt(String(v||'').replace(/\D/g, ''), 10); return isNaN(n) ? null : n; };
+    const g = { ganancia: num(fila[1]) || 0, unidades: num(fila[2]), fecha: String(fila[3]||'').trim() || new Date().toISOString().slice(0,10) };
+    try { localStorage.setItem(OBJ_GANANCIA_KEY, JSON.stringify(g)); } catch(e) {}
+    const inp = document.getElementById('obj-ganancia');
+    if (inp && document.activeElement !== inp) inp.value = g.ganancia;   // no pisar mientras escribe
+    objCalcular();
+    const nota = document.getElementById('obj-guardado-sheet');
+    if (nota) nota.textContent = ' · en todos los aparatos';
+  } catch(e) { /* sin conexión: queda la del aparato */ }
+}
 
 function objLeerGanancia() {
   try { return JSON.parse(localStorage.getItem(OBJ_GANANCIA_KEY)) || null; }
@@ -6250,6 +6299,11 @@ function objGuardarGanancia() {
   };
   try { localStorage.setItem(OBJ_GANANCIA_KEY, JSON.stringify(g)); } catch(e) {}
   objMostrarGuardado();
+  // A la planilla cuando deja de escribir un momento (no en cada tecla)
+  const nota = document.getElementById('obj-guardado-sheet');
+  if (nota) nota.textContent = ' · guardando…';
+  clearTimeout(objSheetTimer);
+  objSheetTimer = setTimeout(() => objGuardarGananciaSheet(g), 1200);
 }
 
 // Al cargar: pone la ganancia guardada en el campo
@@ -6271,10 +6325,10 @@ function objMostrarGuardado() {
   btn.textContent = igual ? '✓' : '💾';
   btn.title = igual ? 'Ganancia guardada' : 'Guardar la ganancia deseada';
   if (!g) { box.style.display = 'none'; return; }
-  const [a, m, d] = g.fecha.split('-');
+  const [a, m, d] = String(g.fecha || '').split('-');
   box.style.display = 'block';
   box.style.color = igual ? 'var(--verde-oscuro)' : 'var(--texto-muted)';
-  box.textContent = '✓ Guardado el ' + d + '/' + m + ': ganancia ' + objPesos(g.ganancia) +
+  document.getElementById('obj-guardado-txt').textContent = '✓ Guardado' + (d && m ? ' el ' + d + '/' + m : '') + ': ganancia ' + objPesos(g.ganancia) +
     (g.unidades !== null ? ' → ' + g.unidades.toLocaleString('es-AR') + ' unidades' : '') +
     (igual ? '' : '   (cambiaste el número: tocá 💾 para guardar el nuevo)');
 }
@@ -6414,6 +6468,7 @@ async function abrirCostosFijos() {
   await cargarFijosPorMes(true);
   cargarMesEnEditor(fijosMesSeleccionado);
   cargarUnidadesMes();   // avance real del mes, sin boton de por medio
+  objCargarGananciaSheet();   // la ganancia deseada guardada desde cualquier aparato
 }
 
 function cargarMesEnEditor(mes) {
@@ -7229,6 +7284,8 @@ function iniciarApp() {
   // Carga los costos desde la planilla (pestaña "Costos"); la crea y siembra la
   // primera vez. Así lo que Julia edite manda en todos los reportes.
   cargarCostosDesdeSheet();
+  // Ganancia deseada de Rentabilidad: la misma en el celu y en la compu
+  objCargarGananciaSheet();
   // Prolijidad: se asegura de que el historial de precios de venta tenga la fila
   // de títulos (antes no la tenía y "no se entendía").
   asegurarEncabezado('Historial_precios',
