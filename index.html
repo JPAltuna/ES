@@ -2443,6 +2443,26 @@
             </div>
             <div class="msg-success" id="cob-success">✓ Ventas marcadas como cobradas.</div>
             <div class="msg-error" id="cob-error"></div>
+
+            <!-- Pago parcial: el local paga una parte y se descuenta de lo que debe -->
+            <div style="border-top:1px dashed var(--borde);margin-top:1.25rem;padding-top:1.1rem">
+              <div style="font-size:14px;font-weight:600;margin-bottom:0.3rem">💵 Pagó una parte</div>
+              <div style="font-size:12px;color:var(--texto-muted);margin-bottom:0.8rem;line-height:1.5" id="cob-parcial-ayuda">
+                Poné cuánto pagó. Se descuenta de lo que debe, empezando por las entregas más viejas. Usa el medio y la fecha de arriba.
+              </div>
+              <div class="form-grid" style="max-width:300px">
+                <div class="form-group">
+                  <label>Monto que pagó</label>
+                  <input type="number" id="cob-parcial-monto" min="1" placeholder="0" />
+                </div>
+              </div>
+              <div class="btn-row" style="margin-top:0.8rem">
+                <button class="btn-verde" onclick="registrarPagoParcial()">💵 Descontar pago</button>
+                <div class="spinner" id="cob-parcial-spinner" style="display:none"></div>
+              </div>
+              <div class="msg-success" id="cob-parcial-success"></div>
+              <div class="msg-error" id="cob-parcial-error"></div>
+            </div>
           </div>
         </div>
 
@@ -3388,7 +3408,8 @@ function showPage(name, btn) {
   if (name === 'dashboard') { setFechas('dash-desde','dash-hasta'); cargarResumenMes(); }
   if (name === 'caja') cajaHoy();
   if (name === 'costos') abrirCostosFijos();
-  if (name === 'cobros') { setFechas('cob-desde','cob-hasta'); }
+  // Cobros arranca sin fechas: muestra todo lo que se debe, de cualquier mes
+  if (name === 'cobros') { document.getElementById('cob-desde').value = ''; document.getElementById('cob-hasta').value = ''; }
   if (name === 'precios') cargarPrecios();
   if (name === 'insumos') { cargarInsumos(); insTab('stock', document.querySelector('#ins-subtabs .subtab')); }
   if (name === 'an-insumos') cargarAnalisisInsumos();
@@ -4154,6 +4175,20 @@ async function cargarResumenMes() {
       return f && f.slice(0,7) === mes && PRODUCTOS_VALIDOS.includes((r[4]||'').trim());
     });
 
+    // Lo que quedó sin cobrar de meses anteriores (se muestra aparte)
+    let pendAnterior = 0;
+    const pendAntPorLocal = {};
+    ventasData.slice(1).forEach(r => {
+      const f = normFecha(r[0]);
+      if (!f || f >= desde || !PRODUCTOS_VALIDOS.includes((r[4]||'').trim())) return;
+      if ((r[10]||'').trim().toLowerCase() === 'cobrado') return;
+      let total = parseFloat(r[7]); if (isNaN(total)) total = (parseFloat(r[6])||0) * (parseFloat(r[5])||0);
+      if (!total) return;
+      pendAnterior += total;
+      const local = (r[3]||'—').trim() || '—';
+      pendAntPorLocal[local] = (pendAntPorLocal[local]||0) + total;
+    });
+
     await cargarFijosPorMes();
     const fijosMes = getFijosTotalMes(mes);
 
@@ -4202,7 +4237,10 @@ async function cargarResumenMes() {
     document.getElementById('dmes-unidades').textContent = totalUnidades;
     document.getElementById('dmes-unidades-sub').textContent = `${ventas.length} venta(s) cargadas`;
     document.getElementById('dmes-total').textContent = pesos(totalVenta);
-    document.getElementById('dmes-total-sub').textContent = pendiente > 0 ? `Pendiente de cobro: ${pesos(pendiente)}` : 'Todo cobrado ✓';
+    const mesNombre = mesStr(desde);
+    document.getElementById('dmes-total-sub').textContent =
+      (pendiente > 0 ? `Pendiente de ${mesNombre}: ${pesos(pendiente)}` : `${mesNombre.charAt(0).toUpperCase() + mesNombre.slice(1)} todo cobrado ✓`) +
+      (pendAnterior > 0 ? ` · de antes: ${pesos(pendAnterior)}` : '');
     document.getElementById('dmes-ganancia').textContent = pesos(totalGanancia);
     const netaEl = document.getElementById('dmes-neta');
     netaEl.textContent = pesos(ganNeta);
@@ -4228,12 +4266,26 @@ async function cargarResumenMes() {
 
     // Pendiente por local
     const pendBody = document.getElementById('dmes-pend-body');
-    const pendArr = Object.entries(pendPorLocal).sort((a,b)=>b[1]-a[1]);
-    pendBody.innerHTML = pendArr.length
-      ? pendArr.map(([loc,tot]) =>
-          `<div style="display:flex;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid var(--gris-claro);font-size:13.5px"><span>${loc}</span><strong style="color:var(--amarillo)">${pesos(tot)}</strong></div>`
-        ).join('') + `<div style="display:flex;justify-content:space-between;padding:0.6rem 0 0;font-weight:700;font-size:14px"><span>Total a cobrar</span><span style="color:var(--amarillo)">${pesos(pendiente)}</span></div>`
-      : `<div style="font-size:13px;color:var(--texto-muted)">✓ No queda nada pendiente de cobro este mes.</div>`;
+    // Cada local con lo de este mes y, aparte, lo que arrastra de meses anteriores
+    const locales = [...new Set([...Object.keys(pendPorLocal), ...Object.keys(pendAntPorLocal)])]
+      .map(loc => [loc, pendPorLocal[loc]||0, pendAntPorLocal[loc]||0])
+      .sort((a,b) => (b[1]+b[2]) - (a[1]+a[2]));
+    const detalle = (esteMes, antes) => {
+      const partes = [];
+      if (esteMes) partes.push(`${pesos(esteMes)} de ${mesNombre}`);
+      if (antes) partes.push(`<span style="color:var(--naranja)">${pesos(antes)} de antes</span>`);
+      return partes.join(' · ');
+    };
+    pendBody.innerHTML = locales.length
+      ? locales.map(([loc, esteMes, antes]) =>
+          `<div style="padding:0.45rem 0;border-bottom:1px solid var(--gris-claro);font-size:13.5px">
+            <div style="display:flex;justify-content:space-between"><span>${loc}</span><strong style="color:var(--amarillo)">${pesos(esteMes + antes)}</strong></div>
+            ${antes ? `<div style="font-size:11.5px;color:var(--texto-muted);text-align:right">${detalle(esteMes, antes)}</div>` : ''}
+          </div>`
+        ).join('') +
+        `<div style="display:flex;justify-content:space-between;padding:0.6rem 0 0;font-weight:700;font-size:14px"><span>Total a cobrar</span><span style="color:var(--amarillo)">${pesos(pendiente + pendAnterior)}</span></div>` +
+        (pendAnterior ? `<div style="font-size:11.5px;color:var(--texto-muted);text-align:right">${detalle(pendiente, pendAnterior)}</div>` : '')
+      : `<div style="font-size:13px;color:var(--texto-muted)">✓ No queda nada pendiente de cobro.</div>`;
 
     // Unidades por producto
     const tbody = document.getElementById('dmes-tabla-productos');
@@ -6862,7 +6914,7 @@ async function consultarCobros() {
       totalGeneral += total;
       tbody.innerHTML += `<tr>
         <td>${r[0]}</td><td style="font-weight:500">${r[3]||'—'}</td><td>${prod}</td><td>${cant}</td>
-        <td>${pesos(precio)}</td><td style="font-weight:500">${pesos(total)}</td>
+        <td>${pesos(precio)}</td><td style="font-weight:500">${pesos(total)}${total < precio * cant - 1 ? '<div style="font-size:11px;font-weight:400;color:var(--texto-muted)">lo que falta (ya pagó una parte)</div>' : ''}</td>
       </tr>`;
       if (!porProducto[prod]) porProducto[prod] = {cant:0, total:0};
       porProducto[prod].cant += cant;
@@ -6965,6 +7017,82 @@ async function marcarCobros() {
     document.getElementById('cob-mark-spinner').style.display = 'none';
     document.getElementById('cob-error').textContent = 'Error: ' + e.message;
     document.getElementById('cob-error').style.display = 'block';
+  }
+}
+
+// Pago parcial de un local: se aplica a sus entregas pendientes de la más vieja
+// a la más nueva. Las que quedan cubiertas enteras pasan a Cobrado; si la plata
+// alcanza para una parte de una entrega, esa fila se parte en dos: lo cobrado va
+// en una fila nueva (cantidad 0, para no contar unidades dos veces) y en la
+// original queda lo que falta, todavía Pendiente. Así la caja suma lo cobrado
+// con su medio y fecha, y el total vendido y las unidades no cambian.
+async function registrarPagoParcial() {
+  const errEl = document.getElementById('cob-parcial-error');
+  const okEl = document.getElementById('cob-parcial-success');
+  errEl.style.display = 'none'; okEl.style.display = 'none';
+  const localFiltro = document.getElementById('cob-local').value.trim();
+  const monto = Math.round(parseFloat(document.getElementById('cob-parcial-monto').value) || 0);
+  const pago = document.getElementById('cob-pago').value;
+  const fechaCobro = document.getElementById('cob-fecha-cobro').value;
+  const err = t => { errEl.textContent = t; errEl.style.display = 'block'; };
+  if (!localFiltro) return err('Elegí el local arriba (en "Local") y apretá "Ver pendientes", así sé de quién es el pago.');
+  if (monto <= 0) return err('Poné cuánto pagó.');
+  if (!fechaCobro) return err('Poné la fecha de cobro.');
+
+  document.getElementById('cob-parcial-spinner').style.display = 'block';
+  try {
+    // Se lee de nuevo la planilla: todo lo pendiente del local, sin filtro de fechas
+    const data = await sheetsGet('Ventas!A:K');
+    const loc = localFiltro.toLowerCase();
+    const pend = [];
+    data.slice(1).forEach((r, i) => {
+      const f = normFecha(r[0]);
+      if (!f || !PRODUCTOS_VALIDOS.includes((r[4]||'').trim())) return;
+      if ((r[3]||'').trim().toLowerCase() !== loc) return;
+      if ((r[10]||'').toLowerCase() === 'cobrado') return;
+      let total = parseFloat(r[7]); if (isNaN(total)) total = (parseFloat(r[6])||0) * (parseFloat(r[5])||0);
+      if (total <= 0) return;
+      pend.push({ r, fila: i + 2, f, total });
+    });
+    pend.sort((a, b) => a.f.localeCompare(b.f) || a.fila - b.fila);
+    const deuda = pend.reduce((s, p) => s + p.total, 0);
+    if (monto > deuda) {
+      document.getElementById('cob-parcial-spinner').style.display = 'none';
+      return err((pend[0] ? pend[0].r[3] : localFiltro) + ' debe ' + pesos(deuda) + ' en total. Si pagó todo, usá "Marcar todo como cobrado".');
+    }
+    const nombre = pend[0].r[3];
+    if (!confirm('Descontar ' + pesos(monto) + ' (' + pago + ') de lo que debe ' + nombre + '?\n\nDebe ' + pesos(deuda) + ' → queda ' + pesos(deuda - monto) + '.')) {
+      document.getElementById('cob-parcial-spinner').style.display = 'none';
+      return;
+    }
+
+    let resta = monto;
+    const nuevas = [];
+    for (const p of pend) {
+      if (resta <= 0) break;
+      if (p.total <= resta) {
+        await sheetsUpdate(`Ventas!I${p.fila}:K${p.fila}`, [[pago, fechaCobro, 'Cobrado']]);
+        resta -= p.total;
+      } else {
+        const r = p.r;
+        // La fila original queda con lo que falta (sigue Pendiente)
+        await sheetsUpdate(`Ventas!H${p.fila}`, [[Math.round(p.total - resta)]]);
+        // Lo cobrado, en una fila aparte con cantidad 0
+        nuevas.push([r[0], r[1]||'', r[2]||'', r[3]||'', r[4]||'', 0, r[6]||'', resta, pago, fechaCobro, 'Cobrado']);
+        resta = 0;
+      }
+    }
+    if (nuevas.length) await sheetsAppend('Ventas!A:K', nuevas);
+
+    document.getElementById('cob-parcial-spinner').style.display = 'none';
+    document.getElementById('cob-parcial-monto').value = '';
+    okEl.textContent = '✓ Pago de ' + pesos(monto) + ' descontado. ' + nombre + ' ahora debe ' + pesos(deuda - monto) + '.';
+    okEl.style.display = 'block';
+    await consultarCobros();
+    okEl.style.display = 'block';
+  } catch(e) {
+    document.getElementById('cob-parcial-spinner').style.display = 'none';
+    err('Error: ' + e.message);
   }
 }
 
