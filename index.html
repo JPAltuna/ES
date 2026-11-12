@@ -6403,7 +6403,7 @@ function objEstado(id, mostrar, objetivo, margen) {
   } else {
     el.style.color = 'var(--naranja)';
     const porU = objPromedioUnidad || margen;
-    el.textContent = 'Te faltan ' + objPesos(falta) + ' · ~' + Math.ceil(falta / porU).toLocaleString('es-AR') + ' unidades más' +
+    el.textContent = 'Te faltan ' + objPesos(falta) + ' · ' + Math.ceil(falta / porU).toLocaleString('es-AR') + ' unidades más' +
       (objPromedioUnidad ? ' a tu promedio' : '');
   }
 }
