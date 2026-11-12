@@ -6456,8 +6456,7 @@ function objCalcular() {
     if (!el) return;
     if (!mostrar || !prom || prom <= 0) { el.style.display = 'none'; return; }
     el.style.display = 'block';
-    el.innerHTML = 'A tu promedio real: <strong style="font-size:17px">' + Math.ceil(objetivo / prom).toLocaleString('es-AR') + '</strong> unidades' +
-      '<div style="font-size:11px;color:var(--texto-muted);margin-top:2px">a ' + objPesos(prom) + ' por unidad</div>';
+    el.innerHTML = 'A tu promedio real: <strong style="font-size:17px">' + Math.ceil(objetivo / prom).toLocaleString('es-AR') + '</strong> unidades';
   };
   lineaProm('obj-equilibrio-prom', true, FIJ);
   lineaProm('obj-unidades-prom', GAN > 0, meta);
