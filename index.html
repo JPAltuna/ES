@@ -2399,9 +2399,14 @@
               <div class="card-title" style="margin:0">Detalle de entregas pendientes</div>
               <button class="btn-outline" onclick="copiarCobro()">📋 Copiar para WhatsApp</button>
             </div>
+            <div style="font-size:12px;color:var(--texto-muted);margin:-0.4rem 0 0.6rem">
+              Tildá las que te pagaron ·
+              <a href="#" onclick="cobSelTodas(true);return false" style="color:var(--verde);font-weight:600">Todas</a> ·
+              <a href="#" onclick="cobSelTodas(false);return false" style="color:var(--verde);font-weight:600">Ninguna</a>
+            </div>
             <div class="table-wrapper">
               <table>
-                <thead><tr><th style="width:34px;text-align:center"><input type="checkbox" id="cob-sel-todas" checked onchange="cobSelTodas(this.checked)" title="Elegir todas" style="width:18px;height:18px;cursor:pointer" /></th><th>Fecha</th><th>Local</th><th>Producto</th><th>Cant.</th><th>Precio u.</th><th>Total</th></tr></thead>
+                <thead><tr><th style="width:34px"></th><th>Fecha</th><th>Local</th><th>Producto</th><th>Cant.</th><th>Precio u.</th><th>Total</th></tr></thead>
                 <tbody id="cob-tabla-body"></tbody>
               </table>
             </div>
@@ -6875,9 +6880,6 @@ function cobActualizarSel() {
   document.querySelectorAll('#cob-tabla-body .cob-fila').forEach(tr => {
     tr.style.opacity = tr.querySelector('.cob-sel').checked ? '1' : '0.45';
   });
-  const todas = document.getElementById('cob-sel-todas');
-  todas.checked = sel.length === n;
-  todas.indeterminate = sel.length > 0 && sel.length < n;
   const btn = document.getElementById('cob-mark-btn');
   const info = document.getElementById('cob-sel-info');
   btn.disabled = sel.length === 0;
@@ -6957,7 +6959,7 @@ async function consultarCobros() {
       totalGeneral += total;
       cobros_pendientes_totales.push(total);
       tbody.innerHTML += `<tr class="cob-fila" data-k="${k}" onclick="cobClickFila(event, this)" style="cursor:pointer">
-        <td style="text-align:center"><input type="checkbox" class="cob-sel" data-k="${k}" checked onchange="cobActualizarSel()" style="width:18px;height:18px;cursor:pointer" /></td>
+        <td style="text-align:center"><input type="checkbox" class="cob-sel" data-k="${k}" checked onchange="cobActualizarSel()" style="width:18px;height:18px;cursor:pointer;accent-color:var(--verde)" /></td>
         <td>${r[0]}</td><td style="font-weight:500">${r[3]||'—'}</td><td>${prod}</td><td>${cant}</td>
         <td>${pesos(precio)}</td><td style="font-weight:500">${pesos(total)}${total < precio * cant - 1 ? '<div style="font-size:11px;font-weight:400;color:var(--texto-muted)">lo que falta (ya pagó una parte)</div>' : ''}</td>
       </tr>`;
@@ -7022,7 +7024,6 @@ async function consultarCobros() {
 
     // Default fecha cobro
     document.getElementById('cob-fecha-cobro').value = hoy();
-    document.getElementById('cob-sel-todas').checked = true;
     cobActualizarSel();
     // "Pagó una parte" solo para los locales que pagan de a poco
     const parcial = document.getElementById('cob-parcial');
