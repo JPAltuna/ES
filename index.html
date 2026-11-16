@@ -9488,6 +9488,8 @@ function cobCargarClientes() {
       (LOCALES || []).forEach(l => { nombres[bcNorm(l.nombre)] = l.nombre; });
       (ventas || []).slice(1).forEach(r => {
         const nom = (r[3]||'').trim(); if (!nom) return;
+        // Los regalos no se cobran: esos nombres (ej. personas) no van en la lista
+        if ((r[2]||'').trim() === 'Regalo') return;
         const k = bcNorm(nom);
         if (!nombres[k]) nombres[k] = nom;
         if (!normFecha(r[0]) || !PRODUCTOS_VALIDOS.includes((r[4]||'').trim())) return;
