@@ -397,6 +397,8 @@
   .bc-item.activo { background: var(--verde-claro); }
   .bc-item.elegido { font-weight: 600; }
   .bc-item.gestion { color: var(--verde); font-weight: 600; }
+  .bc-item.con-nota { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; }
+  .bc-nota { font-size: 12px; color: var(--texto-muted); white-space: nowrap; font-weight: 400; }
   .bc-vacio { padding: 0.6rem 0.75rem; font-size: 13px; color: var(--texto-muted); }
   @media (max-width: 768px) {
     .form-group .bc-wrap input.bc-input { font-size: 16px; } /* evita el zoom del iPhone */
@@ -2405,11 +2407,7 @@
           <div class="form-grid">
             <div class="form-group">
               <label>Local (opcional — vacío = todos)</label>
-              <input type="text" id="cob-local" placeholder="Vacío para ver todos..." list="locales-list2" />
-              <datalist id="locales-list2">
-                <option value="Despen"><option value="Dicha"><option value="Chacra"><option value="Centro">
-                <option value="Marilina"><option value="Calma Chicha"><option value="arrebol">
-              </datalist>
+              <input type="text" id="cob-local" placeholder="Escribí unas letras o dejalo vacío para ver todos" />
             </div>
             <div class="form-group">
               <label>Desde (opcional)</label>
@@ -3448,7 +3446,7 @@ function showPage(name, btn) {
   if (name === 'caja') cajaHoy();
   if (name === 'costos') abrirCostosFijos();
   // Cobros arranca sin fechas: muestra todo lo que se debe, de cualquier mes
-  if (name === 'cobros') { document.getElementById('cob-desde').value = ''; document.getElementById('cob-hasta').value = ''; }
+  if (name === 'cobros') { document.getElementById('cob-desde').value = ''; document.getElementById('cob-hasta').value = ''; cobCargarClientes(); }
   if (name === 'precios') cargarPrecios();
   if (name === 'insumos') { cargarInsumos(); insTab('stock', document.querySelector('#ins-subtabs .subtab')); }
   if (name === 'an-insumos') cargarAnalisisInsumos();
@@ -6930,7 +6928,7 @@ function cobActualizarSel() {
 }
 
 async function consultarCobros() {
-  const local = document.getElementById('cob-local').value.trim().toLowerCase();
+  const local = bcNorm(document.getElementById('cob-local').value);
   const desde = document.getElementById('cob-desde').value;
   const hasta = document.getElementById('cob-hasta').value;
   // All filters are optional now
@@ -6947,7 +6945,7 @@ async function consultarCobros() {
     data.slice(1).forEach((r, i) => {
       const f = normFecha(r[0]);
       const prod = (r[4]||'').trim();
-      const localRow = (r[3]||'').trim().toLowerCase();
+      const localRow = bcNorm(r[3]);
       const estado = (r[10]||'').toLowerCase();
       if (!f || !PRODUCTOS_VALIDOS.includes(prod) || estado === 'cobrado') return;
       if (local && localRow !== local) return;
@@ -6961,7 +6959,7 @@ async function consultarCobros() {
     const envData = await sheetsGet('Envases!A:H');
     const envPend = envData.slice(1).filter(r => {
       const f = normFecha(r[0]);
-      const loc = (r[2]||'').trim().toLowerCase();
+      const loc = bcNorm(r[2]);
       if (!f) return false;
       if (local && loc !== local) return false;
       if (desde && f < desde) return false;
@@ -7031,7 +7029,7 @@ async function consultarCobros() {
 
     let wpp = '';
     if (local) {
-      const localNombre = local.charAt(0).toUpperCase()+local.slice(1);
+      const localNombre = ((cobros_pendientes_rows[0]||[])[3]||'').trim() || (local.charAt(0).toUpperCase()+local.slice(1));
       wpp += `🌿 *Hola ${localNombre}!*\n`;
       wpp += `Te paso el resumen pendiente (${periodoLabel}):\n\n`;
       Object.entries(porProducto).sort((a,b)=>ordenProducto(a[0])-ordenProducto(b[0])).forEach(([prod,d]) => {
@@ -9321,11 +9319,14 @@ function crearBuscador(el, cfg) {
         .map(o => ({ valor: o.value, texto: o.textContent.trim(), gestion: o.value === '__gestionar__' }));
     }
     const vistos = new Set(), res = [];
-    (cfg.fuente ? cfg.fuente() : []).forEach(n => {
-      n = String(n || '').trim(); const k = bcNorm(n);
-      if (n && !vistos.has(k)) { vistos.add(k); res.push({ valor: n, texto: n }); }
+    // cada entrada puede ser un nombre o {valor, nota, primero}
+    (cfg.fuente ? cfg.fuente() : []).forEach(e => {
+      const n = String((e && typeof e === 'object') ? e.valor : (e || '')).trim(); const k = bcNorm(n);
+      if (!n || vistos.has(k)) return;
+      vistos.add(k);
+      res.push({ valor: n, texto: n, nota: (e && e.nota) || '', primero: !!(e && e.primero) });
     });
-    return res.sort((a, b) => a.texto.localeCompare(b.texto));
+    return res.sort((a, b) => (b.primero - a.primero) || a.texto.localeCompare(b.texto));
   }
   function textoElegido() {
     if (!esSelect) return input.value;
@@ -9354,7 +9355,7 @@ function crearBuscador(el, cfg) {
     if (filtro) {
       // primero los que empiezan con lo escrito (o alguna palabra empieza así)
       const peso = o => { const n = bcNorm(o.texto); return n.startsWith(filtro) ? 0 : (n.includes(' ' + filtro) ? 1 : 2); };
-      coinciden = coinciden.slice().sort((a, b) => peso(a) - peso(b) || a.texto.localeCompare(b.texto));
+      coinciden = coinciden.slice().sort((a, b) => peso(a) - peso(b) || (!!b.primero - !!a.primero) || a.texto.localeCompare(b.texto));
     }
     items = coinciden.concat(todas.filter(o => o.gestion));
     activo = filtro && coinciden.length ? 0 : -1;
@@ -9365,8 +9366,9 @@ function crearBuscador(el, cfg) {
         : 'Todavía no hay clientes cargados') + '</div>';
     }
     html += items.map((o, i) =>
-      '<div class="bc-item' + (o.gestion ? ' gestion' : '') + (o.valor === actual ? ' elegido' : '') + (i === activo ? ' activo' : '') +
-      '" role="option" data-i="' + i + '">' + (o.gestion ? bcEsc(o.texto) : bcResaltar(o.texto, filtro)) + '</div>').join('');
+      '<div class="bc-item' + (o.gestion ? ' gestion' : '') + (o.nota ? ' con-nota' : '') + (o.valor === actual ? ' elegido' : '') + (i === activo ? ' activo' : '') +
+      '" role="option" data-i="' + i + '">' + (o.gestion ? bcEsc(o.texto) : '<span>' + bcResaltar(o.texto, filtro) + '</span>') +
+      (o.nota ? '<span class="bc-nota">' + bcEsc(o.nota) + '</span>' : '') + '</div>').join('');
     lista.innerHTML = html;
   }
   function marcarActivo(i) {
@@ -9428,6 +9430,7 @@ function crearBuscador(el, cfg) {
     else if (e.key === 'ArrowUp') { e.preventDefault(); if (abierta) marcarActivo(activo - 1); }
     else if (e.key === 'Enter') {
       if (abierta && activo >= 0 && items[activo]) { e.preventDefault(); elegir(items[activo]); }
+      else if (cfg.alEnter) { e.preventDefault(); cerrar(); input.blur(); cfg.alEnter(); }
     }
     else if (e.key === 'Escape') { if (abierta) { e.preventDefault(); cerrar(); } }
   });
@@ -9471,10 +9474,46 @@ function nombresClientesConocidos() {
     .concat((typeof ventasCache !== 'undefined' ? ventasCache : []).map(x => (x.r[3] || '').trim()));
 }
 
+// Clientes de Cobros: los de la pestaña Locales y los de las ventas, con lo que
+// debe cada uno (ventas sin cobrar). Los que deben aparecen primero.
+let COB_CLIENTES = [];   // [{valor, nota, primero}]
+let cobCargando = null;
+function cobCargarClientes() {
+  if (typeof CONFIG === 'undefined' || !CONFIG || !CONFIG.sheetId) return null;
+  if (cobCargando) return cobCargando;
+  cobCargando = (async () => {
+    try {
+      const [, ventas] = await Promise.all([cargarLocales().catch(() => {}), sheetsGet('Ventas!A:K')]);
+      const deuda = {}, nombres = {};
+      (LOCALES || []).forEach(l => { nombres[bcNorm(l.nombre)] = l.nombre; });
+      (ventas || []).slice(1).forEach(r => {
+        const nom = (r[3]||'').trim(); if (!nom) return;
+        const k = bcNorm(nom);
+        if (!nombres[k]) nombres[k] = nom;
+        if (!normFecha(r[0]) || !PRODUCTOS_VALIDOS.includes((r[4]||'').trim())) return;
+        if ((r[10]||'').toLowerCase() === 'cobrado') return;
+        let t = parseFloat(r[7]); if (isNaN(t)) t = (parseFloat(r[6])||0) * (parseFloat(r[5])||0);
+        deuda[k] = (deuda[k] || 0) + t;
+      });
+      COB_CLIENTES = Object.keys(nombres).map(k => {
+        const d = Math.round(deuda[k] || 0);
+        return { valor: nombres[k], nota: d > 0 ? 'debe ' + pesos(d) : '', primero: d > 0 };
+      });
+    } catch(e) { /* sin datos: el campo sigue andando escribiendo el nombre */ }
+    finally { cobCargando = null; }
+  })();
+  return cobCargando;
+}
+
 function iniciarBuscadoresClientes() {
   crearBuscador(document.getElementById('v-local'));
   crearBuscador(document.getElementById('ped-cliente'));
   crearBuscador(document.getElementById('vr-local'), { placeholder: 'Todos' });
+  crearBuscador(document.getElementById('cob-local'), {
+    fuente: () => COB_CLIENTES.length ? COB_CLIENTES : nombresClientesConocidos(),
+    alAbrir: () => COB_CLIENTES.length ? null : cobCargarClientes(),
+    alEnter: () => consultarCobros()
+  });
   crearBuscador(document.getElementById('ve-local'), {
     fuente: () => {
       const dl = document.getElementById('ve-locales-list');
