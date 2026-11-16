@@ -2401,7 +2401,7 @@
             </div>
             <div class="table-wrapper">
               <table>
-                <thead><tr><th>Fecha</th><th>Local</th><th>Producto</th><th>Cant.</th><th>Precio u.</th><th>Total</th></tr></thead>
+                <thead><tr><th style="width:34px;text-align:center"><input type="checkbox" id="cob-sel-todas" checked onchange="cobSelTodas(this.checked)" title="Elegir todas" style="width:18px;height:18px;cursor:pointer" /></th><th>Fecha</th><th>Local</th><th>Producto</th><th>Cant.</th><th>Precio u.</th><th>Total</th></tr></thead>
                 <tbody id="cob-tabla-body"></tbody>
               </table>
             </div>
@@ -2438,9 +2438,10 @@
               </div>
             </div>
             <div class="btn-row" style="margin-top:1rem">
-              <button class="btn-verde" onclick="marcarCobros()">✓ Marcar todo como cobrado</button>
+              <button class="btn-verde" id="cob-mark-btn" onclick="marcarCobros()">✓ Marcar todo como cobrado</button>
               <div class="spinner" id="cob-mark-spinner" style="display:none"></div>
             </div>
+            <div id="cob-sel-info" style="font-size:12px;color:var(--texto-muted);margin-top:0.5rem;line-height:1.5">Destildá en el detalle de arriba las entregas que todavía no te pagaron.</div>
             <div class="msg-success" id="cob-success">✓ Ventas marcadas como cobradas.</div>
             <div class="msg-error" id="cob-error"></div>
 
@@ -6851,6 +6852,47 @@ async function guardarIngresoExtra() {
 // =====================
 let cobros_pendientes_rows = [];
 let cobros_pendientes_indices = [];
+let cobros_pendientes_totales = [];
+
+// Casillas del detalle: se marcan como cobradas solo las entregas tildadas.
+function cobSeleccionadas() {
+  return [...document.querySelectorAll('#cob-tabla-body .cob-sel')].filter(c => c.checked).map(c => +c.dataset.k);
+}
+function cobSelTodas(v) {
+  document.querySelectorAll('#cob-tabla-body .cob-sel').forEach(c => c.checked = v);
+  cobActualizarSel();
+}
+function cobClickFila(ev, tr) {
+  if (ev.target.tagName === 'INPUT') return;
+  const c = tr.querySelector('.cob-sel');
+  c.checked = !c.checked;
+  cobActualizarSel();
+}
+function cobActualizarSel() {
+  const sel = cobSeleccionadas();
+  const n = cobros_pendientes_indices.length;
+  const total = sel.reduce((s, k) => s + (cobros_pendientes_totales[k] || 0), 0);
+  document.querySelectorAll('#cob-tabla-body .cob-fila').forEach(tr => {
+    tr.style.opacity = tr.querySelector('.cob-sel').checked ? '1' : '0.45';
+  });
+  const todas = document.getElementById('cob-sel-todas');
+  todas.checked = sel.length === n;
+  todas.indeterminate = sel.length > 0 && sel.length < n;
+  const btn = document.getElementById('cob-mark-btn');
+  const info = document.getElementById('cob-sel-info');
+  btn.disabled = sel.length === 0;
+  btn.style.opacity = sel.length ? '1' : '0.5';
+  if (sel.length === n) {
+    btn.textContent = '✓ Marcar todo como cobrado';
+    info.textContent = n > 1 ? 'Si te pagó solo algunas, destildá en el detalle de arriba las que todavía debe.' : '';
+  } else if (sel.length === 0) {
+    btn.textContent = '✓ Marcar como cobrado';
+    info.textContent = 'Tildá en el detalle de arriba las entregas que te pagaron.';
+  } else {
+    btn.textContent = `✓ Marcar ${sel.length} de ${n} como cobradas`;
+    info.innerHTML = `Seleccionadas: <strong style="color:var(--texto)">${sel.length} entregas · ${pesos(total)}</strong>. Las otras ${n - sel.length} siguen pendientes.`;
+  }
+}
 
 async function consultarCobros() {
   const local = document.getElementById('cob-local').value.trim().toLowerCase();
@@ -6906,13 +6948,16 @@ async function consultarCobros() {
     let totalGeneral = 0;
     const porProducto = {};
 
-    cobros_pendientes_rows.forEach(r => {
+    cobros_pendientes_totales = [];
+    cobros_pendientes_rows.forEach((r, k) => {
       const prod = (r[4]||'').trim();
       const cant = parseFloat(r[5])||0;
       const precio = parseFloat(r[6])||0;
       let total = parseFloat(r[7]); if(isNaN(total)) total = precio * cant;
       totalGeneral += total;
-      tbody.innerHTML += `<tr>
+      cobros_pendientes_totales.push(total);
+      tbody.innerHTML += `<tr class="cob-fila" data-k="${k}" onclick="cobClickFila(event, this)" style="cursor:pointer">
+        <td style="text-align:center"><input type="checkbox" class="cob-sel" data-k="${k}" checked onchange="cobActualizarSel()" style="width:18px;height:18px;cursor:pointer" /></td>
         <td>${r[0]}</td><td style="font-weight:500">${r[3]||'—'}</td><td>${prod}</td><td>${cant}</td>
         <td>${pesos(precio)}</td><td style="font-weight:500">${pesos(total)}${total < precio * cant - 1 ? '<div style="font-size:11px;font-weight:400;color:var(--texto-muted)">lo que falta (ya pagó una parte)</div>' : ''}</td>
       </tr>`;
@@ -6977,6 +7022,8 @@ async function consultarCobros() {
 
     // Default fecha cobro
     document.getElementById('cob-fecha-cobro').value = hoy();
+    document.getElementById('cob-sel-todas').checked = true;
+    cobActualizarSel();
     // "Pagó una parte" solo para los locales que pagan de a poco
     const parcial = document.getElementById('cob-parcial');
     if (parcial) parcial.style.display = LOCALES_PAGO_PARCIAL.includes(local) ? 'block' : 'none';
@@ -7000,6 +7047,10 @@ function copiarCobro() {
 
 async function marcarCobros() {
   if (!cobros_pendientes_indices.length) return;
+  const sel = cobSeleccionadas();
+  if (!sel.length) { alert('Tildá las entregas que te pagaron'); return; }
+  const filas = sel.map(k => cobros_pendientes_indices[k]);
+  const parcialSel = sel.length < cobros_pendientes_indices.length;
   const pago = document.getElementById('cob-pago').value;
   const fechaCobro = document.getElementById('cob-fecha-cobro').value;
   if (!fechaCobro) { alert('Ingresá la fecha de cobro'); return; }
@@ -7007,15 +7058,22 @@ async function marcarCobros() {
   document.getElementById('cob-mark-spinner').style.display = 'block';
   try {
     // Update each row individually
-    for (const idx of cobros_pendientes_indices) {
+    for (const idx of filas) {
       await sheetsUpdate(`Ventas!I${idx}:K${idx}`, [[pago, fechaCobro, 'Cobrado']]);
     }
     document.getElementById('cob-mark-spinner').style.display = 'none';
-    document.getElementById('cob-success').style.display = 'block';
-    setTimeout(() => document.getElementById('cob-success').style.display = 'none', 3000);
-    cobros_pendientes_rows = [];
-    cobros_pendientes_indices = [];
-    document.getElementById('cob-content').style.display = 'none';
+    const ok = document.getElementById('cob-success');
+    ok.textContent = filas.length === 1 ? '✓ 1 entrega marcada como cobrada.' : `✓ ${filas.length} entregas marcadas como cobradas.`;
+    if (parcialSel) {
+      // Quedan pendientes: se vuelve a cargar la lista con lo que falta
+      await consultarCobros();
+    } else {
+      cobros_pendientes_rows = [];
+      cobros_pendientes_indices = [];
+      document.getElementById('cob-content').style.display = 'none';
+    }
+    ok.style.display = 'block';
+    setTimeout(() => ok.style.display = 'none', 3000);
   } catch(e) {
     document.getElementById('cob-mark-spinner').style.display = 'none';
     document.getElementById('cob-error').textContent = 'Error: ' + e.message;
