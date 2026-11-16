@@ -338,6 +338,23 @@
     margin-bottom: 1rem;
   }
 
+  /* Buscador de clientes con sugerencias (Cobros) */
+  .ac-wrap { position: relative; }
+  .ac-lista {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 60;
+    background: var(--bg); border: 1px solid var(--borde); border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12); max-height: 280px; overflow-y: auto;
+  }
+  .ac-item {
+    display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;
+    padding: 0.7rem 0.9rem; font-size: 15px; cursor: pointer; border-bottom: 1px solid var(--bg-sec);
+  }
+  .ac-item:last-child { border-bottom: none; }
+  .ac-item:hover, .ac-item.activo { background: var(--bg-sec); }
+  .ac-item b { color: var(--verde); font-weight: 600; }
+  .ac-deuda { font-size: 12px; color: var(--texto-muted); white-space: nowrap; }
+  .ac-vacio { padding: 0.7rem 0.9rem; font-size: 13px; color: var(--texto-muted); }
+
   .form-group {
     display: flex;
     flex-direction: column;
@@ -2372,11 +2389,11 @@
           <div class="form-grid">
             <div class="form-group">
               <label>Local (opcional — vacío = todos)</label>
-              <input type="text" id="cob-local" placeholder="Vacío para ver todos..." list="locales-list2" />
-              <datalist id="locales-list2">
-                <option value="Despen"><option value="Dicha"><option value="Chacra"><option value="Centro">
-                <option value="Marilina"><option value="Calma Chicha"><option value="arrebol">
-              </datalist>
+              <div class="ac-wrap">
+                <input type="text" id="cob-local" placeholder="Escribí unas letras o dejalo vacío para ver todos" autocomplete="off"
+                  oninput="cobAcMostrar()" onfocus="cobAcMostrar()" onkeydown="cobAcTecla(event)" onblur="setTimeout(cobAcCerrar, 150)" />
+                <div class="ac-lista" id="cob-local-lista" style="display:none"></div>
+              </div>
             </div>
             <div class="form-group">
               <label>Desde (opcional)</label>
@@ -3409,7 +3426,7 @@ function showPage(name, btn) {
   if (name === 'caja') cajaHoy();
   if (name === 'costos') abrirCostosFijos();
   // Cobros arranca sin fechas: muestra todo lo que se debe, de cualquier mes
-  if (name === 'cobros') { document.getElementById('cob-desde').value = ''; document.getElementById('cob-hasta').value = ''; }
+  if (name === 'cobros') { document.getElementById('cob-desde').value = ''; document.getElementById('cob-hasta').value = ''; cobAcCargar(); }
   if (name === 'precios') cargarPrecios();
   if (name === 'insumos') { cargarInsumos(); insTab('stock', document.querySelector('#ins-subtabs .subtab')); }
   if (name === 'an-insumos') cargarAnalisisInsumos();
@@ -6852,8 +6869,87 @@ async function guardarIngresoExtra() {
 let cobros_pendientes_rows = [];
 let cobros_pendientes_indices = [];
 
+// ---- Buscador de clientes de Cobros ----
+// Junta los nombres de la pestaña Locales y de las ventas, con lo que debe cada
+// uno. Al escribir filtra sin importar mayúsculas ni tildes, por cualquier parte
+// del nombre ("natu" encuentra "Almacén Natural"). Los que deben van primero.
+let COB_AC_CLIENTES = [];   // [{nombre, deuda}]
+let cobAcActivo = -1;
+function sinTildes(t) { return String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim(); }
+
+async function cobAcCargar() {
+  try {
+    const [, ventas] = await Promise.all([cargarLocales().catch(() => {}), sheetsGet('Ventas!A:K')]);
+    const deuda = {}, nombres = {};
+    (LOCALES || []).forEach(l => { nombres[sinTildes(l.nombre)] = l.nombre; });
+    (ventas || []).slice(1).forEach(r => {
+      const nom = (r[3]||'').trim(); if (!nom) return;
+      const k = sinTildes(nom);
+      if (!nombres[k]) nombres[k] = nom;
+      if (!normFecha(r[0]) || !PRODUCTOS_VALIDOS.includes((r[4]||'').trim())) return;
+      if ((r[10]||'').toLowerCase() === 'cobrado') return;
+      let t = parseFloat(r[7]); if (isNaN(t)) t = (parseFloat(r[6])||0) * (parseFloat(r[5])||0);
+      deuda[k] = (deuda[k] || 0) + t;
+    });
+    COB_AC_CLIENTES = Object.keys(nombres).map(k => ({ nombre: nombres[k], deuda: Math.round(deuda[k] || 0) }))
+      .sort((a, b) => ((b.deuda > 0) - (a.deuda > 0)) || a.nombre.localeCompare(b.nombre));
+    if (document.activeElement && document.activeElement.id === 'cob-local') cobAcMostrar();
+  } catch(e) { /* sin datos: el campo sigue funcionando escribiendo el nombre */ }
+}
+
+function cobAcMostrar() {
+  const inp = document.getElementById('cob-local');
+  const lista = document.getElementById('cob-local-lista');
+  const q = sinTildes(inp.value);
+  const palabras = q.split(/\s+/).filter(Boolean);
+  const res = COB_AC_CLIENTES.filter(c => { const n = sinTildes(c.nombre); return palabras.every(w => n.includes(w)); });
+  cobAcActivo = -1;
+  if (!COB_AC_CLIENTES.length) { lista.style.display = 'none'; return; }
+  if (!res.length) {
+    lista.innerHTML = '<div class="ac-vacio">No hay ningún cliente con ese nombre</div>';
+    lista.style.display = 'block'; return;
+  }
+  // Exactamente lo que ya está escrito: no hace falta sugerir
+  if (res.length === 1 && sinTildes(res[0].nombre) === q) { lista.style.display = 'none'; return; }
+  const marcar = nombre => {
+    if (!palabras.length) return nombre;
+    // Resalta la primera coincidencia de la primera palabra
+    const i = sinTildes(nombre).indexOf(palabras[0]);
+    if (i < 0) return nombre;
+    return nombre.slice(0, i) + '<b>' + nombre.slice(i, i + palabras[0].length) + '</b>' + nombre.slice(i + palabras[0].length);
+  };
+  lista.innerHTML = res.map((c, i) => `<div class="ac-item" data-i="${i}" onmousedown="event.preventDefault()" onclick="cobAcElegir('${escAttr(c.nombre).replace(/'/g, "\\'")}')">
+      <span>${marcar(c.nombre)}</span>${c.deuda > 0 ? `<span class="ac-deuda">debe ${pesos(c.deuda)}</span>` : ''}</div>`).join('');
+  lista.style.display = 'block';
+}
+
+function cobAcElegir(nombre) {
+  document.getElementById('cob-local').value = nombre;
+  cobAcCerrar();
+}
+function cobAcCerrar() { document.getElementById('cob-local-lista').style.display = 'none'; cobAcActivo = -1; }
+
+function cobAcTecla(ev) {
+  const lista = document.getElementById('cob-local-lista');
+  const items = [...lista.querySelectorAll('.ac-item')];
+  if (ev.key === 'Escape') return cobAcCerrar();
+  if (ev.key === 'Enter') {
+    ev.preventDefault();
+    if (lista.style.display !== 'none' && items.length) {
+      const it = items[cobAcActivo >= 0 ? cobAcActivo : 0];
+      cobAcElegir(it.querySelector('span').textContent);
+    } else { cobAcCerrar(); consultarCobros(); }
+    return;
+  }
+  if (!items.length || (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp')) return;
+  ev.preventDefault();
+  cobAcActivo = (cobAcActivo + (ev.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+  items.forEach((it, i) => it.classList.toggle('activo', i === cobAcActivo));
+  items[cobAcActivo].scrollIntoView({ block: 'nearest' });
+}
+
 async function consultarCobros() {
-  const local = document.getElementById('cob-local').value.trim().toLowerCase();
+  const local = sinTildes(document.getElementById('cob-local').value);
   const desde = document.getElementById('cob-desde').value;
   const hasta = document.getElementById('cob-hasta').value;
   // All filters are optional now
@@ -6870,7 +6966,7 @@ async function consultarCobros() {
     data.slice(1).forEach((r, i) => {
       const f = normFecha(r[0]);
       const prod = (r[4]||'').trim();
-      const localRow = (r[3]||'').trim().toLowerCase();
+      const localRow = sinTildes(r[3]);
       const estado = (r[10]||'').toLowerCase();
       if (!f || !PRODUCTOS_VALIDOS.includes(prod) || estado === 'cobrado') return;
       if (local && localRow !== local) return;
@@ -6884,7 +6980,7 @@ async function consultarCobros() {
     const envData = await sheetsGet('Envases!A:H');
     const envPend = envData.slice(1).filter(r => {
       const f = normFecha(r[0]);
-      const loc = (r[2]||'').trim().toLowerCase();
+      const loc = sinTildes(r[2]);
       if (!f) return false;
       if (local && loc !== local) return false;
       if (desde && f < desde) return false;
@@ -6951,7 +7047,7 @@ async function consultarCobros() {
 
     let wpp = '';
     if (local) {
-      const localNombre = local.charAt(0).toUpperCase()+local.slice(1);
+      const localNombre = (cobros_pendientes_rows[0][3]||'').trim() || (local.charAt(0).toUpperCase()+local.slice(1));
       wpp += `🌿 *Hola ${localNombre}!*\n`;
       wpp += `Te paso el resumen pendiente (${periodoLabel}):\n\n`;
       Object.entries(porProducto).sort((a,b)=>ordenProducto(a[0])-ordenProducto(b[0])).forEach(([prod,d]) => {
